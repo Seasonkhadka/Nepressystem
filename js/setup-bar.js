@@ -56,7 +56,11 @@ function initSetupBar(){
   el("input-name").addEventListener("input", function(){ STATE.meta.name = el("input-name").value; saveState(); });
   el("input-subtitle").addEventListener("input", function(){ STATE.meta.subtitle = el("input-subtitle").value; saveState(); });
   el("btn-clear-all").addEventListener("click", function(){
-    var ok = window.confirm("This clears every ingredient, every daily entry, and your overhead settings. This can't be undone. Continue?");
+    var msg = "This clears every ingredient, every daily entry, and your overhead settings. This can't be undone.";
+    if (typeof cloudUser !== "undefined" && cloudUser){
+      msg += " It will also clear the copy saved to your Google account.";
+    }
+    var ok = window.confirm(msg + " Continue?");
     if (!ok) return;
     try { localStorage.removeItem(STORAGE_KEY); } catch(e){}
     STATE = defaultState();

@@ -58,6 +58,6 @@ function renderInstructions(){
 
   '<section class="card">'+
     '<h2>Your data</h2>'+
-    '<p class="note">Everything you type is saved automatically to this browser\'s local storage as you go — it stays on this device and is never sent anywhere. Use <b>Clear all data</b> in the bar above the tabs to wipe it and start over.</p>'+
+    '<p class="note">Everything you type is saved on this device as you go. Click <b>Sign in with Google</b> in the header to keep the same numbers on every phone and laptop — only you can see your copy. Without signing in, nothing leaves this browser. Use <b>Clear all data</b> in the bar above the tabs to wipe it and start over.</p>'+
   '</section>';
 }

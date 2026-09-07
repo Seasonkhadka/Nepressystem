@@ -17,6 +17,13 @@ function refreshDerived(){
   renderDashboard(model);
 }
 
+function rerenderAllFromState(){
+  populateSetupBar();
+  renderRawMaterialsTab();
+  renderDailyTab();
+  refreshDerived();
+}
+
 renderInstructions();
 initSetupBar();
 renderRawMaterialsTab();
@@ -25,3 +32,4 @@ initRawEvents();
 initDailyEvents();
 refreshDerived();
 initTabs();
+initCloud();

@@ -76,7 +76,25 @@
   .subtitle-input{ display:block; width:100%; margin-top:4px; background:transparent; border:none; border-bottom:1.5px dashed transparent; color:var(--accent-ink); opacity:0.92; font-size:13.5px; font-family:inherit; padding:2px 0; }
   .subtitle-input::placeholder{ color:rgba(255,255,255,0.6); }
   .subtitle-input:hover, .subtitle-input:focus{ border-bottom-color:rgba(255,255,255,0.4); outline:none; }
+  .topbar-aside{ display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
   .topbar .currency-note{ color:var(--accent-ink); opacity:0.85; font-size:12.5px; white-space:nowrap; }
+  .auth-bar{ display:flex; align-items:center; justify-content:flex-end; min-height:36px; }
+  .auth-bar [hidden]{ display:none !important; }
+  .google-btn{ appearance:none; display:inline-flex; align-items:center; gap:8px; background:#fff; color:#1f1f1f; border:none; border-radius:8px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.12); }
+  .google-btn:hover{ background:#f7f7f7; }
+  .google-btn:disabled{ opacity:0.65; cursor:wait; }
+  .google-icon{ width:18px; height:18px; display:block; }
+  .auth-user{ display:flex; align-items:center; gap:10px; color:var(--accent-ink); max-width:min(100%, 320px); }
+  .auth-photo{ width:28px; height:28px; border-radius:50%; object-fit:cover; background:rgba(255,255,255,0.25); flex:none; }
+  .auth-meta{ min-width:0; }
+  .auth-name{ font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .auth-status{ font-size:11px; opacity:0.82; line-height:1.3; }
+  .sign-out-btn{ appearance:none; flex:none; border:1px solid rgba(255,255,255,0.45); background:transparent; color:var(--accent-ink); font-size:12px; font-weight:600; padding:6px 10px; border-radius:8px; cursor:pointer; }
+  .sign-out-btn:hover{ background:rgba(255,255,255,0.12); }
+  @media (max-width:640px){
+    .topbar-aside{ align-items:flex-start; width:100%; }
+    .auth-user{ max-width:100%; }
+  }
 
   .setup-bar{ display:flex; flex-wrap:wrap; gap:16px 26px; align-items:flex-end; padding:14px 20px; background:var(--surface); border:1px solid var(--hairline); border-radius:12px; box-shadow:var(--shadow); margin-bottom:18px; }
   .setup-field{ display:flex; flex-direction:column; gap:4px; }

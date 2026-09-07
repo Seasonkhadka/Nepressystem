@@ -59,22 +59,57 @@ function defaultState(){
   };
 }
 
+function normalizeParsedState(parsed){
+  if (!parsed || !parsed.days || !parsed.ingredients) return defaultState();
+  var maxId = 0;
+  parsed.ingredients.forEach(function(i){ if (i && i.id > maxId) maxId = i.id; });
+  nextIngId = maxId + 1;
+  parsed.ingredients = parsed.ingredients.map(migrateIngredient);
+  if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
+  return parsed;
+}
+
 function loadState(){
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    var parsed = JSON.parse(raw);
-    if (!parsed || !parsed.days || !parsed.ingredients) return defaultState();
-    var maxId = 0;
-    parsed.ingredients.forEach(function(i){ if (i.id > maxId) maxId = i.id; });
-    nextIngId = maxId + 1;
-    parsed.ingredients = parsed.ingredients.map(migrateIngredient);
-    return parsed;
+    return normalizeParsedState(JSON.parse(raw));
   } catch(e){ return defaultState(); }
+}
+
+function replaceState(parsed){
+  STATE = normalizeParsedState(parsed);
+}
+
+function stateHasUserData(s){
+  s = s || STATE;
+  if (!s) return false;
+  if (s.meta && String(s.meta.name || "").trim()) return true;
+  if (s.meta && String(s.meta.subtitle || "").trim()) return true;
+  if ((Number(s.overheadFixedMonthly) || 0) > 0) return true;
+  if ((Number(s.overheadVariableRate) || 0) > 0) return true;
+  if (s.ingredients && s.ingredients.some(function(i){
+    return String(i.name || "").trim() || (Number(i.amount) || 0) > 0;
+  })) return true;
+  if (s.days){
+    var keys = Object.keys(s.days);
+    for (var i = 0; i < keys.length; i++){
+      var d = s.days[keys[i]];
+      if (!d) continue;
+      if (d.vacation) return true;
+      if ((Number(d.sales) || 0) > 0 || (Number(d.labor) || 0) > 0 || (Number(d.cogsPct) || 0) > 0) return true;
+    }
+  }
+  return false;
+}
+
+function statesDiffer(a, b){
+  try { return JSON.stringify(a) !== JSON.stringify(b); } catch(e){ return true; }
 }
 
 function saveState(){
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch(e){}
+  if (typeof scheduleCloudSave === "function") scheduleCloudSave();
 }
 
 var STATE = loadState();
