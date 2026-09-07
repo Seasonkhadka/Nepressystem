@@ -1,0 +1,95 @@
+/**
+ * components/daily.js — Daily Calculation tab: one editable row per day of
+ * the selected month, auto-tagged Weekday/Weekend, with a manual Vacation
+ * checkbox that overrides the auto tag.
+ *
+ * Depends on: dom-utils.js (el), format.js, data.js (MONTH_ABBR, DOW_NAMES,
+ * TAG_META), state.js (STATE), compute.js (dowOf, computeAll).
+ */
+
+function dayRowHtml(day, isWeekendAuto){
+  var raw = STATE.days[day];
+  var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
+  var tagMeta = TAG_META[tag];
+  return '<tr class="'+tag+'" data-day="'+day+'" data-weekend-auto="'+(isWeekendAuto?"1":"0")+'">'+
+    '<td>'+MONTH_ABBR[STATE.month-1]+' '+day+'</td>'+
+    '<td>'+DOW_NAMES[dowOf(STATE.year,STATE.month,day)]+'</td>'+
+    '<td><label class="vac-toggle"><input type="checkbox" data-field="vacation" '+(raw.vacation?"checked":"")+'><span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span></label></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="1000" data-field="sales" placeholder="0" value="'+(raw.sales?raw.sales:"")+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="0.1" data-field="cogsPct" placeholder="0.0" value="'+(raw.cogsPct?raw.cogsPct:"")+'"></td>'+
+    '<td class="tnum calc" data-calc="cogsAmt">₩0</td>'+
+    '<td><input class="cell-input" type="number" min="0" step="1000" data-field="labor" placeholder="0" value="'+(raw.labor?raw.labor:"")+'"></td>'+
+    '<td class="tnum calc" data-calc="laborPct">0.0%</td>'+
+    '<td class="tnum calc" data-calc="overhead">₩0</td>'+
+    '<td class="tnum calc" data-calc="overheadPct">0.0%</td>'+
+    '<td class="tnum calc" data-calc="grossProfit">₩0</td>'+
+    '<td class="tnum calc" data-calc="netProfit">₩0</td>'+
+    '<td class="tnum calc" data-calc="netMarginPct">0.0%</td>'+
+  '</tr>';
+}
+
+function renderDailyTab(){
+  var dayNums = Object.keys(STATE.days).map(Number).sort(function(a,b){ return a-b; });
+  var rows = dayNums.map(function(day){
+    var isWeekendAuto = [0,6].indexOf(dowOf(STATE.year,STATE.month,day)) > -1;
+    return dayRowHtml(day, isWeekendAuto);
+  }).join("");
+
+  el("tab-daily").innerHTML =
+    '<section class="card">'+
+      '<h2>Daily calculation — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
+      '<p class="lede">Every date is auto-tagged from the calendar. Check the Vacation box on any row to shade it as a closure/holiday instead.</p>'+
+      '<div class="legend">'+
+        '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
+      '</div>'+
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales</th><th>COGS %</th><th>COGS</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<tbody id="daily-tbody">'+rows+'</tbody>'+
+      '<tfoot><tr><td colspan="3">Month total</td>'+
+        '<td class="tnum" data-foot="sales">₩0</td>'+
+        '<td class="tnum" data-foot="cogsPct">0.0%</td>'+
+        '<td class="tnum" data-foot="cogsAmt">₩0</td>'+
+        '<td class="tnum" data-foot="labor">₩0</td>'+
+        '<td class="tnum" data-foot="laborPct">0.0%</td>'+
+        '<td class="tnum" data-foot="overhead">₩0</td>'+
+        '<td class="tnum" data-foot="overheadPct">0.0%</td>'+
+        '<td class="tnum" data-foot="grossProfit">₩0</td>'+
+        '<td class="tnum" data-foot="netProfit">₩0</td>'+
+        '<td class="tnum" data-foot="netMarginPct">0.0%</td></tr></tfoot>'+
+      '</table></div>'+
+    '</section>';
+  refreshDailyComputedCells(computeAll());
+}
+
+function refreshDailyComputedCells(model){
+  model.daily.forEach(function(d){
+    var tr = el("tab-daily").querySelector('tr[data-day="'+d.day+'"]');
+    if (!tr) return;
+    tr.className = d.tag;
+    tr.querySelector('[data-calc="cogsAmt"]').textContent = won(d.cogsAmt);
+    tr.querySelector('[data-calc="laborPct"]').textContent = pct(d.laborPct);
+    tr.querySelector('[data-calc="overhead"]').textContent = won(d.overhead);
+    tr.querySelector('[data-calc="overheadPct"]').textContent = pct(d.overheadPct);
+    tr.querySelector('[data-calc="grossProfit"]').textContent = won(d.grossProfit);
+    var np = tr.querySelector('[data-calc="netProfit"]');
+    np.textContent = signedWon(d.netProfit);
+    np.style.color = d.netProfit<0 ? "var(--critical)" : "inherit";
+    np.style.fontWeight = "700";
+    tr.querySelector('[data-calc="netMarginPct"]').textContent = signedPct(d.netMarginPct);
+    var badge = tr.querySelector('[data-tag-badge]');
+    if (badge){ badge.className = "tag "+d.tag; badge.textContent = TAG_META[d.tag].label; }
+  });
+  var m = model.monthly;
+  var foot = function(k, txt){ var e = el("tab-daily").querySelector('[data-foot="'+k+'"]'); if (e) e.textContent = txt; };
+  foot("sales", won(m.sales));
+  foot("cogsPct", pct(m.cogsPct));
+  foot("cogsAmt", won(m.cogsAmt));
+  foot("labor", won(m.labor));
+  foot("laborPct", pct(m.laborPct));
+  foot("overhead", won(m.overhead));
+  foot("overheadPct", pct(m.overheadPct));
+  foot("grossProfit", won(m.grossProfit));
+  foot("netProfit", won(m.netProfit));
+  foot("netMarginPct", pct(m.netMarginPct));
+}

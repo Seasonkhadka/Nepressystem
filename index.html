@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restaurant P&amp;L Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <p class="eyebrow">Restaurant P&amp;L Calculator</p>
+      <input class="name-input" id="input-name" type="text" placeholder="Your Restaurant Name" maxlength="60">
+      <input class="subtitle-input" id="input-subtitle" type="text" placeholder="A short description — cuisine, location, seats…" maxlength="120">
+    </div>
+    <div class="currency-note">All figures in ₩ (KRW)</div>
+  </header>
+
+  <div class="setup-bar" id="setup-bar">
+    <div class="setup-field">
+      <label for="input-month">Month</label>
+      <div class="row">
+        <select class="field-input" id="input-month"></select>
+        <input class="field-input year" id="input-year" type="number" min="2000" max="2100" step="1">
+      </div>
+    </div>
+    <div class="setup-field">
+      <label for="input-overhead-fixed">Fixed Overhead / month</label>
+      <input class="field-input" id="input-overhead-fixed" type="number" min="0" step="10000" placeholder="0">
+    </div>
+    <div class="setup-field">
+      <label for="input-overhead-var">Variable Overhead %</label>
+      <input class="field-input" id="input-overhead-var" type="number" min="0" step="0.5" placeholder="0.0">
+    </div>
+    <div class="setup-spacer"></div>
+    <button class="clear-btn" id="btn-clear-all" type="button">Clear all data</button>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Calculator sections">
+    <button role="tab" data-tab="instructions" aria-selected="true">Instructions</button>
+    <button role="tab" data-tab="dashboard" aria-selected="false">Main Dashboard</button>
+    <button role="tab" data-tab="raw" aria-selected="false">Raw Materials</button>
+    <button role="tab" data-tab="daily" aria-selected="false">Daily Calculation</button>
+    <button role="tab" data-tab="weekly" aria-selected="false">Weekly Calculation</button>
+    <button role="tab" data-tab="monthly" aria-selected="false">Monthly Calculation</button>
+  </nav>
+
+  <main>
+    <section id="tab-instructions" class="panel active" role="tabpanel"></section>
+    <section id="tab-dashboard" class="panel" role="tabpanel"></section>
+    <section id="tab-raw" class="panel" role="tabpanel"></section>
+    <section id="tab-daily" class="panel" role="tabpanel"></section>
+    <section id="tab-weekly" class="panel" role="tabpanel"></section>
+    <section id="tab-monthly" class="panel" role="tabpanel"></section>
+  </main>
+
+  <footer class="meta">
+    <div>Every number on this page is yours to enter — nothing is pre-filled. Saved automatically in this browser (localStorage) as you type.</div>
+  </footer>
+</div>
+
+<!-- Data & utilities (no dependencies) -->
+<script src="js/data.js"></script>
+<script src="js/dom-utils.js"></script>
+<script src="js/format.js"></script>
+
+<!-- App state, calculations, charts -->
+<script src="js/state.js"></script>
+<script src="js/compute.js"></script>
+<script src="js/charts.js"></script>
+
+<!-- One tab = one component -->
+<script src="js/components/instructions.js"></script>
+<script src="js/components/dashboard.js"></script>
+<script src="js/components/raw-materials.js"></script>
+<script src="js/components/daily.js"></script>
+<script src="js/components/weekly.js"></script>
+<script src="js/components/monthly.js"></script>
+
+<!-- Setup bar, event wiring, entry point -->
+<script src="js/setup-bar.js"></script>
+<script src="js/events.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
