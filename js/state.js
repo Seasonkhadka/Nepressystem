@@ -60,7 +60,8 @@ function defaultState(){
 }
 
 function normalizeParsedState(parsed){
-  if (!parsed || !parsed.days || !parsed.ingredients) return defaultState();
+  if (!parsed || !parsed.days || typeof parsed.days !== "object") return defaultState();
+  if (!Array.isArray(parsed.ingredients)) return defaultState();
   var maxId = 0;
   parsed.ingredients.forEach(function(i){ if (i && i.id > maxId) maxId = i.id; });
   nextIngId = maxId + 1;

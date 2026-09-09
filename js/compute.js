@@ -67,7 +67,7 @@ function computeAll(){
   var dayNums = Object.keys(STATE.days).map(Number).sort(function(a,b){ return a-b; });
 
   var daily = dayNums.map(function(day){
-    var raw = STATE.days[day];
+    var raw = STATE.days[day] || { vacation:false, sales:0, cogsPct:0, labor:0 };
     var isWeekendAuto = [0,6].indexOf(dowOf(year, month, day)) > -1;
     var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
     var sales = Number(raw.sales)||0;
@@ -109,7 +109,8 @@ function computeAll(){
   });
 
   var daysThisMonth = dayNums.length;
-  var ingredients = STATE.ingredients.map(function(i){
+  var list = Array.isArray(STATE.ingredients) ? STATE.ingredients : [];
+  var ingredients = list.map(function(i){
     var amount = Number(i.amount)||0;
     var intervalValue = Math.max(1, Number(i.intervalValue)||1);
     var intervalUnit = i.intervalUnit || "week";

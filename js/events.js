@@ -75,13 +75,31 @@ function initDailyEvents(){
   });
 }
 
+function showTab(name){
+  var targetId = "tab-" + name;
+  var panels = document.querySelectorAll(".panel");
+  var shown = false;
+  for (var i = 0; i < panels.length; i++){
+    var on = panels[i].id === targetId;
+    panels[i].hidden = !on;
+    if (on) shown = true;
+  }
+  if (!shown && panels.length){
+    panels[0].hidden = false;
+    name = "instructions";
+  }
+  var buttons = document.querySelectorAll(".tabs [data-tab]");
+  for (var j = 0; j < buttons.length; j++){
+    var isOn = buttons[j].getAttribute("data-tab") === name;
+    buttons[j].setAttribute("aria-selected", isOn ? "true" : "false");
+  }
+}
+
 function initTabs(){
-  var buttons = Array.prototype.slice.call(document.querySelectorAll(".tabs button"));
-  buttons.forEach(function(btn){
-    btn.addEventListener("click", function(){
-      buttons.forEach(function(b){ b.setAttribute("aria-selected", b===btn ? "true":"false"); });
-      document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
-      el("tab-"+btn.dataset.tab).classList.add("active");
+  var buttons = document.querySelectorAll(".tabs [data-tab]");
+  for (var i = 0; i < buttons.length; i++){
+    buttons[i].addEventListener("click", function(){
+      showTab(this.getAttribute("data-tab"));
     });
-  });
+  }
 }

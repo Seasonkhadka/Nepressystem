@@ -25,11 +25,22 @@ function rerenderAllFromState(){
 }
 
 initTabs();
-renderInstructions();
-initSetupBar();
-renderRawMaterialsTab();
-renderDailyTab();
-initRawEvents();
-initDailyEvents();
-try { refreshDerived(); } catch (err){ console.error(err); }
+try {
+  renderInstructions();
+  initSetupBar();
+  renderRawMaterialsTab();
+  renderDailyTab();
+  initRawEvents();
+  initDailyEvents();
+  refreshDerived();
+} catch (err){
+  console.error(err);
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e2){}
+  STATE = defaultState();
+  renderInstructions();
+  initSetupBar();
+  renderRawMaterialsTab();
+  renderDailyTab();
+  refreshDerived();
+}
 initCloud();
