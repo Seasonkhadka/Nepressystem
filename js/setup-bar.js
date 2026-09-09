@@ -40,6 +40,7 @@ function applyMonthYearChange(){
   STATE.days = blankDaysForMonth(STATE.year, STATE.month);
   renderCalculationsTab();
   renderRawMaterialsTab();
+  renderLaborTab();
   refreshDerived();
 }
 
@@ -58,7 +59,7 @@ function initSetupBar(){
   el("input-name").addEventListener("input", function(){ STATE.meta.name = el("input-name").value; saveState(); });
   el("input-subtitle").addEventListener("input", function(){ STATE.meta.subtitle = el("input-subtitle").value; saveState(); });
   el("btn-clear-all").addEventListener("click", function(){
-    var msg = "This clears every ingredient, every daily entry, setup and assets, and your overhead settings. This can't be undone.";
+    var msg = "This clears every ingredient, every daily entry, labor, setup and assets, and your overhead settings. This can't be undone.";
     if (typeof cloudUser !== "undefined" && cloudUser){
       msg += " It will also clear the copy saved to your Google account.";
     }
@@ -68,6 +69,7 @@ function initSetupBar(){
     STATE = defaultState();
     populateSetupBar();
     renderRawMaterialsTab();
+    renderLaborTab();
     renderAssetsTab();
     renderCalculationsTab();
     refreshDerived();

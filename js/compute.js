@@ -57,49 +57,6 @@ function computeAll(){
   var nDays = daysInMonth(year, month);
   var dayNums = [];
   for (var d=1; d<=nDays; d++) dayNums.push(d);
-
-  var daily = dayNums.map(function(day){
-    var raw = STATE.days[day] || { vacation:false, sales:0, cogsPct:0, labor:0 };
-    var isWeekendAuto = [0,6].indexOf(dowOf(year, month, day)) > -1;
-    var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
-    var sales = Number(raw.sales)||0;
-    var cogsPct = (Number(raw.cogsPct)||0)/100;
-    var labor = Number(raw.labor)||0;
-    var cogsAmt = sales*cogsPct;
-    var grossProfit = sales-cogsAmt;
-    var overhead = (Number(STATE.overheadFixedMonthly)||0)/dayNums.length + sales*((Number(STATE.overheadVariableRate)||0)/100);
-    var netProfit = grossProfit-labor-overhead;
-    return {
-      day: day, dow: DOW_NAMES[dowOf(year,month,day)], isWeekendAuto: isWeekendAuto, vacation: !!raw.vacation, tag: tag,
-      sales: sales, cogsPct: cogsPct, cogsAmt: cogsAmt,
-      grossProfit: grossProfit, grossMarginPct: safeDiv(grossProfit, sales),
-      labor: labor, laborPct: safeDiv(labor, sales),
-      overhead: overhead, overheadPct: safeDiv(overhead, sales),
-      netProfit: netProfit, netMarginPct: safeDiv(netProfit, sales)
-    };
-  });
-
-  var monthly = sumDays(daily);
-
-  var weeks = buildWeeks(dayNums);
-  var weekly = weeks.map(function(wdays, i){
-    var days = daily.filter(function(d){ return wdays.indexOf(d.day) > -1; });
-    var t = sumDays(days);
-    t.label = "Week " + (i+1);
-    t.range = wdays.length ? (MONTH_ABBR[month-1] + " " + wdays[0] + " – " + wdays[wdays.length-1]) : "";
-    t.weekdayCount = days.filter(function(d){ return d.tag === "weekday"; }).length;
-    t.weekendCount = days.filter(function(d){ return d.tag === "weekend"; }).length;
-    t.vacationCount = days.filter(function(d){ return d.tag === "vacation"; }).length;
-    return t;
-  });
-
-  var tagGroups = ["weekday","weekend","vacation"].map(function(tag){
-    var days = daily.filter(function(d){ return d.tag === tag; });
-    var t = sumDays(days);
-    t.tag = tag; t.label = TAG_META[tag].label; t.color = TAG_META[tag].color;
-    return t;
-  });
-
   var daysThisMonth = dayNums.length;
   var list = asArray(STATE.ingredients);
   var ingredients = list.map(function(i){
@@ -153,6 +110,84 @@ function computeAll(){
 
   var rawGrand = catTotals.reduce(function(a,c){ a.daily += c.daily; a.weekly += c.weekly; a.monthly += c.monthly; return a; }, {daily:0, weekly:0, monthly:0});
 
+  var totalSales = 0, openDays = 0;
+  dayNums.forEach(function(day){
+    var rec = STATE.days[day] || { vacation:false, sales:0, labor:0 };
+    totalSales += Number(rec.sales)||0;
+    if (!rec.vacation) openDays += 1;
+  });
+  var openDaysTrue = openDays;
+  if (!openDays) openDays = daysThisMonth;
+  var materials = rawGrand.monthly;
+
+  var laborByDay = {};
+  dayNums.forEach(function(day){ laborByDay[day] = 0; });
+  var shiftMonth = 0, salaryMonth = 0, laborHasLedger = false;
+  asArray(STATE.laborShifts).forEach(function(s){
+    if (laborShiftHasData(s)) laborHasLedger = true;
+    if (!purchaseInMonth(s, year, month)) return;
+    var tot = laborShiftTotal(s);
+    shiftMonth += tot;
+    var day = Number(String(s.date).split("-")[2]) || 0;
+    if (laborByDay[day] != null) laborByDay[day] += tot;
+  });
+  asArray(STATE.laborSalaries).forEach(function(s){
+    if (laborSalaryHasData(s)) laborHasLedger = true;
+    salaryMonth += Number(s.amount) || 0;
+  });
+  var salaryOpenDays = openDaysTrue || daysThisMonth;
+  var salaryPerOpen = salaryOpenDays ? salaryMonth / salaryOpenDays : 0;
+  dayNums.forEach(function(day){
+    var rec = STATE.days[day] || { vacation:false };
+    if (!rec.vacation || !openDaysTrue) laborByDay[day] += salaryPerOpen;
+  });
+
+  var daily = dayNums.map(function(day){
+    var raw = STATE.days[day] || { vacation:false, sales:0, labor:0 };
+    var isWeekendAuto = [0,6].indexOf(dowOf(year, month, day)) > -1;
+    var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
+    var sales = Number(raw.sales)||0;
+    var labor = laborHasLedger ? (laborByDay[day] || 0) : (Number(raw.labor)||0);
+    var cogsAmt = 0;
+    if (materials > 0){
+      if (totalSales > 0) cogsAmt = materials * (sales / totalSales);
+      else if (!raw.vacation || openDays === daysThisMonth) cogsAmt = materials / openDays;
+    }
+    var cogsPct = safeDiv(cogsAmt, sales);
+    var grossProfit = sales-cogsAmt;
+    var overhead = (Number(STATE.overheadFixedMonthly)||0)/daysThisMonth + sales*((Number(STATE.overheadVariableRate)||0)/100);
+    var netProfit = grossProfit-labor-overhead;
+    return {
+      day: day, dow: DOW_NAMES[dowOf(year,month,day)], isWeekendAuto: isWeekendAuto, vacation: !!raw.vacation, tag: tag,
+      sales: sales, cogsPct: cogsPct, cogsAmt: cogsAmt,
+      grossProfit: grossProfit, grossMarginPct: safeDiv(grossProfit, sales),
+      labor: labor, laborPct: safeDiv(labor, sales),
+      overhead: overhead, overheadPct: safeDiv(overhead, sales),
+      netProfit: netProfit, netMarginPct: safeDiv(netProfit, sales)
+    };
+  });
+
+  var monthly = sumDays(daily);
+
+  var weeks = buildWeeks(dayNums);
+  var weekly = weeks.map(function(wdays, i){
+    var days = daily.filter(function(d){ return wdays.indexOf(d.day) > -1; });
+    var t = sumDays(days);
+    t.label = "Week " + (i+1);
+    t.range = wdays.length ? (MONTH_ABBR[month-1] + " " + wdays[0] + " – " + wdays[wdays.length-1]) : "";
+    t.weekdayCount = days.filter(function(d){ return d.tag === "weekday"; }).length;
+    t.weekendCount = days.filter(function(d){ return d.tag === "weekend"; }).length;
+    t.vacationCount = days.filter(function(d){ return d.tag === "vacation"; }).length;
+    return t;
+  });
+
+  var tagGroups = ["weekday","weekend","vacation"].map(function(tag){
+    var days = daily.filter(function(d){ return d.tag === tag; });
+    var t = sumDays(days);
+    t.tag = tag; t.label = TAG_META[tag].label; t.color = TAG_META[tag].color;
+    return t;
+  });
+
   var assetList = asArray(STATE.assets).map(function(a){
     var invested = lineTotal(a);
     return {
@@ -179,5 +214,12 @@ function computeAll(){
   };
   crosscheck.variancePct = safeDiv(crosscheck.variance, crosscheck.baseline);
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, crosscheck:crosscheck };
+  var laborInfo = {
+    hasLedger: laborHasLedger,
+    shiftMonth: shiftMonth,
+    salaryMonth: salaryMonth,
+    monthly: laborHasLedger ? (shiftMonth + salaryMonth) : monthly.labor
+  };
+
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, labor:laborInfo, crosscheck:crosscheck };
 }

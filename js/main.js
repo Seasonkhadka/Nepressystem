@@ -11,6 +11,7 @@ function refreshDerived(){
   saveState();
   var model = computeAll();
   refreshRawComputedCells(model);
+  refreshLaborComputedCells(model);
   refreshAssetComputedCells(model);
   refreshDailyComputedCells(model);
   renderWeeklyTab(model);
@@ -22,6 +23,7 @@ function refreshDerived(){
 function rerenderAllFromState(){
   populateSetupBar();
   renderRawMaterialsTab();
+  renderLaborTab();
   renderAssetsTab();
   renderCalculationsTab();
   refreshDerived();
@@ -31,6 +33,7 @@ initTabs();
 try {
   initSetupBar();
   renderRawMaterialsTab();
+  renderLaborTab();
   renderAssetsTab();
   renderCalculationsTab();
   refreshDerived();
@@ -39,6 +42,7 @@ try {
   try {
     initSetupBar();
     renderRawMaterialsTab();
+    renderLaborTab();
     renderAssetsTab();
     renderCalculationsTab();
     refreshDerived();
@@ -47,6 +51,7 @@ try {
   }
 }
 initRawEvents();
+initLaborEvents();
 initAssetEvents();
 initDailyEvents();
 initCloud();

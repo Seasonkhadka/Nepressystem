@@ -17,10 +17,10 @@ function renderDashboard(model){
   var netStatus = marginStatus(m.netMarginPct, hasSales);
   var kpis = [
     kpiTile("Total Sales", won(m.sales), MONTH_NAMES[STATE.month-1]+" "+STATE.year),
-    kpiTile("COGS", won(m.cogsAmt), pct(m.cogsPct)+" of sales"),
+    kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
     kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
-    kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" total"),
-    kpiTile("Overhead %", pct(m.overheadPct), won(m.overhead)+" total"),
+    kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
+    kpiTile("Overhead %", pct(m.overheadPct), "rent, bills, fees — not wages"),
     kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus)
   ].join("");
 
@@ -50,11 +50,13 @@ function renderDashboard(model){
 
   var crossCheckHtml =
     '<div class="crosscheck">'+
-      '<div class="block"><div class="label">Raw-material baseline (monthly)</div><div class="amt tnum">'+won(model.crosscheck.baseline)+'</div></div>'+
-      '<div class="block"><div class="label">Actual COGS from Daily Calc.</div><div class="amt tnum">'+won(model.crosscheck.actual)+'</div></div>'+
-      '<div class="block"><div class="label">Variance</div><div class="amt tnum" style="color:var(--ember)">'+signedWon(model.crosscheck.variance)+' ('+(model.crosscheck.baseline ? signedPct(model.crosscheck.variancePct) : "—")+')</div></div>'+
+      '<div class="block"><div class="label">Raw materials this month</div><div class="amt tnum">'+won(model.rawGrand.monthly)+'</div></div>'+
+      '<div class="block"><div class="label">P&amp;L COGS</div><div class="amt tnum">'+won(model.monthly.cogsAmt)+'</div></div>'+
+      '<div class="block"><div class="label">COGS % of sales</div><div class="amt tnum">'+(model.monthly.sales ? pct(model.monthly.cogsPct) : "—")+'</div></div>'+
     '</div>'+
-    '<p class="note">'+(model.crosscheck.baseline ? ("Actual COGS runs "+pct(Math.abs(model.crosscheck.variancePct))+" "+(model.crosscheck.variance>=0?"above":"below")+" the itemized purchase ledger.") : "Add purchases in Raw Materials and daily sales in P&amp;L to see this compare.")+'</p>';
+    '<p class="note">'+(model.rawGrand.monthly
+      ? "COGS is this month's Raw Materials (meat, groceries, vegetables, no-bill). Days with more sales take a larger share. Add daily sales on P&amp;L to see the %."
+      : "Add purchases in Raw Materials — that total becomes P&amp;L COGS for the month.")+'</p>';
 
   var g = model.assetGrand || { invested:0, monthly:0 };
   var capitalHtml = "";
@@ -77,7 +79,7 @@ function renderDashboard(model){
   }
 
   el("tab-dashboard").innerHTML =
-    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far.</p><div class="kpi-grid">'+kpis+'</div></section>'+
+    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div></section>'+
     '<section class="card grid-2">'+
       '<div><h2 style="font-size:16px">Average daily sales by traffic type</h2>'+salesChart+'</div>'+
       '<div><h2 style="font-size:16px">Cost ratios &amp; net margin by traffic type</h2>'+pctChart+'</div>'+
@@ -95,6 +97,6 @@ function renderDashboard(model){
       '</div>'+
       trend+
     '</section>'+
-    '<section class="card"><h2>Raw-material cross-check</h2><p class="lede">Bottom-up ingredient baseline vs. top-down actual COGS.</p>'+crossCheckHtml+'</section>'+
+    '<section class="card"><h2>COGS from raw materials</h2><p class="lede">Purchases you log this month are the cost of goods sold. You no longer type a COGS % on each day.</p>'+crossCheckHtml+'</section>'+
     capitalHtml;
 }

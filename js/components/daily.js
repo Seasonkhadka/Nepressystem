@@ -16,9 +16,9 @@ function dayRowHtml(day, isWeekendAuto){
     '<td>'+DOW_NAMES[dowOf(STATE.year,STATE.month,day)]+'</td>'+
     '<td><label class="vac-toggle"><input type="checkbox" data-field="vacation" '+(raw.vacation?"checked":"")+'><span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span></label></td>'+
     '<td><input class="cell-input" type="number" min="0" step="1000" data-field="sales" placeholder="0" value="'+(raw.sales?raw.sales:"")+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="0.1" data-field="cogsPct" placeholder="0.0" value="'+(raw.cogsPct?raw.cogsPct:"")+'"></td>'+
     '<td class="tnum calc" data-calc="cogsAmt">₩0</td>'+
-    '<td><input class="cell-input" type="number" min="0" step="1000" data-field="labor" placeholder="0" value="'+(raw.labor?raw.labor:"")+'"></td>'+
+    '<td class="tnum calc" data-calc="cogsPct">0.0%</td>'+
+    '<td class="tnum calc" data-calc="labor">₩0</td>'+
     '<td class="tnum calc" data-calc="laborPct">0.0%</td>'+
     '<td class="tnum calc" data-calc="overhead">₩0</td>'+
     '<td class="tnum calc" data-calc="overheadPct">0.0%</td>'+
@@ -42,18 +42,18 @@ function renderDailyTab(){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
-      '<p class="lede">Every date is auto-tagged from the calendar. Check the Vacation box on any row to shade it as a closure/holiday instead.</p>'+
+      '<p class="lede">Enter sales on each day. <b>COGS</b> comes from Raw Materials. <b>Labor</b> comes from the Labor tab (shifts + monthly salary). <b>Overhead</b> is rent and fees from the bar above — not wages.</p>'+
       '<div class="legend">'+
         '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
       '</div>'+
-      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales</th><th>COGS %</th><th>COGS</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total</td>'+
         '<td class="tnum" data-foot="sales">₩0</td>'+
-        '<td class="tnum" data-foot="cogsPct">0.0%</td>'+
         '<td class="tnum" data-foot="cogsAmt">₩0</td>'+
+        '<td class="tnum" data-foot="cogsPct">0.0%</td>'+
         '<td class="tnum" data-foot="labor">₩0</td>'+
         '<td class="tnum" data-foot="laborPct">0.0%</td>'+
         '<td class="tnum" data-foot="overhead">₩0</td>'+
@@ -74,6 +74,8 @@ function refreshDailyComputedCells(model){
     if (!tr) return;
     tr.className = d.tag;
     tr.querySelector('[data-calc="cogsAmt"]').textContent = won(d.cogsAmt);
+    tr.querySelector('[data-calc="cogsPct"]').textContent = d.sales ? pct(d.cogsPct) : "—";
+    tr.querySelector('[data-calc="labor"]').textContent = won(d.labor);
     tr.querySelector('[data-calc="laborPct"]').textContent = pct(d.laborPct);
     tr.querySelector('[data-calc="overhead"]').textContent = won(d.overhead);
     tr.querySelector('[data-calc="overheadPct"]').textContent = pct(d.overheadPct);
@@ -111,7 +113,12 @@ function renderCalculationsTab(){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Profit &amp; loss</h2>'+
-      '<p class="lede">Daily, weekly, and monthly views for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' on one page. Enter sales, COGS %, and labor on the daily rows; weekly and monthly totals update automatically.</p>'+
+      '<p class="lede">Daily, weekly, and monthly views for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' on one page. Enter sales on the daily rows. COGS, labor, and overhead fill in from Raw Materials, the Labor tab, and the overhead settings above.</p>'+
+      '<div class="key-grid">'+
+        '<div class="key-item"><div><div class="eyebrow">COGS</div><p class="lede" style="margin:0">Food you bought this month (Raw Materials). Not rent, not wages.</p></div></div>'+
+        '<div class="key-item"><div><div class="eyebrow">Labor</div><p class="lede" style="margin:0">Staff pay from the Labor tab — hourly shifts plus monthly salaries.</p></div></div>'+
+        '<div class="key-item"><div><div class="eyebrow">Overhead</div><p class="lede" style="margin:0">Running the shop: rent, internet, insurance, utilities, card fees, delivery apps. Wages and food are not overhead.</p></div></div>'+
+      '</div>'+
       '<nav class="calc-jump" aria-label="Jump to P&amp;L section">'+
         '<a href="#calc-daily">Daily</a>'+
         '<a href="#calc-weekly">Weekly</a>'+

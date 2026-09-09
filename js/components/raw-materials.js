@@ -98,7 +98,7 @@ function renderRawMaterialsTab(){
   el("tab-raw").innerHTML =
     '<section class="card">'+
       '<h2>Raw materials</h2>'+
-      '<p class="lede">Meat, groceries, and vegetables for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+'. <b>Packets</b> is how many packs you bought; <b>Qty</b> is the weight or volume. Line total auto-fills from qty × ₩ per unit — or type the total yourself.</p>'+
+      '<p class="lede">Meat, groceries, vegetables, and no-bill totals for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' become this month\'s P&amp;L COGS. <b>Packets</b> is how many packs you bought; <b>Qty</b> is the weight or volume. Line total auto-fills from qty × ₩ per unit — or type the total yourself.</p>'+
       '<p class="note">Grand total — daily <b class="tnum" id="raw-grand-daily">'+won(model.rawGrand.daily)+'</b> · weekly <b class="tnum" id="raw-grand-weekly">'+won(model.rawGrand.weekly)+'</b> · this month <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
     '</section>'+
     body+

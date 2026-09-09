@@ -71,6 +71,8 @@ function payloadFromState(){
   });
   copy.lumps = asArray(copy.lumps);
   copy.assets = asArray(copy.assets);
+  copy.laborShifts = asArray(copy.laborShifts);
+  copy.laborSalaries = asArray(copy.laborSalaries);
   copy.days = normalizeDays(copy.days, copy.year, copy.month);
   return copy;
 }

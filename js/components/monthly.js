@@ -22,7 +22,7 @@ function renderMonthlyTab(model){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Monthly — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+'</h2>'+
-      '<p class="lede">The single consolidated month, summed from the weeks above. These are exactly the figures that power the Main Dashboard.</p>'+
+      '<p class="lede">The single consolidated month, summed from the weeks above. COGS is this month\'s Raw Materials total. These figures power the Main Dashboard.</p>'+
       '<div class="formula-list">'+
         row("Total Sales", m.sales)+
         row("COGS amount", m.cogsAmt)+

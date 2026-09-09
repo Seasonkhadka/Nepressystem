@@ -22,6 +22,16 @@ function findAsset(id){
   return STATE.assets.find(function(a){ return a.id === id; });
 }
 
+function findLaborShift(id){
+  if (!STATE.laborShifts) return null;
+  return STATE.laborShifts.find(function(s){ return s.id === id; });
+}
+
+function findLaborSalary(id){
+  if (!STATE.laborSalaries) return null;
+  return STATE.laborSalaries.find(function(s){ return s.id === id; });
+}
+
 function initRawEvents(){
   var host = el("tab-raw");
   var onFieldChange = function(e){
@@ -120,6 +130,7 @@ function initDailyEvents(){
       rec = STATE.days[day] = { vacation:false, sales:0, cogsPct:0, labor:0 };
     }
     var field = t.getAttribute("data-field");
+    if (field === "cogsPct" || field === "labor") return;
     if (field === "vacation") rec.vacation = t.checked;
     else rec[field] = parseFloat(t.value) || 0;
     refreshDerived();
@@ -157,6 +168,60 @@ function initAssetEvents(){
       var left = STATE.assets.filter(function(a){ return a.cat === cat; });
       if (!left.length) STATE.assets.push(blankAsset(cat));
       renderAssetsTab();
+      refreshDerived();
+    }
+  });
+}
+
+function initLaborEvents(){
+  var host = el("tab-labor");
+  if (!host) return;
+  var onFieldChange = function(e){
+    var t = e.target;
+    if (!t.matches("[data-field]")) return;
+    var shiftTr = t.closest("tr[data-shift-id]");
+    if (shiftTr){
+      var shift = findLaborShift(Number(shiftTr.getAttribute("data-shift-id")));
+      if (!shift) return;
+      applyLaborShiftField(shift, t.getAttribute("data-field"), t.value);
+      refreshDerived();
+      return;
+    }
+    var salaryTr = t.closest("tr[data-salary-id]");
+    if (salaryTr){
+      var salary = findLaborSalary(Number(salaryTr.getAttribute("data-salary-id")));
+      if (!salary) return;
+      var field = t.getAttribute("data-field");
+      if (field === "name" || field === "role") salary[field] = t.value;
+      else salary.amount = parseFloat(t.value) || 0;
+      refreshDerived();
+    }
+  };
+  host.addEventListener("input", onFieldChange);
+  host.addEventListener("change", onFieldChange);
+  host.addEventListener("click", function(e){
+    var t = e.target;
+    if (t.matches("[data-add-shift]")){
+      if (!STATE.laborShifts) STATE.laborShifts = [];
+      STATE.laborShifts.push(blankLaborShift());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-shift]")){
+      var sid = Number(t.getAttribute("data-remove-shift"));
+      STATE.laborShifts = (STATE.laborShifts || []).filter(function(s){ return s.id !== sid; });
+      if (!STATE.laborShifts.length) STATE.laborShifts.push(blankLaborShift());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-add-salary]")){
+      if (!STATE.laborSalaries) STATE.laborSalaries = [];
+      STATE.laborSalaries.push(blankLaborSalary());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-salary]")){
+      var lid = Number(t.getAttribute("data-remove-salary"));
+      STATE.laborSalaries = (STATE.laborSalaries || []).filter(function(s){ return s.id !== lid; });
+      if (!STATE.laborSalaries.length) STATE.laborSalaries.push(blankLaborSalary());
+      renderLaborTab();
       refreshDerived();
     }
   });

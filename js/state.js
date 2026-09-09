@@ -10,6 +10,10 @@
  *   { id, date, place, note, amount }  — you type the line total yourself.
  * Long-term assets (inventory, setup, utensils, gas):
  *   { id, cat, date, name, qty, unitPrice, amount, lifeMonths }
+ * Labor shifts (variable, by day):
+ *   { id, date, name, role, hours, rate, amount }
+ * Monthly salaries (staff paid by the month, not by the hour):
+ *   { id, name, role, amount }
  *
  * Depends on: data.js (CAT_ORDER, defaultUnit, migrateCat, ASSET_ORDER, defaultAssetLife).
  */
@@ -18,6 +22,8 @@ var nextIngId = 1;
 var nextPurchaseId = 1;
 var nextLumpId = 1;
 var nextAssetId = 1;
+var nextLaborShiftId = 1;
+var nextLaborSalaryId = 1;
 
 function today(){ return new Date(); }
 
@@ -183,6 +189,94 @@ function migrateAsset(a){
   };
 }
 
+function blankLaborShift(){
+  return { id: nextLaborShiftId++, date: isoToday(), name: "", role: "", hours: 0, rate: 0, amount: 0 };
+}
+
+function blankLaborSalary(){
+  return { id: nextLaborSalaryId++, name: "", role: "", amount: 0 };
+}
+
+function laborShiftHasData(s){
+  if (!s) return false;
+  if (String(s.name || "").trim() || String(s.role || "").trim()) return true;
+  return (Number(s.hours)||0) > 0 || (Number(s.rate)||0) > 0 || (Number(s.amount)||0) > 0;
+}
+
+function laborSalaryHasData(s){
+  if (!s) return false;
+  return String(s.name || "").trim() || String(s.role || "").trim() || (Number(s.amount)||0) > 0;
+}
+
+function applyLaborShiftField(s, field, raw){
+  if (field === "date" || field === "name" || field === "role"){
+    s[field] = raw;
+    return;
+  }
+  var n = parseFloat(raw) || 0;
+  if (field === "hours"){
+    s.hours = n;
+    if ((Number(s.rate)||0) > 0) s.amount = niceNum(n * Number(s.rate));
+    else if (n > 0 && (Number(s.amount)||0) > 0) s.rate = niceNum(Number(s.amount) / n);
+    return;
+  }
+  if (field === "rate"){
+    s.rate = n;
+    var hours = Number(s.hours)||0;
+    if (hours > 0) s.amount = niceNum(hours * n);
+    return;
+  }
+  if (field === "amount"){
+    s.amount = n;
+    var hours = Number(s.hours)||0;
+    if (hours > 0) s.rate = niceNum(n / hours);
+  }
+}
+
+function laborShiftTotal(s){
+  return lineTotal({ amount: s.amount, qty: s.hours, unitPrice: s.rate });
+}
+
+function migrateLaborShift(s){
+  if (!s || typeof s !== "object") return blankLaborShift();
+  var hours = Number(s.hours) || 0;
+  var rate = Number(s.rate);
+  var amount = Number(s.amount);
+  if (!isFinite(rate) || rate < 0) rate = 0;
+  if (!isFinite(amount) || amount < 0) amount = 0;
+  if (!amount && hours && rate) amount = hours * rate;
+  if (!rate && hours && amount) rate = amount / hours;
+  return {
+    id: s.id || nextLaborShiftId++,
+    date: s.date || isoToday(),
+    name: s.name || "",
+    role: s.role || "",
+    hours: hours,
+    rate: niceNum(rate),
+    amount: niceNum(amount)
+  };
+}
+
+function migrateLaborSalary(s){
+  if (!s || typeof s !== "object") return blankLaborSalary();
+  return {
+    id: s.id || nextLaborSalaryId++,
+    name: s.name || "",
+    role: s.role || "",
+    amount: Number(s.amount) || 0
+  };
+}
+
+function compactLaborShifts(list){
+  var filled = asArray(list).filter(laborShiftHasData);
+  return filled.length ? filled : [blankLaborShift()];
+}
+
+function compactLaborSalaries(list){
+  var filled = asArray(list).filter(laborSalaryHasData);
+  return filled.length ? filled : [blankLaborSalary()];
+}
+
 function migrateLump(p){
   if (!p || typeof p !== "object") return blankLump();
   return {
@@ -275,6 +369,8 @@ function defaultState(){
     ingredients: CAT_ORDER.map(function(c){ return blankIngredient(c); }),
     lumps: [blankLump()],
     assets: ASSET_ORDER.map(function(c){ return blankAsset(c); }),
+    laborShifts: [blankLaborShift()],
+    laborSalaries: [blankLaborSalary()],
     days: blankDaysForMonth(year, month)
   };
 }
@@ -311,6 +407,19 @@ function normalizeParsedState(parsed){
   parsed.assets = compactAssets(assets);
   parsed.assets.forEach(function(a){ if (a && a.id > maxAsset) maxAsset = a.id; });
   nextAssetId = maxAsset + 1;
+  var maxShift = 0, maxSalary = 0;
+  var shifts = asArray(parsed.laborShifts).map(migrateLaborShift);
+  shifts.forEach(function(s){ if (s && s.id > maxShift) maxShift = s.id; });
+  nextLaborShiftId = maxShift + 1;
+  parsed.laborShifts = compactLaborShifts(shifts);
+  parsed.laborShifts.forEach(function(s){ if (s && s.id > maxShift) maxShift = s.id; });
+  nextLaborShiftId = maxShift + 1;
+  var salaries = asArray(parsed.laborSalaries).map(migrateLaborSalary);
+  salaries.forEach(function(s){ if (s && s.id > maxSalary) maxSalary = s.id; });
+  nextLaborSalaryId = maxSalary + 1;
+  parsed.laborSalaries = compactLaborSalaries(salaries);
+  parsed.laborSalaries.forEach(function(s){ if (s && s.id > maxSalary) maxSalary = s.id; });
+  nextLaborSalaryId = maxSalary + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
   parsed.overheadFixedMonthly = Number(parsed.overheadFixedMonthly)||0;
   parsed.overheadVariableRate = Number(parsed.overheadVariableRate)||0;
@@ -349,6 +458,8 @@ function stateHasUserData(s){
     return String(p.place || "").trim() || String(p.note || "").trim() || (Number(p.amount)||0) > 0;
   })) return true;
   if (asArray(s.assets).some(assetHasData)) return true;
+  if (asArray(s.laborShifts).some(laborShiftHasData)) return true;
+  if (asArray(s.laborSalaries).some(laborSalaryHasData)) return true;
   if (s.days){
     var keys = Object.keys(s.days);
     for (var i = 0; i < keys.length; i++){

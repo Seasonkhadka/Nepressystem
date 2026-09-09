@@ -10,8 +10,8 @@ function renderWeeklyTab(model){
     return '<tr><td>'+w.label+'</td><td>'+w.range+'</td>'+
       '<td class="tnum">'+w.weekdayCount+' / '+w.weekendCount+' / '+w.vacationCount+'</td>'+
       '<td class="tnum">'+won(w.sales)+'</td>'+
-      '<td class="tnum">'+pct(w.cogsPct)+'</td>'+
       '<td class="tnum">'+won(w.cogsAmt)+'</td>'+
+      '<td class="tnum">'+pct(w.cogsPct)+'</td>'+
       '<td class="tnum">'+won(w.labor)+'</td>'+
       '<td class="tnum">'+pct(w.laborPct)+'</td>'+
       '<td class="tnum">'+won(w.overhead)+'</td>'+
@@ -31,12 +31,12 @@ function renderWeeklyTab(model){
     '<section class="card">'+
       '<h2>Weekly — '+model.weekly.length+' weeks</h2>'+
       '<p class="lede">Auto-totaled from the daily rows above. Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
-      '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Sales</th><th>COGS %</th><th>COGS</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total</td>'+
         '<td class="tnum">'+won(m.sales)+'</td>'+
-        '<td class="tnum">'+pct(m.cogsPct)+'</td>'+
         '<td class="tnum">'+won(m.cogsAmt)+'</td>'+
+        '<td class="tnum">'+pct(m.cogsPct)+'</td>'+
         '<td class="tnum">'+won(m.labor)+'</td>'+
         '<td class="tnum">'+pct(m.laborPct)+'</td>'+
         '<td class="tnum">'+won(m.overhead)+'</td>'+
