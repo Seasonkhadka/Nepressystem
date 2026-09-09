@@ -11,6 +11,7 @@ function refreshDerived(){
   saveState();
   var model = computeAll();
   refreshRawComputedCells(model);
+  refreshAssetComputedCells(model);
   refreshDailyComputedCells(model);
   renderWeeklyTab(model);
   renderMonthlyTab(model);
@@ -21,6 +22,7 @@ function refreshDerived(){
 function rerenderAllFromState(){
   populateSetupBar();
   renderRawMaterialsTab();
+  renderAssetsTab();
   renderCalculationsTab();
   refreshDerived();
 }
@@ -29,17 +31,22 @@ initTabs();
 try {
   initSetupBar();
   renderRawMaterialsTab();
+  renderAssetsTab();
   renderCalculationsTab();
   refreshDerived();
 } catch (err){
   console.error(err);
-  try { localStorage.removeItem(STORAGE_KEY); } catch (e2){}
-  STATE = defaultState();
-  initSetupBar();
-  renderRawMaterialsTab();
-  renderCalculationsTab();
-  refreshDerived();
+  try {
+    initSetupBar();
+    renderRawMaterialsTab();
+    renderAssetsTab();
+    renderCalculationsTab();
+    refreshDerived();
+  } catch (e2){
+    console.error(e2);
+  }
 }
 initRawEvents();
+initAssetEvents();
 initDailyEvents();
 initCloud();

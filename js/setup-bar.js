@@ -20,8 +20,10 @@ function populateSetupBar(){
 }
 
 function hasAnyDailyData(){
+  if (!STATE.days) return false;
   return Object.keys(STATE.days).some(function(k){
     var d = STATE.days[k];
+    if (!d) return false;
     return (Number(d.sales)||0) > 0 || (Number(d.labor)||0) > 0 || (Number(d.cogsPct)||0) > 0;
   });
 }
@@ -56,7 +58,7 @@ function initSetupBar(){
   el("input-name").addEventListener("input", function(){ STATE.meta.name = el("input-name").value; saveState(); });
   el("input-subtitle").addEventListener("input", function(){ STATE.meta.subtitle = el("input-subtitle").value; saveState(); });
   el("btn-clear-all").addEventListener("click", function(){
-    var msg = "This clears every ingredient, every daily entry, and your overhead settings. This can't be undone.";
+    var msg = "This clears every ingredient, every daily entry, setup and assets, and your overhead settings. This can't be undone.";
     if (typeof cloudUser !== "undefined" && cloudUser){
       msg += " It will also clear the copy saved to your Google account.";
     }
@@ -66,6 +68,7 @@ function initSetupBar(){
     STATE = defaultState();
     populateSetupBar();
     renderRawMaterialsTab();
+    renderAssetsTab();
     renderCalculationsTab();
     refreshDerived();
   });

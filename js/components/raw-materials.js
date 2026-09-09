@@ -44,6 +44,8 @@ function ingredientCardHtml(i){
       '<input class="cell-input text ing-name" type="text" data-ing-field="name" placeholder="Item name" value="'+esc(i.name)+'">'+
       '<label class="ing-unit">Unit <select class="cell-input" data-ing-field="unit">'+unitSelectHtml(i.unit)+'</select></label>'+
       '<div class="ing-kpis">'+
+        '<div><span class="ing-kpi-label">Daily</span><span class="tnum" data-ing-daily>'+won(i.dailyCost)+'</span></div>'+
+        '<div><span class="ing-kpi-label">Weekly</span><span class="tnum" data-ing-weekly>'+won(i.weeklyCost)+'</span></div>'+
         '<div><span class="ing-kpi-label">This month</span><span class="tnum" data-ing-month>'+won(i.monthlyCost)+'</span></div>'+
         '<div><span class="ing-kpi-label">Avg unit price</span><span class="tnum" data-ing-avg>'+(i.avgUnitMonth?wonPerUnit(i.avgUnitMonth, i.unit):"—")+'</span></div>'+
       '</div>'+
@@ -64,7 +66,7 @@ function categorySectionHtml(c){
     '<p class="lede">'+c.lede+'</p>'+
     body+
     '<button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add item to '+c.label+'</button>'+
-    '<p class="note">Subtotal this month: <b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
+    '<p class="note">Subtotal — daily <b class="tnum" data-cat-daily="'+c.cat+'">'+won(c.daily)+'</b> · weekly <b class="tnum" data-cat-weekly="'+c.cat+'">'+won(c.weekly)+'</b> · this month <b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
   '</section>';
 }
 
@@ -77,7 +79,7 @@ function lumpSectionHtml(c){
       '<th>Date</th><th>Where</th><th>What (optional)</th><th>Line total</th><th></th>'+
     '</tr></thead><tbody id="lump-tbody">'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-lump>+ Add another total</button>'+
-    '<p class="note">Subtotal this month: <b class="tnum" data-cat-subtotal="nobill">'+won(c.monthly)+'</b></p>'+
+    '<p class="note">Subtotal — daily <b class="tnum" data-cat-daily="nobill">'+won(c.daily)+'</b> · weekly <b class="tnum" data-cat-weekly="nobill">'+won(c.weekly)+'</b> · this month <b class="tnum" data-cat-subtotal="nobill">'+won(c.monthly)+'</b></p>'+
   '</section>';
 }
 
@@ -97,7 +99,7 @@ function renderRawMaterialsTab(){
     '<section class="card">'+
       '<h2>Raw materials</h2>'+
       '<p class="lede">Meat, groceries, and vegetables for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+'. <b>Packets</b> is how many packs you bought; <b>Qty</b> is the weight or volume. Line total auto-fills from qty × ₩ per unit — or type the total yourself.</p>'+
-      '<p class="note">Grand total this month: <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
+      '<p class="note">Grand total — daily <b class="tnum" id="raw-grand-daily">'+won(model.rawGrand.daily)+'</b> · weekly <b class="tnum" id="raw-grand-weekly">'+won(model.rawGrand.weekly)+'</b> · this month <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
     '</section>'+
     body+
     '<section class="card"><h2>Monthly cost share by category</h2><div id="raw-chart">'+rawMaterialsChartHtml(model)+'</div></section>';
@@ -109,8 +111,12 @@ function refreshRawComputedCells(model){
   model.ingredients.forEach(function(i){
     var card = host.querySelector('.ing-card[data-ing-id="'+i.id+'"]');
     if (!card) return;
+    var dailyEl = card.querySelector("[data-ing-daily]");
+    var weeklyEl = card.querySelector("[data-ing-weekly]");
     var monthEl = card.querySelector("[data-ing-month]");
     var avgEl = card.querySelector("[data-ing-avg]");
+    if (dailyEl) dailyEl.textContent = won(i.dailyCost);
+    if (weeklyEl) weeklyEl.textContent = won(i.weeklyCost);
     if (monthEl) monthEl.textContent = won(i.monthlyCost);
     if (avgEl) avgEl.textContent = i.avgUnitMonth ? wonPerUnit(i.avgUnitMonth, i.unit) : "—";
     (i.purchases||[]).forEach(function(p){
@@ -128,9 +134,17 @@ function refreshRawComputedCells(model){
   });
   model.catTotals.forEach(function(c){
     var sub = host.querySelector('[data-cat-subtotal="'+c.cat+'"]');
+    var dEl = host.querySelector('[data-cat-daily="'+c.cat+'"]');
+    var wEl = host.querySelector('[data-cat-weekly="'+c.cat+'"]');
     if (sub) sub.textContent = won(c.monthly);
+    if (dEl) dEl.textContent = won(c.daily);
+    if (wEl) wEl.textContent = won(c.weekly);
   });
+  var gd = el("raw-grand-daily");
+  var gw = el("raw-grand-weekly");
   var g = el("raw-grand");
+  if (gd) gd.textContent = won(model.rawGrand.daily);
+  if (gw) gw.textContent = won(model.rawGrand.weekly);
   if (g) g.textContent = won(model.rawGrand.monthly);
   var chartHost = el("raw-chart");
   if (chartHost) chartHost.innerHTML = rawMaterialsChartHtml(model);

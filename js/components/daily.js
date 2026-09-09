@@ -8,7 +8,7 @@
  */
 
 function dayRowHtml(day, isWeekendAuto){
-  var raw = STATE.days[day];
+  var raw = STATE.days[day] || { vacation:false, sales:0, cogsPct:0, labor:0 };
   var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
   var tagMeta = TAG_META[tag];
   return '<tr class="'+tag+'" data-day="'+day+'" data-weekend-auto="'+(isWeekendAuto?"1":"0")+'">'+
@@ -29,7 +29,9 @@ function dayRowHtml(day, isWeekendAuto){
 }
 
 function renderDailyTab(){
-  var dayNums = Object.keys(STATE.days).map(Number).sort(function(a,b){ return a-b; });
+  var n = daysInMonth(STATE.year, STATE.month);
+  var dayNums = [];
+  for (var d=1; d<=n; d++) dayNums.push(d);
   var rows = dayNums.map(function(day){
     var isWeekendAuto = [0,6].indexOf(dowOf(STATE.year,STATE.month,day)) > -1;
     return dayRowHtml(day, isWeekendAuto);

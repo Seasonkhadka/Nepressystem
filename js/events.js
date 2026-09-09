@@ -17,6 +17,11 @@ function findLump(id){
   return STATE.lumps.find(function(p){ return p.id === id; });
 }
 
+function findAsset(id){
+  if (!STATE.assets) return null;
+  return STATE.assets.find(function(a){ return a.id === id; });
+}
+
 function initRawEvents(){
   var host = el("tab-raw");
   var onFieldChange = function(e){
@@ -111,7 +116,9 @@ function initDailyEvents(){
     if (!tr) return;
     var day = Number(tr.getAttribute("data-day"));
     var rec = STATE.days[day];
-    if (!rec) return;
+    if (!rec){
+      rec = STATE.days[day] = { vacation:false, sales:0, cogsPct:0, labor:0 };
+    }
     var field = t.getAttribute("data-field");
     if (field === "vacation") rec.vacation = t.checked;
     else rec[field] = parseFloat(t.value) || 0;
@@ -119,6 +126,40 @@ function initDailyEvents(){
   };
   host.addEventListener("input", onDayChange);
   host.addEventListener("change", onDayChange);
+}
+
+function initAssetEvents(){
+  var host = el("tab-assets");
+  if (!host) return;
+  var onFieldChange = function(e){
+    var t = e.target;
+    var tr = t.closest("tr[data-asset-id]");
+    if (!tr || !t.matches("[data-field]")) return;
+    var rec = findAsset(Number(tr.getAttribute("data-asset-id")));
+    if (!rec) return;
+    applyAssetField(rec, t.getAttribute("data-field"), t.value);
+    refreshDerived();
+  };
+  host.addEventListener("input", onFieldChange);
+  host.addEventListener("change", onFieldChange);
+  host.addEventListener("click", function(e){
+    var t = e.target;
+    if (t.matches("[data-add-asset]")){
+      if (!STATE.assets) STATE.assets = [];
+      STATE.assets.push(blankAsset(t.getAttribute("data-add-asset")));
+      renderAssetsTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-asset]")){
+      var id = Number(t.getAttribute("data-remove-asset"));
+      var rec = findAsset(id);
+      var cat = rec ? rec.cat : "inventory";
+      STATE.assets = (STATE.assets || []).filter(function(a){ return a.id !== id; });
+      var left = STATE.assets.filter(function(a){ return a.cat === cat; });
+      if (!left.length) STATE.assets.push(blankAsset(cat));
+      renderAssetsTab();
+      refreshDerived();
+    }
+  });
 }
 
 function showTab(name){

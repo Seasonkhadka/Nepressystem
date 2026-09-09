@@ -64,7 +64,15 @@ function renderAuthBar(){
 }
 
 function payloadFromState(){
-  return JSON.parse(JSON.stringify(STATE));
+  var copy = JSON.parse(JSON.stringify(STATE));
+  copy.ingredients = asArray(copy.ingredients).map(function(i){
+    i.purchases = asArray(i.purchases);
+    return i;
+  });
+  copy.lumps = asArray(copy.lumps);
+  copy.assets = asArray(copy.assets);
+  copy.days = normalizeDays(copy.days, copy.year, copy.month);
+  return copy;
 }
 
 function scheduleCloudSave(){

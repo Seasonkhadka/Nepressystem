@@ -56,6 +56,26 @@ function renderDashboard(model){
     '</div>'+
     '<p class="note">'+(model.crosscheck.baseline ? ("Actual COGS runs "+pct(Math.abs(model.crosscheck.variancePct))+" "+(model.crosscheck.variance>=0?"above":"below")+" the itemized purchase ledger.") : "Add purchases in Raw Materials and daily sales in P&amp;L to see this compare.")+'</p>';
 
+  var g = model.assetGrand || { invested:0, monthly:0 };
+  var capitalHtml = "";
+  if (g.invested > 0){
+    var capRows = (model.assetCats || []).map(function(c){
+      return '<tr><td><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</td>'+
+        '<td class="tnum">'+won(c.invested)+'</td>'+
+        '<td class="tnum">'+won(c.monthly)+'</td></tr>';
+    }).join("");
+    capitalHtml =
+      '<section class="card">'+
+        '<h2>Setup &amp; assets</h2>'+
+        '<p class="lede">Long-term money already spent. Suggested ₩/month is the cost spread over each item\'s life — it is not added to P&amp;L automatically.</p>'+
+        '<div class="kpi-grid">'+
+          kpiTile("Total invested", won(g.invested), "inventory, setup, utensils, gas")+
+          kpiTile("Suggested ₩/month", won(g.monthly), "copy into Fixed Overhead if you want it on P&amp;L")+
+        '</div>'+
+        '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Invested</th><th>₩ / month</th></tr></thead><tbody>'+capRows+'</tbody></table></div>'+
+      '</section>';
+  }
+
   el("tab-dashboard").innerHTML =
     '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far.</p><div class="kpi-grid">'+kpis+'</div></section>'+
     '<section class="card grid-2">'+
@@ -75,5 +95,6 @@ function renderDashboard(model){
       '</div>'+
       trend+
     '</section>'+
-    '<section class="card"><h2>Raw-material cross-check</h2><p class="lede">Bottom-up ingredient baseline vs. top-down actual COGS.</p>'+crossCheckHtml+'</section>';
+    '<section class="card"><h2>Raw-material cross-check</h2><p class="lede">Bottom-up ingredient baseline vs. top-down actual COGS.</p>'+crossCheckHtml+'</section>'+
+    capitalHtml;
 }

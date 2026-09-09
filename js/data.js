@@ -16,6 +16,21 @@ var CAT_META = {
 };
 var CAT_ORDER = ["meat", "grocery", "veg"];
 
+var ASSET_META = {
+  inventory: { label: "Inventory", color: "var(--chart-1)", lede: "Stock you keep on hand — extra rice, oil, packaging, spare supplies. This is not the monthly meat and vegetable ledger." },
+  setup:     { label: "Setup cost", color: "var(--chart-4)", lede: "One-time opening costs: deposit, renovation, sign, licenses, furniture." },
+  utensil:   { label: "Utensils", color: "var(--chart-3)", lede: "Pots, pans, plates, knives, and tools that last months or years." },
+  gas:       { label: "Gas & equipment", color: "var(--chart-2)", lede: "Gas range, cylinders, hood, fridge, and other kitchen equipment that lasts a long time." }
+};
+var ASSET_ORDER = ["inventory", "setup", "utensil", "gas"];
+
+function defaultAssetLife(cat){
+  if (cat === "gas") return 60;
+  if (cat === "utensil") return 24;
+  if (cat === "setup") return 36;
+  return 0;
+}
+
 var MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 var MONTH_ABBR  = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 var DOW_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];

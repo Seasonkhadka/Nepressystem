@@ -8,17 +8,44 @@
  * Line total (amount) auto-fills from qty × ₩/unit, or you type it yourself.
  * Lump / no-bill rows (no itemized receipt):
  *   { id, date, place, note, amount }  — you type the line total yourself.
+ * Long-term assets (inventory, setup, utensils, gas):
+ *   { id, cat, date, name, qty, unitPrice, amount, lifeMonths }
  *
- * Depends on: data.js (CAT_ORDER, defaultUnit, migrateCat).
+ * Depends on: data.js (CAT_ORDER, defaultUnit, migrateCat, ASSET_ORDER, defaultAssetLife).
  */
 
 var nextIngId = 1;
 var nextPurchaseId = 1;
 var nextLumpId = 1;
+var nextAssetId = 1;
 
 function today(){ return new Date(); }
 
 function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
+
+function asArray(v){
+  if (Array.isArray(v)) return v.filter(function(x){ return x != null; });
+  if (!v || typeof v !== "object") return [];
+  return Object.keys(v).sort(function(a,b){ return Number(a) - Number(b); }).map(function(k){ return v[k]; }).filter(function(x){ return x != null; });
+}
+
+function normalizeDays(days, year, month){
+  var src = days && typeof days === "object" ? days : {};
+  var n = daysInMonth(year, month);
+  var out = {};
+  for (var d=1; d<=n; d++){
+    var rec = src[d] || src[String(d)];
+    out[d] = rec && typeof rec === "object"
+      ? {
+          vacation: !!rec.vacation,
+          sales: Number(rec.sales)||0,
+          cogsPct: Number(rec.cogsPct)||0,
+          labor: Number(rec.labor)||0
+        }
+      : { vacation:false, sales:0, cogsPct:0, labor:0 };
+  }
+  return out;
+}
 
 function blankPurchase(){
   return { id: nextPurchaseId++, date: isoToday(), place: "", packs: 0, qty: 0, unitPrice: 0, amount: 0 };
@@ -68,6 +95,92 @@ function blankIngredient(cat){
 
 function blankLump(){
   return { id: nextLumpId++, date: isoToday(), place: "", note: "", amount: 0 };
+}
+
+function blankAsset(cat){
+  return {
+    id: nextAssetId++,
+    cat: cat || "inventory",
+    date: isoToday(),
+    name: "",
+    qty: 0,
+    unitPrice: 0,
+    amount: 0,
+    lifeMonths: defaultAssetLife(cat)
+  };
+}
+
+function assetHasData(a){
+  if (!a) return false;
+  if (String(a.name || "").trim()) return true;
+  return (Number(a.qty)||0) > 0 || (Number(a.unitPrice)||0) > 0 || (Number(a.amount)||0) > 0;
+}
+
+function compactAssets(list){
+  var kept = [];
+  ASSET_ORDER.forEach(function(cat){
+    var items = list.filter(function(a){ return a.cat === cat; });
+    var filled = items.filter(assetHasData);
+    if (filled.length) kept = kept.concat(filled);
+    else kept.push(blankAsset(cat));
+  });
+  return kept;
+}
+
+function applyAssetField(a, field, raw){
+  if (field === "date" || field === "name"){
+    a[field] = raw;
+    return;
+  }
+  var n = parseFloat(raw) || 0;
+  if (field === "lifeMonths"){
+    a.lifeMonths = n < 0 ? 0 : n;
+    return;
+  }
+  if (field === "qty"){
+    a.qty = n;
+    if ((Number(a.unitPrice)||0) > 0){
+      a.amount = niceNum(n * Number(a.unitPrice));
+    } else if (n > 0 && (Number(a.amount)||0) > 0){
+      a.unitPrice = niceNum(Number(a.amount) / n);
+    }
+    return;
+  }
+  if (field === "unitPrice"){
+    a.unitPrice = n;
+    var qty = Number(a.qty)||0;
+    if (qty > 0) a.amount = niceNum(qty * n);
+    return;
+  }
+  if (field === "amount"){
+    a.amount = n;
+    var qty = Number(a.qty)||0;
+    if (qty > 0) a.unitPrice = niceNum(n / qty);
+  }
+}
+
+function migrateAsset(a){
+  if (!a || typeof a !== "object") return blankAsset("inventory");
+  var cat = ASSET_ORDER.indexOf(a.cat) > -1 ? a.cat : "inventory";
+  var qty = Number(a.qty) || 0;
+  var unitPrice = Number(a.unitPrice);
+  var amount = Number(a.amount);
+  if (!isFinite(unitPrice) || unitPrice < 0) unitPrice = 0;
+  if (!isFinite(amount) || amount < 0) amount = 0;
+  if (!amount && qty && unitPrice) amount = qty * unitPrice;
+  if (!unitPrice && qty && amount) unitPrice = amount / qty;
+  var life = Number(a.lifeMonths);
+  if (!isFinite(life) || life < 0) life = defaultAssetLife(cat);
+  return {
+    id: a.id || nextAssetId++,
+    cat: cat,
+    date: a.date || isoToday(),
+    name: a.name || "",
+    qty: qty,
+    unitPrice: niceNum(unitPrice),
+    amount: niceNum(amount),
+    lifeMonths: life
+  };
 }
 
 function migrateLump(p){
@@ -130,13 +243,16 @@ function migrateIngredient(i){
   var purchases;
   if (Array.isArray(i.purchases) && i.purchases.length){
     purchases = i.purchases.map(migratePurchase);
+  } else if (i.purchases && typeof i.purchases === "object"){
+    purchases = asArray(i.purchases).map(migratePurchase);
+    if (!purchases.length) purchases = [blankPurchase()];
   } else {
     var amount = Number(i.amount) || 0;
     purchases = amount > 0
       ? [{ id: nextPurchaseId++, date: isoToday(), place: "", packs: 0, qty: 1, unitPrice: amount, amount: amount }]
       : [blankPurchase()];
   }
-  return { id: i.id, cat: migrateCat(i.cat), name: i.name || "", unit: unit, purchases: purchases };
+  return { id: i.id || nextIngId++, cat: migrateCat(i.cat), name: i.name || "", unit: unit, purchases: purchases };
 }
 
 function blankDaysForMonth(year, month){
@@ -158,19 +274,25 @@ function defaultState(){
     overheadVariableRate: 0,
     ingredients: CAT_ORDER.map(function(c){ return blankIngredient(c); }),
     lumps: [blankLump()],
+    assets: ASSET_ORDER.map(function(c){ return blankAsset(c); }),
     days: blankDaysForMonth(year, month)
   };
 }
 
 function normalizeParsedState(parsed){
-  if (!parsed || !parsed.days || typeof parsed.days !== "object") return defaultState();
-  if (!Array.isArray(parsed.ingredients)) return defaultState();
+  if (!parsed || typeof parsed !== "object") return defaultState();
+  var year = Number(parsed.year) || today().getFullYear();
+  var month = Number(parsed.month) || (today().getMonth()+1);
+  parsed.year = year;
+  parsed.month = month;
+  parsed.days = normalizeDays(parsed.days, year, month);
+  var list = asArray(parsed.ingredients);
   var maxIng = 0, maxPur = 0;
-  parsed.ingredients.forEach(function(i){
+  list.forEach(function(i){
     if (i && i.id > maxIng) maxIng = i.id;
   });
   nextIngId = maxIng + 1;
-  parsed.ingredients = compactIngredients(parsed.ingredients.map(migrateIngredient));
+  parsed.ingredients = compactIngredients(list.map(migrateIngredient));
   parsed.ingredients.forEach(function(i){
     if (i && i.id > maxIng) maxIng = i.id;
     (i.purchases || []).forEach(function(p){ if (p && p.id > maxPur) maxPur = p.id; });
@@ -178,11 +300,20 @@ function normalizeParsedState(parsed){
   nextIngId = maxIng + 1;
   nextPurchaseId = maxPur + 1;
   var maxLump = 0;
-  var lumps = Array.isArray(parsed.lumps) ? parsed.lumps.map(migrateLump) : [];
+  var lumps = asArray(parsed.lumps).map(migrateLump);
   lumps.forEach(function(p){ if (p && p.id > maxLump) maxLump = p.id; });
   nextLumpId = maxLump + 1;
   parsed.lumps = lumps.length ? lumps : [blankLump()];
+  var maxAsset = 0;
+  var assets = asArray(parsed.assets).map(migrateAsset);
+  assets.forEach(function(a){ if (a && a.id > maxAsset) maxAsset = a.id; });
+  nextAssetId = maxAsset + 1;
+  parsed.assets = compactAssets(assets);
+  parsed.assets.forEach(function(a){ if (a && a.id > maxAsset) maxAsset = a.id; });
+  nextAssetId = maxAsset + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
+  parsed.overheadFixedMonthly = Number(parsed.overheadFixedMonthly)||0;
+  parsed.overheadVariableRate = Number(parsed.overheadVariableRate)||0;
   return parsed;
 }
 
@@ -205,15 +336,19 @@ function stateHasUserData(s){
   if (s.meta && String(s.meta.subtitle || "").trim()) return true;
   if ((Number(s.overheadFixedMonthly) || 0) > 0) return true;
   if ((Number(s.overheadVariableRate) || 0) > 0) return true;
-  if (s.ingredients && s.ingredients.some(function(i){
+  if (asArray(s.ingredients).some(function(i){
+    if (!i) return false;
     if (String(i.name || "").trim()) return true;
-    return (i.purchases || []).some(function(p){
+    return asArray(i.purchases).some(function(p){
+      if (!p) return false;
       return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.packs)||0) > 0 || (Number(p.unitPrice)||0) > 0 || (Number(p.amount)||0) > 0;
     });
   })) return true;
-  if (s.lumps && s.lumps.some(function(p){
+  if (asArray(s.lumps).some(function(p){
+    if (!p) return false;
     return String(p.place || "").trim() || String(p.note || "").trim() || (Number(p.amount)||0) > 0;
   })) return true;
+  if (asArray(s.assets).some(assetHasData)) return true;
   if (s.days){
     var keys = Object.keys(s.days);
     for (var i = 0; i < keys.length; i++){

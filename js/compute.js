@@ -46,9 +46,17 @@ function lineTotal(p){
   return (Number(p.qty)||0) * (Number(p.unitPrice)||0);
 }
 
+function assetMonthly(a){
+  var tot = lineTotal(a);
+  var life = Number(a.lifeMonths)||0;
+  return life > 0 ? tot / life : 0;
+}
+
 function computeAll(){
   var year = STATE.year, month = STATE.month;
-  var dayNums = Object.keys(STATE.days).map(Number).sort(function(a,b){ return a-b; });
+  var nDays = daysInMonth(year, month);
+  var dayNums = [];
+  for (var d=1; d<=nDays; d++) dayNums.push(d);
 
   var daily = dayNums.map(function(day){
     var raw = STATE.days[day] || { vacation:false, sales:0, cogsPct:0, labor:0 };
@@ -93,9 +101,9 @@ function computeAll(){
   });
 
   var daysThisMonth = dayNums.length;
-  var list = Array.isArray(STATE.ingredients) ? STATE.ingredients : [];
+  var list = asArray(STATE.ingredients);
   var ingredients = list.map(function(i){
-    var purchases = Array.isArray(i.purchases) ? i.purchases : [];
+    var purchases = asArray(i.purchases);
     var monthlyCost = 0, qtyMonth = 0, allCost = 0, allQty = 0;
     purchases.forEach(function(p){
       var tot = lineTotal(p);
@@ -125,7 +133,7 @@ function computeAll(){
     return { cat: cat, label: CAT_META[cat].label, color: CAT_META[cat].color, lede: CAT_META[cat].lede, items: items, daily: d, weekly: w, monthly: m };
   });
 
-  var lumps = Array.isArray(STATE.lumps) ? STATE.lumps : [];
+  var lumps = asArray(STATE.lumps);
   var lumpMonthly = 0;
   lumps.forEach(function(p){
     if (purchaseInMonth(p, year, month)) lumpMonthly += Number(p.amount)||0;
@@ -145,6 +153,25 @@ function computeAll(){
 
   var rawGrand = catTotals.reduce(function(a,c){ a.daily += c.daily; a.weekly += c.weekly; a.monthly += c.monthly; return a; }, {daily:0, weekly:0, monthly:0});
 
+  var assetList = asArray(STATE.assets).map(function(a){
+    var invested = lineTotal(a);
+    return {
+      id: a.id, cat: a.cat, date: a.date, name: a.name || "",
+      qty: Number(a.qty)||0, unitPrice: Number(a.unitPrice)||0, amount: invested,
+      lifeMonths: Number(a.lifeMonths)||0,
+      monthly: assetMonthly(a)
+    };
+  });
+  var assetCats = ASSET_ORDER.map(function(cat){
+    var items = assetList.filter(function(a){ return a.cat === cat; });
+    var invested = 0, monthlyAlloc = 0;
+    items.forEach(function(a){ invested += a.amount; monthlyAlloc += a.monthly; });
+    return { cat: cat, label: ASSET_META[cat].label, color: ASSET_META[cat].color, lede: ASSET_META[cat].lede, items: items, invested: invested, monthly: monthlyAlloc };
+  });
+  var assetGrand = assetCats.reduce(function(a,c){
+    a.invested += c.invested; a.monthly += c.monthly; return a;
+  }, { invested:0, monthly:0 });
+
   var crosscheck = {
     baseline: rawGrand.monthly,
     actual: monthly.cogsAmt,
@@ -152,5 +179,5 @@ function computeAll(){
   };
   crosscheck.variancePct = safeDiv(crosscheck.variance, crosscheck.baseline);
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, crosscheck:crosscheck };
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, crosscheck:crosscheck };
 }
