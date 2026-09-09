@@ -201,13 +201,17 @@
   .ing-kpi-label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); font-weight:600; }
   .ing-unit-label{ font-size:13px; font-weight:500; color:var(--muted); }
   .purchase-wrap{ margin-bottom:8px; }
-  table.purchase-table, table.compare-table{ min-width:560px; }
+  table.purchase-table, table.compare-table, table.lump-table{ min-width:560px; }
   table.purchase-table thead th:nth-child(n+3),
   table.purchase-table tbody td:nth-child(n+3),
   table.compare-table thead th:nth-child(n+2),
-  table.compare-table tbody td:nth-child(n+2){ text-align:right; }
+  table.compare-table tbody td:nth-child(n+2),
+  table.lump-table thead th:nth-child(4),
+  table.lump-table tbody td:nth-child(4){ text-align:right; }
   table.purchase-table thead th:last-child,
-  table.purchase-table tbody td:last-child{ text-align:center; }
+  table.purchase-table tbody td:last-child,
+  table.lump-table thead th:last-child,
+  table.lump-table tbody td:last-child{ text-align:center; }
   tr.best-place td{ background:var(--accent-soft); }
   .calc-jump{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
   .calc-jump a{ display:inline-block; padding:7px 12px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:12.5px; text-decoration:none; border:1px solid var(--hairline); }

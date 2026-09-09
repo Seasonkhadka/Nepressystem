@@ -12,10 +12,26 @@ function findPurchase(ing, purId){
   return ing.purchases.find(function(p){ return p.id === purId; });
 }
 
+function findLump(id){
+  if (!STATE.lumps) return null;
+  return STATE.lumps.find(function(p){ return p.id === id; });
+}
+
 function initRawEvents(){
   var host = el("tab-raw");
   var onFieldChange = function(e){
     var t = e.target;
+    var lumpTr = t.closest("tr[data-lump-id]");
+    if (lumpTr){
+      var lump = findLump(Number(lumpTr.getAttribute("data-lump-id")));
+      if (!lump || !t.matches("[data-field]")) return;
+      var lfield = t.getAttribute("data-field");
+      if (lfield === "date" || lfield === "place" || lfield === "note") lump[lfield] = t.value;
+      else lump[lfield] = parseFloat(t.value) || 0;
+      refreshDerived();
+      return;
+    }
+
     var card = t.closest(".ing-card");
     if (!card) return;
     var ing = findIngredient(Number(card.getAttribute("data-ing-id")));
@@ -68,6 +84,17 @@ function initRawEvents(){
       var pid = Number(t.getAttribute("data-remove-pur"));
       ingRm.purchases = (ingRm.purchases || []).filter(function(p){ return p.id !== pid; });
       if (!ingRm.purchases.length) ingRm.purchases.push(blankPurchase());
+      renderRawMaterialsTab();
+      refreshDerived();
+    } else if (t.matches("[data-add-lump]")){
+      if (!STATE.lumps) STATE.lumps = [];
+      STATE.lumps.push(blankLump());
+      renderRawMaterialsTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-lump]")){
+      var lid = Number(t.getAttribute("data-remove-lump"));
+      STATE.lumps = (STATE.lumps || []).filter(function(p){ return p.id !== lid; });
+      if (!STATE.lumps.length) STATE.lumps.push(blankLump());
       renderRawMaterialsTab();
       refreshDerived();
     }

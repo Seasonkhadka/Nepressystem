@@ -120,8 +120,27 @@ function computeAll(){
     var items = ingredients.filter(function(i){ return i.cat === cat; });
     var d=0, w=0, m=0;
     items.forEach(function(i){ d += i.dailyCost; w += i.weeklyCost; m += i.monthlyCost; });
-    return { cat: cat, label: CAT_META[cat].label, color: CAT_META[cat].color, items: items, daily: d, weekly: w, monthly: m };
+    return { cat: cat, label: CAT_META[cat].label, color: CAT_META[cat].color, lede: CAT_META[cat].lede, items: items, daily: d, weekly: w, monthly: m };
   });
+
+  var lumps = Array.isArray(STATE.lumps) ? STATE.lumps : [];
+  var lumpMonthly = 0;
+  lumps.forEach(function(p){
+    if (purchaseInMonth(p, year, month)) lumpMonthly += Number(p.amount)||0;
+  });
+  var lumpDaily = daysThisMonth ? lumpMonthly / daysThisMonth : 0;
+  catTotals.push({
+    cat: "nobill",
+    label: CAT_META.nobill.label,
+    color: CAT_META.nobill.color,
+    lede: CAT_META.nobill.lede,
+    items: [],
+    lumps: lumps,
+    daily: lumpDaily,
+    weekly: lumpDaily * 7,
+    monthly: lumpMonthly
+  });
+
   var rawGrand = catTotals.reduce(function(a,c){ a.daily += c.daily; a.weekly += c.weekly; a.monthly += c.monthly; return a; }, {daily:0, weekly:0, monthly:0});
 
   var crosscheck = {

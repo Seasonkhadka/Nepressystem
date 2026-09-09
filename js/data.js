@@ -9,13 +9,12 @@
 var STORAGE_KEY = "restaurant-pl-calculator-v1";
 
 var CAT_META = {
-  rice: { label: "Rice &amp; Grains", color: "var(--chart-1)" },
-  meat: { label: "Meat &amp; Protein", color: "var(--chart-2)" },
-  veg:  { label: "Vegetables", color: "var(--chart-3)" },
-  cond: { label: "Condiments &amp; Seasonings", color: "var(--chart-4)" },
-  pack: { label: "Packaging &amp; Disposables", color: "var(--chart-5)" }
+  meat:    { label: "Meat", color: "var(--chart-2)", lede: "Each cut with quantity and ₩ per unit so you can compare markets." },
+  grocery: { label: "Groceries", color: "var(--chart-1)", lede: "Rice, oil, sauce, packaging, and other store items with a unit price." },
+  veg:     { label: "Vegetables", color: "var(--chart-3)", lede: "Each vegetable with quantity and ₩ per unit. A second buy does not overwrite the first price." },
+  nobill:  { label: "No bill", color: "var(--chart-4)", lede: "No itemized receipt — you only know where you paid and the total. Type the line total yourself. No quantity or ₩ per unit needed." }
 };
-var CAT_ORDER = ["rice", "meat", "veg", "cond", "pack"];
+var CAT_ORDER = ["meat", "grocery", "veg"];
 
 var MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 var MONTH_ABBR  = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -30,7 +29,12 @@ var TAG_META = {
 var UNIT_OPTIONS = ["kg", "g", "L", "ml", "ea", "bunch", "pack", "box"];
 
 function defaultUnit(cat){
-  if (cat === "cond") return "L";
-  if (cat === "pack") return "ea";
   return "kg";
+}
+
+function migrateCat(cat){
+  if (cat === "meat") return "meat";
+  if (cat === "veg") return "veg";
+  if (cat === "grocery" || cat === "groceries") return "grocery";
+  return "grocery";
 }

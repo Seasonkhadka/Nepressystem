@@ -67,7 +67,7 @@ function renderCompareTab(){
 
   if (!any){
     blocks = '<section class="card"><h2>Supplier price comparison</h2>'+
-      '<p class="lede">Add an ingredient name, then log purchases with a market name, quantity, and ₩ per unit on Raw Materials. This page will rank each market by average unit price.</p>'+
+      '<p class="lede">Add an item name, then log purchases with a market, quantity, and ₩ per unit on Meat, Groceries, or Vegetables. No-bill totals are not compared here.</p>'+
       '<p class="note empty">No comparable purchases yet.</p></section>';
   } else {
     blocks = '<section class="card"><h2>Supplier price comparison</h2>'+

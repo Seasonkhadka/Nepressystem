@@ -2,17 +2,17 @@
  * state.js — the app's single source of truth: STATE, its defaults, and
  * persistence to localStorage.
  *
- * Ingredient shape:
+ * Ingredient shape (Meat / Groceries / Vegetables):
  *   { id, cat, name, unit, purchases: [{ id, date, place, qty, unitPrice }] }
- * Each purchase is one receipt line. Monthly cost is the sum of purchases
- * dated in the selected month — buying spinach 3 times does not rescale
- * a single "amount", so unit price stays honest per market.
+ * Lump / no-bill rows (no itemized receipt):
+ *   { id, date, place, note, amount }  — you type the line total yourself.
  *
- * Depends on: data.js (CAT_ORDER, defaultUnit).
+ * Depends on: data.js (CAT_ORDER, defaultUnit, migrateCat).
  */
 
 var nextIngId = 1;
 var nextPurchaseId = 1;
+var nextLumpId = 1;
 
 function today(){ return new Date(); }
 
@@ -24,6 +24,40 @@ function blankPurchase(){
 
 function blankIngredient(cat){
   return { id: nextIngId++, cat: cat, name: "", unit: defaultUnit(cat), purchases: [blankPurchase()] };
+}
+
+function blankLump(){
+  return { id: nextLumpId++, date: isoToday(), place: "", note: "", amount: 0 };
+}
+
+function migrateLump(p){
+  if (!p || typeof p !== "object") return blankLump();
+  return {
+    id: p.id || nextLumpId++,
+    date: p.date || isoToday(),
+    place: p.place || "",
+    note: p.note || "",
+    amount: Number(p.amount) || 0
+  };
+}
+
+function ingredientHasData(i){
+  if (!i) return false;
+  if (String(i.name || "").trim()) return true;
+  return (i.purchases || []).some(function(p){
+    return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.unitPrice)||0) > 0;
+  });
+}
+
+function compactIngredients(list){
+  var kept = [];
+  CAT_ORDER.forEach(function(cat){
+    var items = list.filter(function(i){ return i.cat === cat; });
+    var filled = items.filter(ingredientHasData);
+    if (filled.length) kept = kept.concat(filled);
+    else kept.push(blankIngredient(cat));
+  });
+  return kept;
 }
 
 function migratePurchase(p){
@@ -55,7 +89,7 @@ function migrateIngredient(i){
       ? [{ id: nextPurchaseId++, date: isoToday(), place: "", qty: 1, unitPrice: amount }]
       : [blankPurchase()];
   }
-  return { id: i.id, cat: i.cat, name: i.name || "", unit: unit, purchases: purchases };
+  return { id: i.id, cat: migrateCat(i.cat), name: i.name || "", unit: unit, purchases: purchases };
 }
 
 function blankDaysForMonth(year, month){
@@ -76,6 +110,7 @@ function defaultState(){
     overheadFixedMonthly: 0,
     overheadVariableRate: 0,
     ingredients: CAT_ORDER.map(function(c){ return blankIngredient(c); }),
+    lumps: [blankLump()],
     days: blankDaysForMonth(year, month)
   };
 }
@@ -88,11 +123,18 @@ function normalizeParsedState(parsed){
     if (i && i.id > maxIng) maxIng = i.id;
   });
   nextIngId = maxIng + 1;
-  parsed.ingredients = parsed.ingredients.map(migrateIngredient);
+  parsed.ingredients = compactIngredients(parsed.ingredients.map(migrateIngredient));
   parsed.ingredients.forEach(function(i){
+    if (i && i.id > maxIng) maxIng = i.id;
     (i.purchases || []).forEach(function(p){ if (p && p.id > maxPur) maxPur = p.id; });
   });
+  nextIngId = maxIng + 1;
   nextPurchaseId = maxPur + 1;
+  var maxLump = 0;
+  var lumps = Array.isArray(parsed.lumps) ? parsed.lumps.map(migrateLump) : [];
+  lumps.forEach(function(p){ if (p && p.id > maxLump) maxLump = p.id; });
+  nextLumpId = maxLump + 1;
+  parsed.lumps = lumps.length ? lumps : [blankLump()];
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
   return parsed;
 }
@@ -121,6 +163,9 @@ function stateHasUserData(s){
     return (i.purchases || []).some(function(p){
       return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.unitPrice)||0) > 0;
     });
+  })) return true;
+  if (s.lumps && s.lumps.some(function(p){
+    return String(p.place || "").trim() || String(p.note || "").trim() || (Number(p.amount)||0) > 0;
   })) return true;
   if (s.days){
     var keys = Object.keys(s.days);
