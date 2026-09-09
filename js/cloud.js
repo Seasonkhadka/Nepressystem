@@ -43,11 +43,15 @@ function renderAuthBar(){
   if (!cloudUser){
     signIn.hidden = false;
     userBox.hidden = true;
+    if (el("auth-hint") && !el("auth-hint").classList.contains("error")){
+      setAuthHint("Use the same Google account on every device.");
+    }
     return;
   }
 
   signIn.hidden = true;
   userBox.hidden = false;
+  setAuthHint("");
   el("auth-name").textContent = cloudUser.displayName || cloudUser.email || "Signed in";
   var photo = el("auth-photo");
   if (cloudUser.photoURL){
@@ -176,36 +180,53 @@ function stopLiveSync(){
   }
 }
 
+function setAuthHint(text, isError){
+  var node = el("auth-hint");
+  if (!node) return;
+  node.textContent = text || "";
+  node.classList.toggle("error", !!isError);
+}
+
 function authErrorMessage(err){
   var code = err && err.code;
   if (code === "auth/unauthorized-domain"){
     return "This site's domain isn't allowed yet. In Firebase: Authentication → Settings → Authorized domains, add localhost and seasonkhadka.github.io.";
   }
+  if (code === "auth/operation-not-allowed"){
+    return "Google sign-in is not enabled yet. In Firebase: Authentication → Sign-in method → Google → Enable.";
+  }
   if (code === "auth/popup-blocked"){
-    return "The sign-in popup was blocked. Allow popups for this site and try again.";
+    return "The sign-in popup was blocked. Allow popups, or wait — retrying without a popup.";
   }
   if (code === "auth/popup-closed-by-user") return "";
+  if (code === "auth/unauthorized-continue-uri"){
+    return "Add seasonkhadka.github.io under Firebase Authentication → Authorized domains.";
+  }
   return (err && err.message) || "Sign-in failed.";
+}
+
+function googleProvider(){
+  var provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
 }
 
 function signInWithGoogle(){
   if (!isFirebaseConfigured() || !cloudAuth){
-    window.alert(
-      "Cloud save needs a free Firebase project first. See js/firebase-config.js."
-    );
+    setAuthHint("Cloud save is not connected yet.", true);
     return;
   }
-  var provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
+  var provider = googleProvider();
   el("btn-sign-in").disabled = true;
-  cloudAuth.signInWithPopup(provider).catch(function(err){
-    if (err && err.code === "auth/popup-blocked"){
-      return cloudAuth.signInWithRedirect(provider);
-    }
-    var msg = authErrorMessage(err);
-    if (msg) window.alert(msg);
-  }).then(function(){
+  setAuthHint("Opening Google…");
+  // Popups are blocked on GitHub Pages and most phones. Redirect is reliable.
+  cloudAuth.signInWithRedirect(provider).catch(function(err){
     el("btn-sign-in").disabled = false;
+    var msg = authErrorMessage(err);
+    if (msg){
+      setAuthHint(msg, true);
+      window.alert(msg);
+    }
   });
 }
 
@@ -240,8 +261,9 @@ function initCloud(){
   firebaseAppReady = true;
 
   cloudAuth.getRedirectResult().catch(function(err){
+    el("btn-sign-in").disabled = false;
     var msg = authErrorMessage(err);
-    if (msg) window.alert(msg);
+    if (msg) setAuthHint(msg, true);
   });
 
   cloudAuth.onAuthStateChanged(function(user){
