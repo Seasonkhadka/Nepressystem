@@ -9,15 +9,19 @@ function unitSelectHtml(current){
   }).join("");
 }
 
+function numAttr(v){
+  v = Number(v)||0;
+  return v ? String(v) : "";
+}
+
 function purchaseRowHtml(p){
-  var qty = Number(p.qty)||0;
-  var price = Number(p.unitPrice)||0;
   return '<tr data-pur-id="'+p.id+'">'+
     '<td><input class="cell-input" type="date" data-field="date" value="'+esc(p.date||"")+'"></td>'+
     '<td><input class="cell-input text" type="text" data-field="place" placeholder="Market / supplier" value="'+esc(p.place)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="0.01" data-field="qty" placeholder="0" value="'+(qty||"")+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="10" data-field="unitPrice" placeholder="0" value="'+(price||"")+'"></td>'+
-    '<td class="tnum calc" data-calc="line">'+won(qty*price)+'</td>'+
+    '<td><input class="cell-input" type="number" min="0" step="1" data-field="packs" placeholder="0" value="'+numAttr(p.packs)+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="0.01" data-field="qty" placeholder="0" value="'+numAttr(p.qty)+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="10" data-field="unitPrice" placeholder="0" value="'+numAttr(p.unitPrice)+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+numAttr(lineTotal(p))+'"></td>'+
     '<td><button class="icon-btn" type="button" data-remove-pur="'+p.id+'" title="Remove purchase" aria-label="Remove purchase">×</button></td>'+
   '</tr>';
 }
@@ -46,7 +50,7 @@ function ingredientCardHtml(i){
       '<button class="icon-btn" type="button" data-remove-ing="'+i.id+'" title="Remove item" aria-label="Remove item">×</button>'+
     '</div>'+
     '<div class="table-wrap purchase-wrap"><table class="purchase-table"><thead><tr>'+
-      '<th>Date</th><th>Market / place</th><th>Qty</th><th>₩ per unit</th><th>Line total</th><th></th>'+
+      '<th>Date</th><th>Market / place</th><th>Packets</th><th>Qty</th><th>₩ per unit</th><th>Line total</th><th></th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-pur="'+i.id+'">+ Add purchase (another market or date)</button>'+
   '</article>';
@@ -92,7 +96,7 @@ function renderRawMaterialsTab(){
   el("tab-raw").innerHTML =
     '<section class="card">'+
       '<h2>Raw materials</h2>'+
-      '<p class="lede">Meat, groceries, and vegetables are itemized (qty × ₩ per unit) for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+'. Use <b>No bill</b> when you only know the total you paid and where.</p>'+
+      '<p class="lede">Meat, groceries, and vegetables for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+'. <b>Packets</b> is how many packs you bought; <b>Qty</b> is the weight or volume. Line total auto-fills from qty × ₩ per unit — or type the total yourself.</p>'+
       '<p class="note">Grand total this month: <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
     '</section>'+
     body+
@@ -112,8 +116,14 @@ function refreshRawComputedCells(model){
     (i.purchases||[]).forEach(function(p){
       var tr = card.querySelector('tr[data-pur-id="'+p.id+'"]');
       if (!tr) return;
-      var line = tr.querySelector('[data-calc="line"]');
-      if (line) line.textContent = won(lineTotal(p));
+      var idleSet = function(sel, v){
+        var node = tr.querySelector(sel);
+        if (!node || document.activeElement === node) return;
+        var s = v ? String(v) : "";
+        if (node.value !== s) node.value = s;
+      };
+      idleSet('[data-field="unitPrice"]', niceNum(p.unitPrice));
+      idleSet('[data-field="amount"]', niceNum(lineTotal(p)));
     });
   });
   model.catTotals.forEach(function(c){

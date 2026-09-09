@@ -21,7 +21,7 @@ function compareRowsForIngredient(i){
     g.spend += tot;
     if (!g.lastDate || String(p.date) >= g.lastDate){
       g.lastDate = p.date || "";
-      g.lastPrice = Number(p.unitPrice)||0;
+      g.lastPrice = (Number(p.qty)||0) > 0 ? lineTotal(p) / Number(p.qty) : (Number(p.unitPrice)||0);
     }
   });
   var rows = Object.keys(byPlace).map(function(k){

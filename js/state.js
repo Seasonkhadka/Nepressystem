@@ -3,7 +3,9 @@
  * persistence to localStorage.
  *
  * Ingredient shape (Meat / Groceries / Vegetables):
- *   { id, cat, name, unit, purchases: [{ id, date, place, qty, unitPrice }] }
+ *   { id, cat, name, unit, purchases: [{ id, date, place, packs, qty, unitPrice, amount }] }
+ * packs = number of packets; qty = weight/volume in the item unit.
+ * Line total (amount) auto-fills from qty × ₩/unit, or you type it yourself.
  * Lump / no-bill rows (no itemized receipt):
  *   { id, date, place, note, amount }  — you type the line total yourself.
  *
@@ -19,7 +21,45 @@ function today(){ return new Date(); }
 function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
 
 function blankPurchase(){
-  return { id: nextPurchaseId++, date: isoToday(), place: "", qty: 0, unitPrice: 0 };
+  return { id: nextPurchaseId++, date: isoToday(), place: "", packs: 0, qty: 0, unitPrice: 0, amount: 0 };
+}
+
+function niceNum(v){
+  v = Number(v);
+  if (!isFinite(v) || v === 0) return 0;
+  return Math.round(v * 10000) / 10000;
+}
+
+function applyPurchaseField(pur, field, raw){
+  if (field === "date" || field === "place"){
+    pur[field] = raw;
+    return;
+  }
+  var n = parseFloat(raw) || 0;
+  if (field === "packs"){
+    pur.packs = n;
+    return;
+  }
+  if (field === "qty"){
+    pur.qty = n;
+    if ((Number(pur.unitPrice)||0) > 0){
+      pur.amount = niceNum(n * Number(pur.unitPrice));
+    } else if (n > 0 && (Number(pur.amount)||0) > 0){
+      pur.unitPrice = niceNum(Number(pur.amount) / n);
+    }
+    return;
+  }
+  if (field === "unitPrice"){
+    pur.unitPrice = n;
+    var qty = Number(pur.qty)||0;
+    if (qty > 0) pur.amount = niceNum(qty * n);
+    return;
+  }
+  if (field === "amount"){
+    pur.amount = n;
+    var qty = Number(pur.qty)||0;
+    if (qty > 0) pur.unitPrice = niceNum(n / qty);
+  }
 }
 
 function blankIngredient(cat){
@@ -45,7 +85,7 @@ function ingredientHasData(i){
   if (!i) return false;
   if (String(i.name || "").trim()) return true;
   return (i.purchases || []).some(function(p){
-    return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.unitPrice)||0) > 0;
+    return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.packs)||0) > 0 || (Number(p.unitPrice)||0) > 0 || (Number(p.amount)||0) > 0;
   });
 }
 
@@ -63,17 +103,24 @@ function compactIngredients(list){
 function migratePurchase(p){
   if (!p || typeof p !== "object") return blankPurchase();
   var qty = Number(p.qty) || 0;
+  var packs = Number(p.packs) || 0;
   var unitPrice = Number(p.unitPrice);
+  var amount = Number(p.amount);
   if (!isFinite(unitPrice) || unitPrice < 0){
     var total = Number(p.total) || 0;
     unitPrice = qty > 0 ? total / qty : 0;
   }
+  if (!isFinite(amount) || amount < 0) amount = 0;
+  if (!amount && qty && unitPrice) amount = qty * unitPrice;
+  if (!unitPrice && qty && amount) unitPrice = amount / qty;
   return {
     id: p.id || nextPurchaseId++,
     date: p.date || isoToday(),
     place: p.place || "",
+    packs: packs,
     qty: qty,
-    unitPrice: unitPrice
+    unitPrice: niceNum(unitPrice),
+    amount: niceNum(amount)
   };
 }
 
@@ -86,7 +133,7 @@ function migrateIngredient(i){
   } else {
     var amount = Number(i.amount) || 0;
     purchases = amount > 0
-      ? [{ id: nextPurchaseId++, date: isoToday(), place: "", qty: 1, unitPrice: amount }]
+      ? [{ id: nextPurchaseId++, date: isoToday(), place: "", packs: 0, qty: 1, unitPrice: amount, amount: amount }]
       : [blankPurchase()];
   }
   return { id: i.id, cat: migrateCat(i.cat), name: i.name || "", unit: unit, purchases: purchases };
@@ -161,7 +208,7 @@ function stateHasUserData(s){
   if (s.ingredients && s.ingredients.some(function(i){
     if (String(i.name || "").trim()) return true;
     return (i.purchases || []).some(function(p){
-      return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.unitPrice)||0) > 0;
+      return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.packs)||0) > 0 || (Number(p.unitPrice)||0) > 0 || (Number(p.amount)||0) > 0;
     });
   })) return true;
   if (s.lumps && s.lumps.some(function(p){

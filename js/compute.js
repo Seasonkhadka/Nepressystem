@@ -41,6 +41,8 @@ function sumDays(days){
 }
 
 function lineTotal(p){
+  var amt = Number(p.amount);
+  if (isFinite(amt) && amt > 0) return amt;
   return (Number(p.qty)||0) * (Number(p.unitPrice)||0);
 }
 

@@ -52,7 +52,7 @@ function initRawEvents(){
     if (!pur) return;
     var field = t.getAttribute("data-field");
     if (field === "date" || field === "place") pur[field] = t.value;
-    else pur[field] = parseFloat(t.value) || 0;
+    else applyPurchaseField(pur, field, t.value);
     refreshDerived();
   };
   host.addEventListener("input", onFieldChange);
