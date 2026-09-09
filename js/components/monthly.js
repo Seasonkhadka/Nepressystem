@@ -17,9 +17,11 @@ function renderMonthlyTab(model){
     return '<div class="formula" style="'+(big?"background:var(--accent-soft)":"")+'"><dt>'+label+'</dt><dd class="tnum" style="font-size:'+(big?"16px":"13px")+';color:var(--ink)">'+(isPct?pct(val):won(val))+'</dd></div>';
   }
 
-  el("tab-monthly").innerHTML =
+  var host = el("calc-monthly");
+  if (!host) return;
+  host.innerHTML =
     '<section class="card">'+
-      '<h2>Monthly calculation — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+'</h2>'+
+      '<h2>Monthly — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+'</h2>'+
       '<p class="lede">The single consolidated month, summed from the weeks above. These are exactly the figures that power the Main Dashboard.</p>'+
       '<div class="formula-list">'+
         row("Total Sales", m.sales)+

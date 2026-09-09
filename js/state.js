@@ -2,39 +2,60 @@
  * state.js — the app's single source of truth: STATE, its defaults, and
  * persistence to localStorage.
  *
- * Depends on: data.js (CAT_ORDER). Loads STATE immediately at the bottom of
- * this file, so data.js must be loaded first.
+ * Ingredient shape:
+ *   { id, cat, name, unit, purchases: [{ id, date, place, qty, unitPrice }] }
+ * Each purchase is one receipt line. Monthly cost is the sum of purchases
+ * dated in the selected month — buying spinach 3 times does not rescale
+ * a single "amount", so unit price stays honest per market.
  *
- * Ingredient shape: { id, cat, name, amount, intervalValue, intervalUnit }
- *   — "I spend `amount` ₩ every `intervalValue` `intervalUnit`(s)."
- *   e.g. amount:15000, intervalValue:2, intervalUnit:"day" -> every 2 days.
+ * Depends on: data.js (CAT_ORDER, defaultUnit).
  */
 
 var nextIngId = 1;
+var nextPurchaseId = 1;
 
 function today(){ return new Date(); }
 
 function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
 
-function blankIngredient(cat){
-  return { id: nextIngId++, cat: cat, name: "", amount: 0, intervalValue: 1, intervalUnit: "week" };
+function blankPurchase(){
+  return { id: nextPurchaseId++, date: isoToday(), place: "", qty: 0, unitPrice: 0 };
 }
 
-// Carries older saved shapes forward to {amount, intervalValue, intervalUnit}
-// so nothing already entered is lost when the data model changes.
-function migrateIngredient(i){
-  if (i.intervalValue !== undefined && i.intervalUnit !== undefined) return i;
+function blankIngredient(cat){
+  return { id: nextIngId++, cat: cat, name: "", unit: defaultUnit(cat), purchases: [blankPurchase()] };
+}
 
-  // Previous shape: amount + a fixed frequency (daily/weekly/monthly).
-  if (i.amount !== undefined && i.frequency !== undefined){
-    var freqMap = { daily: {value:1, unit:"day"}, weekly: {value:1, unit:"week"}, monthly: {value:1, unit:"month"} };
-    var mapped = freqMap[i.frequency] || {value:1, unit:"week"};
-    return { id: i.id, cat: i.cat, name: i.name || "", amount: Number(i.amount)||0, intervalValue: mapped.value, intervalUnit: mapped.unit };
+function migratePurchase(p){
+  if (!p || typeof p !== "object") return blankPurchase();
+  var qty = Number(p.qty) || 0;
+  var unitPrice = Number(p.unitPrice);
+  if (!isFinite(unitPrice) || unitPrice < 0){
+    var total = Number(p.total) || 0;
+    unitPrice = qty > 0 ? total / qty : 0;
   }
+  return {
+    id: p.id || nextPurchaseId++,
+    date: p.date || isoToday(),
+    place: p.place || "",
+    qty: qty,
+    unitPrice: unitPrice
+  };
+}
 
-  // Oldest shape: unit cost x daily quantity.
-  var amount = (Number(i.unitCost)||0) * (Number(i.qty)||0);
-  return { id: i.id, cat: i.cat, name: i.name || "", amount: amount, intervalValue: 1, intervalUnit: "day" };
+function migrateIngredient(i){
+  if (!i) return blankIngredient("veg");
+  var unit = i.unit || defaultUnit(i.cat);
+  var purchases;
+  if (Array.isArray(i.purchases) && i.purchases.length){
+    purchases = i.purchases.map(migratePurchase);
+  } else {
+    var amount = Number(i.amount) || 0;
+    purchases = amount > 0
+      ? [{ id: nextPurchaseId++, date: isoToday(), place: "", qty: 1, unitPrice: amount }]
+      : [blankPurchase()];
+  }
+  return { id: i.id, cat: i.cat, name: i.name || "", unit: unit, purchases: purchases };
 }
 
 function blankDaysForMonth(year, month){
@@ -62,10 +83,16 @@ function defaultState(){
 function normalizeParsedState(parsed){
   if (!parsed || !parsed.days || typeof parsed.days !== "object") return defaultState();
   if (!Array.isArray(parsed.ingredients)) return defaultState();
-  var maxId = 0;
-  parsed.ingredients.forEach(function(i){ if (i && i.id > maxId) maxId = i.id; });
-  nextIngId = maxId + 1;
+  var maxIng = 0, maxPur = 0;
+  parsed.ingredients.forEach(function(i){
+    if (i && i.id > maxIng) maxIng = i.id;
+  });
+  nextIngId = maxIng + 1;
   parsed.ingredients = parsed.ingredients.map(migrateIngredient);
+  parsed.ingredients.forEach(function(i){
+    (i.purchases || []).forEach(function(p){ if (p && p.id > maxPur) maxPur = p.id; });
+  });
+  nextPurchaseId = maxPur + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
   return parsed;
 }
@@ -90,7 +117,10 @@ function stateHasUserData(s){
   if ((Number(s.overheadFixedMonthly) || 0) > 0) return true;
   if ((Number(s.overheadVariableRate) || 0) > 0) return true;
   if (s.ingredients && s.ingredients.some(function(i){
-    return String(i.name || "").trim() || (Number(i.amount) || 0) > 0;
+    if (String(i.name || "").trim()) return true;
+    return (i.purchases || []).some(function(p){
+      return String(p.place || "").trim() || (Number(p.qty)||0) > 0 || (Number(p.unitPrice)||0) > 0;
+    });
   })) return true;
   if (s.days){
     var keys = Object.keys(s.days);

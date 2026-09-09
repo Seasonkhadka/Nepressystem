@@ -25,10 +25,12 @@ function renderWeeklyTab(model){
   var sumOfWeeks = model.weekly.reduce(function(a,w){ return a+w.sales; }, 0);
   var tie = Math.round(sumOfWeeks) === Math.round(m.sales);
 
-  el("tab-weekly").innerHTML =
+  var host = el("calc-weekly");
+  if (!host) return;
+  host.innerHTML =
     '<section class="card">'+
-      '<h2>Weekly calculation — '+model.weekly.length+' weeks</h2>'+
-      '<p class="lede">Auto-totaled from the Daily Calculation tab. Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
+      '<h2>Weekly — '+model.weekly.length+' weeks</h2>'+
+      '<p class="lede">Auto-totaled from the daily rows above. Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
       '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Sales</th><th>COGS %</th><th>COGS</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total</td>'+
@@ -43,6 +45,6 @@ function renderWeeklyTab(model){
         '<td class="tnum">'+won(m.netProfit)+'</td>'+
         '<td class="tnum">'+pct(m.netMarginPct)+'</td></tr></tfoot>'+
       '</table></div>'+
-      '<div class="tie-out"><span class="check">'+(tie?"✓":"!")+'</span> Sum of weekly totals = '+won(sumOfWeeks)+' — ties out exactly to the Daily Calculation total.</div>'+
+      '<div class="tie-out"><span class="check">'+(tie?"✓":"!")+'</span> Sum of weekly totals = '+won(sumOfWeeks)+' — ties out to the daily total.</div>'+
     '</section>';
 }

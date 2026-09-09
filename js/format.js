@@ -22,6 +22,10 @@ function pct(v, d){
   return (v*100).toFixed(d) + "%";
 }
 
+function wonPerUnit(v, unit){
+  return won(v) + "/" + (unit || "unit");
+}
+
 function signedWon(v){ return (v < 0 ? "−" : "") + won(Math.abs(v)); }
 function signedPct(v, d){ return (v < 0 ? "−" : "+") + pct(Math.abs(v), d); }
 

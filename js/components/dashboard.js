@@ -54,7 +54,7 @@ function renderDashboard(model){
       '<div class="block"><div class="label">Actual COGS from Daily Calc.</div><div class="amt tnum">'+won(model.crosscheck.actual)+'</div></div>'+
       '<div class="block"><div class="label">Variance</div><div class="amt tnum" style="color:var(--ember)">'+signedWon(model.crosscheck.variance)+' ('+(model.crosscheck.baseline ? signedPct(model.crosscheck.variancePct) : "—")+')</div></div>'+
     '</div>'+
-    '<p class="note">'+(model.crosscheck.baseline ? ("Actual COGS runs "+pct(Math.abs(model.crosscheck.variancePct))+" "+(model.crosscheck.variance>=0?"above":"below")+" the itemized baseline.") : "Add ingredients in Raw Materials and daily sales in Daily Calculation to see this compare.")+' See Instructions for the full explanation.</p>';
+    '<p class="note">'+(model.crosscheck.baseline ? ("Actual COGS runs "+pct(Math.abs(model.crosscheck.variancePct))+" "+(model.crosscheck.variance>=0?"above":"below")+" the itemized purchase ledger.") : "Add purchases in Raw Materials and daily sales in P&amp;L to see this compare.")+'</p>';
 
   el("tab-dashboard").innerHTML =
     '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far.</p><div class="kpi-grid">'+kpis+'</div></section>'+

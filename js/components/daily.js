@@ -35,9 +35,11 @@ function renderDailyTab(){
     return dayRowHtml(day, isWeekendAuto);
   }).join("");
 
-  el("tab-daily").innerHTML =
+  var host = el("calc-daily");
+  if (!host) return;
+  host.innerHTML =
     '<section class="card">'+
-      '<h2>Daily calculation — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
+      '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
       '<p class="lede">Every date is auto-tagged from the calendar. Check the Vacation box on any row to shade it as a closure/holiday instead.</p>'+
       '<div class="legend">'+
         '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
@@ -63,8 +65,10 @@ function renderDailyTab(){
 }
 
 function refreshDailyComputedCells(model){
+  var root = el("calc-daily");
+  if (!root) return;
   model.daily.forEach(function(d){
-    var tr = el("tab-daily").querySelector('tr[data-day="'+d.day+'"]');
+    var tr = root.querySelector('tr[data-day="'+d.day+'"]');
     if (!tr) return;
     tr.className = d.tag;
     tr.querySelector('[data-calc="cogsAmt"]').textContent = won(d.cogsAmt);
@@ -81,7 +85,12 @@ function refreshDailyComputedCells(model){
     if (badge){ badge.className = "tag "+d.tag; badge.textContent = TAG_META[d.tag].label; }
   });
   var m = model.monthly;
-  var foot = function(k, txt){ var e = el("tab-daily").querySelector('[data-foot="'+k+'"]'); if (e) e.textContent = txt; };
+  var foot = function(k, txt){
+    var root = el("calc-daily");
+    if (!root) return;
+    var e = root.querySelector('[data-foot="'+k+'"]');
+    if (e) e.textContent = txt;
+  };
   foot("sales", won(m.sales));
   foot("cogsPct", pct(m.cogsPct));
   foot("cogsAmt", won(m.cogsAmt));
@@ -92,4 +101,23 @@ function refreshDailyComputedCells(model){
   foot("grossProfit", won(m.grossProfit));
   foot("netProfit", won(m.netProfit));
   foot("netMarginPct", pct(m.netMarginPct));
+}
+
+function renderCalculationsTab(){
+  var host = el("tab-calc");
+  if (!host) return;
+  host.innerHTML =
+    '<section class="card">'+
+      '<h2>Profit &amp; loss</h2>'+
+      '<p class="lede">Daily, weekly, and monthly views for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' on one page. Enter sales, COGS %, and labor on the daily rows; weekly and monthly totals update automatically.</p>'+
+      '<nav class="calc-jump" aria-label="Jump to P&amp;L section">'+
+        '<a href="#calc-daily">Daily</a>'+
+        '<a href="#calc-weekly">Weekly</a>'+
+        '<a href="#calc-monthly">Monthly</a>'+
+      '</nav>'+
+    '</section>'+
+    '<div id="calc-daily"></div>'+
+    '<div id="calc-weekly"></div>'+
+    '<div id="calc-monthly"></div>';
+  renderDailyTab();
 }

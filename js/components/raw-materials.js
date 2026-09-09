@@ -1,41 +1,45 @@
 /**
- * components/raw-materials.js — the Raw Materials tab: an editable ingredient
- * list grouped by category, each row saying "I spend X every N days/weeks/
- * months" instead of unit-cost math.
- *
- * Depends on: dom-utils.js (el), format.js, charts.js (horizBarChart),
- * data.js (CAT_META, CAT_ORDER, INTERVAL_UNIT_LABELS), compute.js (computeAll).
+ * components/raw-materials.js — professional purchase ledger: each
+ * ingredient has a unit of measure and one row per receipt (date, market,
+ * qty, ₩/unit). Monthly cost is the sum of this month's receipts.
  */
 
-function ingredientRowHtml(i){
-  var intervalValue = i.intervalValue || 1;
-  var intervalUnit = i.intervalUnit || "week";
-  var unitOptions = ["day","week","month","once"].map(function(u){
-    return '<option value="'+u+'"'+(u===intervalUnit?" selected":"")+'>'+INTERVAL_UNIT_LABELS[u]+'</option>';
+function unitSelectHtml(current){
+  return UNIT_OPTIONS.map(function(u){
+    return '<option value="'+u+'"'+(u===current?" selected":"")+'>'+u+'</option>';
   }).join("");
+}
 
-  var onceNote = "";
-  if (intervalUnit === "once"){
-    onceNote = '<div class="interval-note'+(i.isStale?" stale":"")+'">'+(i.isStale ? "From a different month — not counted now" : "Counts this month only")+'</div>';
-  }
-
-  return '<tr data-ing-id="'+i.id+'"'+(intervalUnit==="once" && i.isStale ? ' style="opacity:0.6"' : '')+'>'+
-    '<td></td>'+
-    '<td><input class="cell-input text" type="text" data-field="name" placeholder="e.g. Spinach" value="'+(i.name||"").replace(/"/g,"&quot;")+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="1000" data-field="amount" placeholder="0" value="'+(i.amount?i.amount:"")+'"></td>'+
-    '<td>'+
-      '<div class="interval-cell">'+
-        '<span class="interval-prefix">Every</span>'+
-        '<input class="cell-input interval-num" type="number" min="1" step="1" data-field="intervalValue" value="'+intervalValue+'">'+
-        '<select class="cell-input interval-unit" data-field="intervalUnit">'+unitOptions+'</select>'+
-      '</div>'+
-      onceNote+
-    '</td>'+
-    '<td class="tnum calc" data-calc="daily">₩0</td>'+
-    '<td class="tnum calc" data-calc="weekly">₩0</td>'+
-    '<td class="tnum calc" data-calc="monthly">₩0</td>'+
-    '<td><button class="icon-btn" type="button" data-remove-ing="'+i.id+'" title="Remove ingredient" aria-label="Remove ingredient">×</button></td>'+
+function purchaseRowHtml(p, unit){
+  var qty = Number(p.qty)||0;
+  var price = Number(p.unitPrice)||0;
+  return '<tr data-pur-id="'+p.id+'">'+
+    '<td><input class="cell-input" type="date" data-field="date" value="'+esc(p.date||"")+'"></td>'+
+    '<td><input class="cell-input text" type="text" data-field="place" placeholder="Market / supplier" value="'+esc(p.place)+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="0.01" data-field="qty" placeholder="0" value="'+(qty||"")+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="10" data-field="unitPrice" placeholder="0" value="'+(price||"")+'"></td>'+
+    '<td class="tnum calc" data-calc="line">'+won(qty*price)+'</td>'+
+    '<td><button class="icon-btn" type="button" data-remove-pur="'+p.id+'" title="Remove purchase" aria-label="Remove purchase">×</button></td>'+
   '</tr>';
+}
+
+function ingredientCardHtml(i){
+  var rows = (i.purchases||[]).map(function(p){ return purchaseRowHtml(p, i.unit); }).join("");
+  return '<article class="ing-card" data-ing-id="'+i.id+'">'+
+    '<div class="ing-head">'+
+      '<input class="cell-input text ing-name" type="text" data-ing-field="name" placeholder="Ingredient name" value="'+esc(i.name)+'">'+
+      '<label class="ing-unit">Unit <select class="cell-input" data-ing-field="unit">'+unitSelectHtml(i.unit)+'</select></label>'+
+      '<div class="ing-kpis">'+
+        '<div><span class="ing-kpi-label">This month</span><span class="tnum" data-ing-month>'+won(i.monthlyCost)+'</span></div>'+
+        '<div><span class="ing-kpi-label">Avg unit price</span><span class="tnum" data-ing-avg>'+(i.avgUnitMonth?wonPerUnit(i.avgUnitMonth, i.unit):"—")+'</span></div>'+
+      '</div>'+
+      '<button class="icon-btn" type="button" data-remove-ing="'+i.id+'" title="Remove ingredient" aria-label="Remove ingredient">×</button>'+
+    '</div>'+
+    '<div class="table-wrap purchase-wrap"><table class="purchase-table"><thead><tr>'+
+      '<th>Date</th><th>Market / place</th><th>Qty</th><th>₩ per unit</th><th>Line total</th><th></th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<button class="add-row-btn" type="button" data-add-pur="'+i.id+'">+ Add purchase (another market or date)</button>'+
+  '</article>';
 }
 
 function rawMaterialsChartHtml(model){
@@ -44,44 +48,50 @@ function rawMaterialsChartHtml(model){
 
 function renderRawMaterialsTab(){
   var model = computeAll();
-  var rows = "";
+  var body = "";
   model.catTotals.forEach(function(c){
-    rows += '<tr class="cat-head"><td colspan="8"><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</td></tr>';
-    c.items.forEach(function(i){ rows += ingredientRowHtml(i); });
-    rows += '<tr class="add-row"><td colspan="8"><button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add ingredient to '+c.label+'</button></td></tr>';
-    rows += '<tr class="subtotal" data-cat-subtotal="'+c.cat+'"><td colspan="4">'+c.label+' subtotal</td><td class="tnum calc" data-calc="daily">'+won(c.daily)+'</td><td class="tnum calc" data-calc="weekly">'+won(c.weekly)+'</td><td class="tnum calc" data-calc="monthly">'+won(c.monthly)+'</td><td></td></tr>';
+    body += '<section class="card">'+
+      '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
+      '<p class="lede">'+c.items.length+' item'+(c.items.length===1?"":"s")+'.</p>';
+    c.items.forEach(function(i){ body += ingredientCardHtml(i); });
+    body += '<button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add ingredient to '+c.label+'</button>'+
+      '<p class="note">Subtotal this month: <b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
+    '</section>';
   });
 
   el("tab-raw").innerHTML =
     '<section class="card">'+
-      '<h2>Raw materials — what you spend on ingredients</h2>'+
-      '<p class="lede">No receipt yet? No problem — just type your best guess for how much you spent and how often you buy it. Bought something as a one-off you won\'t need again? Pick <b>One-time</b> — it counts for this month only and quietly stops counting on its own after that, no need to remember to delete the row.</p>'+
-      '<div class="table-wrap"><table><thead><tr><th></th><th>Ingredient</th><th>Amount Spent</th><th>How Often You Buy It</th><th>Daily Cost</th><th>Weekly Cost</th><th>Monthly Cost</th><th></th></tr></thead>'+
-      '<tbody>'+rows+'</tbody>'+
-      '<tfoot><tr><td colspan="4">Grand total</td><td class="tnum calc" data-calc-grand="daily">'+won(model.rawGrand.daily)+'</td><td class="tnum calc" data-calc-grand="weekly">'+won(model.rawGrand.weekly)+'</td><td class="tnum calc" data-calc-grand="monthly">'+won(model.rawGrand.monthly)+'</td><td></td></tr></tfoot>'+
-      '</table></div>'+
+      '<h2>Raw materials ledger</h2>'+
+      '<p class="lede">Professional purchase log. Enter <b>quantity</b> and <b>₩ per unit</b> for every receipt. Monthly cost is the sum of buys dated in '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' — not an estimate spread across “every N days”.</p>'+
+      '<p class="note">Grand total this month: <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
     '</section>'+
+    body+
     '<section class="card"><h2>Monthly cost share by category</h2><div id="raw-chart">'+rawMaterialsChartHtml(model)+'</div></section>';
 }
 
 function refreshRawComputedCells(model){
+  var host = el("tab-raw");
+  if (!host) return;
   model.ingredients.forEach(function(i){
-    var tr = el("tab-raw").querySelector('tr[data-ing-id="'+i.id+'"]');
-    if (!tr) return;
-    tr.querySelector('[data-calc="daily"]').textContent = won(i.dailyCost);
-    tr.querySelector('[data-calc="weekly"]').textContent = won(i.weeklyCost);
-    tr.querySelector('[data-calc="monthly"]').textContent = won(i.monthlyCost);
+    var card = host.querySelector('.ing-card[data-ing-id="'+i.id+'"]');
+    if (!card) return;
+    var monthEl = card.querySelector("[data-ing-month]");
+    var avgEl = card.querySelector("[data-ing-avg]");
+    if (monthEl) monthEl.textContent = won(i.monthlyCost);
+    if (avgEl) avgEl.textContent = i.avgUnitMonth ? wonPerUnit(i.avgUnitMonth, i.unit) : "—";
+    (i.purchases||[]).forEach(function(p){
+      var tr = card.querySelector('tr[data-pur-id="'+p.id+'"]');
+      if (!tr) return;
+      var line = tr.querySelector('[data-calc="line"]');
+      if (line) line.textContent = won(lineTotal(p));
+    });
   });
   model.catTotals.forEach(function(c){
-    var tr = el("tab-raw").querySelector('tr[data-cat-subtotal="'+c.cat+'"]');
-    if (!tr) return;
-    tr.querySelector('[data-calc="daily"]').textContent = won(c.daily);
-    tr.querySelector('[data-calc="weekly"]').textContent = won(c.weekly);
-    tr.querySelector('[data-calc="monthly"]').textContent = won(c.monthly);
+    var sub = host.querySelector('[data-cat-subtotal="'+c.cat+'"]');
+    if (sub) sub.textContent = won(c.monthly);
   });
-  var g = el("tab-raw").querySelector('[data-calc-grand="daily"]'); if (g) g.textContent = won(model.rawGrand.daily);
-  g = el("tab-raw").querySelector('[data-calc-grand="weekly"]'); if (g) g.textContent = won(model.rawGrand.weekly);
-  g = el("tab-raw").querySelector('[data-calc-grand="monthly"]'); if (g) g.textContent = won(model.rawGrand.monthly);
+  var g = el("raw-grand");
+  if (g) g.textContent = won(model.rawGrand.monthly);
   var chartHost = el("raw-chart");
   if (chartHost) chartHost.innerHTML = rawMaterialsChartHtml(model);
 }

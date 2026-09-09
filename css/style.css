@@ -192,15 +192,28 @@
   .vac-toggle{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
   .vac-toggle input{ accent-color: var(--accent); width:14px; height:14px; }
 
-  .interval-cell{ display:flex; align-items:center; gap:5px; white-space:nowrap; }
-  .interval-prefix{ font-size:12px; color:var(--ink-soft); }
-  .interval-num.cell-input{ width:44px; min-width:44px; text-align:center; padding:5px 4px; }
-  .interval-unit.cell-input{ width:auto; min-width:78px; text-align:left; }
-  /* "One-time" doesn't need a repeat count — hide "Every [N]" for it. */
-  .interval-cell:has(select option[value="once"]:checked) .interval-prefix,
-  .interval-cell:has(select option[value="once"]:checked) .interval-num{ display:none; }
-  .interval-note{ font-size:11px; color:var(--accent); margin-top:3px; }
-  .interval-note.stale{ color:var(--muted); font-style:italic; }
+  .ing-card{ margin:12px 0 16px; padding:14px; border:1px solid var(--hairline); border-radius:12px; background:var(--surface); }
+  .ing-head{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin-bottom:10px; }
+  .ing-name{ flex:1 1 180px; font-weight:600; }
+  .ing-unit{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft); font-weight:600; }
+  .ing-unit select{ min-width:72px; text-align:left; }
+  .ing-kpis{ display:flex; gap:18px; margin-left:auto; }
+  .ing-kpi-label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); font-weight:600; }
+  .ing-unit-label{ font-size:13px; font-weight:500; color:var(--muted); }
+  .purchase-wrap{ margin-bottom:8px; }
+  table.purchase-table, table.compare-table{ min-width:560px; }
+  table.purchase-table thead th:nth-child(n+3),
+  table.purchase-table tbody td:nth-child(n+3),
+  table.compare-table thead th:nth-child(n+2),
+  table.compare-table tbody td:nth-child(n+2){ text-align:right; }
+  table.purchase-table thead th:last-child,
+  table.purchase-table tbody td:last-child{ text-align:center; }
+  tr.best-place td{ background:var(--accent-soft); }
+  .calc-jump{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+  .calc-jump a{ display:inline-block; padding:7px 12px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:12.5px; text-decoration:none; border:1px solid var(--hairline); }
+  .calc-jump a:hover{ background:var(--surface-2); }
+  #calc-weekly, #calc-monthly{ margin-top:18px; scroll-margin-top:12px; }
+  #calc-daily{ scroll-margin-top:12px; }
 
   .cat-chip{ display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:7px; vertical-align:middle; }
 

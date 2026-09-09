@@ -1,57 +1,73 @@
 /**
- * events.js — delegated input/click handlers for the two editable tabs, plus
- * tab switching. Delegation on the tab container means a full table rebuild
- * (add/remove ingredient row, month change) never needs listeners re-attached.
- *
- * Depends on: state.js (STATE, blankIngredient), raw-materials.js
- * (renderRawMaterialsTab). Calls refreshDerived (main.js) — a forward
- * reference resolved when the event actually fires, after every script has
- * loaded.
+ * events.js — delegated handlers for raw-materials purchases, P&amp;L daily
+ * rows, and tab switching.
  */
+
+function findIngredient(id){
+  return STATE.ingredients.find(function(i){ return i.id === id; });
+}
+
+function findPurchase(ing, purId){
+  if (!ing || !ing.purchases) return null;
+  return ing.purchases.find(function(p){ return p.id === purId; });
+}
 
 function initRawEvents(){
   var host = el("tab-raw");
   var onFieldChange = function(e){
     var t = e.target;
-    if (!t.matches('input[data-field], select[data-field]')) return;
-    var tr = t.closest('tr[data-ing-id]');
-    if (!tr) return;
-    var id = Number(tr.getAttribute('data-ing-id'));
-    var ing = STATE.ingredients.find(function(i){ return i.id === id; });
+    var card = t.closest(".ing-card");
+    if (!card) return;
+    var ing = findIngredient(Number(card.getAttribute("data-ing-id")));
     if (!ing) return;
-    var field = t.getAttribute('data-field');
-    var needsRebuild = false;
-    if (field === "name"){
-      ing[field] = t.value;
-    } else if (field === "intervalUnit"){
-      ing[field] = t.value;
-      if (t.value === "once"){
-        // Stamp "now" as the one-time purchase's month, so it counts this
-        // month and automatically drops to zero every month after.
-        ing.purchaseMonth = STATE.month;
-        ing.purchaseYear = STATE.year;
-      }
-      needsRebuild = true; // the row's layout differs for "one-time"
-    } else if (field === "intervalValue"){
-      ing[field] = Math.max(1, parseInt(t.value, 10) || 1);
-    } else {
-      ing[field] = parseFloat(t.value) || 0; // amount
+
+    if (t.matches("[data-ing-field]")){
+      var ifield = t.getAttribute("data-ing-field");
+      if (ifield === "name") ing.name = t.value;
+      else if (ifield === "unit") ing.unit = t.value;
+      refreshDerived();
+      return;
     }
-    if (needsRebuild) renderRawMaterialsTab();
+
+    if (!t.matches("[data-field]")) return;
+    var tr = t.closest("tr[data-pur-id]");
+    if (!tr) return;
+    var pur = findPurchase(ing, Number(tr.getAttribute("data-pur-id")));
+    if (!pur) return;
+    var field = t.getAttribute("data-field");
+    if (field === "date" || field === "place") pur[field] = t.value;
+    else pur[field] = parseFloat(t.value) || 0;
     refreshDerived();
   };
   host.addEventListener("input", onFieldChange);
   host.addEventListener("change", onFieldChange);
   host.addEventListener("click", function(e){
     var t = e.target;
-    if (t.matches('[data-remove-ing]')){
-      var id = Number(t.getAttribute('data-remove-ing'));
+    if (t.matches("[data-remove-ing]")){
+      var id = Number(t.getAttribute("data-remove-ing"));
       STATE.ingredients = STATE.ingredients.filter(function(i){ return i.id !== id; });
       renderRawMaterialsTab();
+      renderCompareTab();
       refreshDerived();
-    } else if (t.matches('[data-add-cat]')){
-      var cat = t.getAttribute('data-add-cat');
-      STATE.ingredients.push(blankIngredient(cat));
+    } else if (t.matches("[data-add-cat]")){
+      STATE.ingredients.push(blankIngredient(t.getAttribute("data-add-cat")));
+      renderRawMaterialsTab();
+      refreshDerived();
+    } else if (t.matches("[data-add-pur]")){
+      var ingAdd = findIngredient(Number(t.getAttribute("data-add-pur")));
+      if (!ingAdd) return;
+      if (!ingAdd.purchases) ingAdd.purchases = [];
+      ingAdd.purchases.push(blankPurchase());
+      renderRawMaterialsTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-pur]")){
+      var card = t.closest(".ing-card");
+      if (!card) return;
+      var ingRm = findIngredient(Number(card.getAttribute("data-ing-id")));
+      if (!ingRm) return;
+      var pid = Number(t.getAttribute("data-remove-pur"));
+      ingRm.purchases = (ingRm.purchases || []).filter(function(p){ return p.id !== pid; });
+      if (!ingRm.purchases.length) ingRm.purchases.push(blankPurchase());
       renderRawMaterialsTab();
       refreshDerived();
     }
@@ -59,20 +75,23 @@ function initRawEvents(){
 }
 
 function initDailyEvents(){
-  var host = el("tab-daily");
-  host.addEventListener("input", function(e){
+  var host = el("tab-calc");
+  if (!host) return;
+  var onDayChange = function(e){
     var t = e.target;
-    if (!t.matches('input[data-field]')) return;
-    var tr = t.closest('tr[data-day]');
+    if (!t.matches("input[data-field]")) return;
+    var tr = t.closest("tr[data-day]");
     if (!tr) return;
-    var day = Number(tr.getAttribute('data-day'));
+    var day = Number(tr.getAttribute("data-day"));
     var rec = STATE.days[day];
     if (!rec) return;
-    var field = t.getAttribute('data-field');
+    var field = t.getAttribute("data-field");
     if (field === "vacation") rec.vacation = t.checked;
     else rec[field] = parseFloat(t.value) || 0;
     refreshDerived();
-  });
+  };
+  host.addEventListener("input", onDayChange);
+  host.addEventListener("change", onDayChange);
 }
 
 function showTab(name){
@@ -84,9 +103,9 @@ function showTab(name){
     panels[i].hidden = !on;
     if (on) shown = true;
   }
-  if (!shown && panels.length){
-    panels[0].hidden = false;
-    name = "instructions";
+  if (!shown){
+    var dash = el("tab-dashboard");
+    if (dash){ dash.hidden = false; name = "dashboard"; }
   }
   var buttons = document.querySelectorAll(".tabs [data-tab]");
   for (var j = 0; j < buttons.length; j++){

@@ -40,26 +40,8 @@ function sumDays(days){
   return t;
 }
 
-// "Every N days/weeks/months" -> a daily cost, then scaled back up to
-// weekly/monthly using the days actually in the selected month. "once" is
-// spread across the single month it applies to, same as "every 1 month".
-function ingredientCosts(amount, intervalValue, intervalUnit, daysThisMonth){
-  var value = Math.max(1, Number(intervalValue)||1);
-  var periodDays;
-  if (intervalUnit === "day") periodDays = value;
-  else if (intervalUnit === "month") periodDays = value * daysThisMonth;
-  else if (intervalUnit === "once") periodDays = daysThisMonth;
-  else periodDays = value * 7; // "week" (also the fallback for unrecognized units)
-
-  var dailyCost = safeDiv(amount, periodDays);
-  return { dailyCost: dailyCost, weeklyCost: dailyCost*7, monthlyCost: dailyCost*daysThisMonth };
-}
-
-// A "once" ingredient only counts in the calendar month it was flagged as
-// one-time (stamped when the user picks that option) — any other month it's
-// worth zero, so nobody has to remember to delete it later.
-function isStaleOneTime(ingredient, year, month){
-  return ingredient.intervalUnit === "once" && !(ingredient.purchaseYear === year && ingredient.purchaseMonth === month);
+function lineTotal(p){
+  return (Number(p.qty)||0) * (Number(p.unitPrice)||0);
 }
 
 function computeAll(){
@@ -111,15 +93,26 @@ function computeAll(){
   var daysThisMonth = dayNums.length;
   var list = Array.isArray(STATE.ingredients) ? STATE.ingredients : [];
   var ingredients = list.map(function(i){
-    var amount = Number(i.amount)||0;
-    var intervalValue = Math.max(1, Number(i.intervalValue)||1);
-    var intervalUnit = i.intervalUnit || "week";
-    var stale = isStaleOneTime(i, year, month);
-    var costs = stale ? { dailyCost:0, weeklyCost:0, monthlyCost:0 } : ingredientCosts(amount, intervalValue, intervalUnit, daysThisMonth);
+    var purchases = Array.isArray(i.purchases) ? i.purchases : [];
+    var monthlyCost = 0, qtyMonth = 0, allCost = 0, allQty = 0;
+    purchases.forEach(function(p){
+      var tot = lineTotal(p);
+      var q = Number(p.qty)||0;
+      allCost += tot;
+      allQty += q;
+      if (purchaseInMonth(p, year, month)){
+        monthlyCost += tot;
+        qtyMonth += q;
+      }
+    });
+    var dailyCost = daysThisMonth ? monthlyCost / daysThisMonth : 0;
     return {
-      id: i.id, cat: i.cat, name: i.name, amount: amount, intervalValue: intervalValue, intervalUnit: intervalUnit,
-      purchaseMonth: i.purchaseMonth, purchaseYear: i.purchaseYear, isStale: stale,
-      dailyCost: costs.dailyCost, weeklyCost: costs.weeklyCost, monthlyCost: costs.monthlyCost
+      id: i.id, cat: i.cat, name: i.name || "", unit: i.unit || defaultUnit(i.cat),
+      purchases: purchases,
+      qtyMonth: qtyMonth, monthlyCost: monthlyCost,
+      avgUnitMonth: qtyMonth ? monthlyCost / qtyMonth : 0,
+      avgUnitAll: allQty ? allCost / allQty : 0,
+      dailyCost: dailyCost, weeklyCost: dailyCost * 7
     };
   });
 

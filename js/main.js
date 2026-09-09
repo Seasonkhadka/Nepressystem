@@ -15,32 +15,31 @@ function refreshDerived(){
   renderWeeklyTab(model);
   renderMonthlyTab(model);
   renderDashboard(model);
+  renderCompareTab();
 }
 
 function rerenderAllFromState(){
   populateSetupBar();
   renderRawMaterialsTab();
-  renderDailyTab();
+  renderCalculationsTab();
   refreshDerived();
 }
 
 initTabs();
 try {
-  renderInstructions();
   initSetupBar();
   renderRawMaterialsTab();
-  renderDailyTab();
-  initRawEvents();
-  initDailyEvents();
+  renderCalculationsTab();
   refreshDerived();
 } catch (err){
   console.error(err);
   try { localStorage.removeItem(STORAGE_KEY); } catch (e2){}
   STATE = defaultState();
-  renderInstructions();
   initSetupBar();
   renderRawMaterialsTab();
-  renderDailyTab();
+  renderCalculationsTab();
   refreshDerived();
 }
+initRawEvents();
+initDailyEvents();
 initCloud();

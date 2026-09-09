@@ -36,8 +36,8 @@ function applyMonthYearChange(){
   }
   STATE.month = newMonth; STATE.year = newYear;
   STATE.days = blankDaysForMonth(STATE.year, STATE.month);
-  renderDailyTab();
-  renderRawMaterialsTab(); // one-time ingredients may now be in/out of scope
+  renderCalculationsTab();
+  renderRawMaterialsTab();
   refreshDerived();
 }
 
@@ -66,7 +66,7 @@ function initSetupBar(){
     STATE = defaultState();
     populateSetupBar();
     renderRawMaterialsTab();
-    renderDailyTab();
+    renderCalculationsTab();
     refreshDerived();
   });
 }

@@ -27,8 +27,10 @@ var TAG_META = {
   vacation: { label: "Vacation", color: "var(--chart-3)" }
 };
 
-// Options for "how often you buy it" on the Raw Materials tab — any of these
-// paired with a whole number gives "Every 2 Day(s)", "Every 3 Week(s)", etc.
-// "once" is the odd one out: a purchase that isn't recurring at all — it
-// counts only in the month you bought it, then drops out on its own.
-var INTERVAL_UNIT_LABELS = { day: "Day(s)", week: "Week(s)", month: "Month(s)", once: "One-time" };
+var UNIT_OPTIONS = ["kg", "g", "L", "ml", "ea", "bunch", "pack", "box"];
+
+function defaultUnit(cat){
+  if (cat === "cond") return "L";
+  if (cat === "pack") return "ea";
+  return "kg";
+}

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -64,21 +64,17 @@
   </div>
 
   <nav class="tabs" role="tablist" aria-label="Calculator sections">
-    <button role="tab" data-tab="instructions" aria-selected="true">Instructions</button>
-    <button role="tab" data-tab="dashboard" aria-selected="false">Main Dashboard</button>
+    <button role="tab" data-tab="dashboard" aria-selected="true">Dashboard</button>
     <button role="tab" data-tab="raw" aria-selected="false">Raw Materials</button>
-    <button role="tab" data-tab="daily" aria-selected="false">Daily Calculation</button>
-    <button role="tab" data-tab="weekly" aria-selected="false">Weekly Calculation</button>
-    <button role="tab" data-tab="monthly" aria-selected="false">Monthly Calculation</button>
+    <button role="tab" data-tab="compare" aria-selected="false">Price Compare</button>
+    <button role="tab" data-tab="calc" aria-selected="false">P&amp;L</button>
   </nav>
 
   <main>
-    <section id="tab-instructions" class="panel" role="tabpanel"></section>
-    <section id="tab-dashboard" class="panel" role="tabpanel" hidden></section>
+    <section id="tab-dashboard" class="panel" role="tabpanel"></section>
     <section id="tab-raw" class="panel" role="tabpanel" hidden></section>
-    <section id="tab-daily" class="panel" role="tabpanel" hidden></section>
-    <section id="tab-weekly" class="panel" role="tabpanel" hidden></section>
-    <section id="tab-monthly" class="panel" role="tabpanel" hidden></section>
+    <section id="tab-compare" class="panel" role="tabpanel" hidden></section>
+    <section id="tab-calc" class="panel" role="tabpanel" hidden></section>
   </main>
 
   <footer class="meta">
@@ -86,30 +82,30 @@
   </footer>
 </div>
 
-<script src="js/firebase-config.js?v=4"></script>
+<script src="js/firebase-config.js?v=6"></script>
 
 <!-- Data & utilities (no dependencies) -->
-<script src="js/data.js?v=4"></script>
-<script src="js/dom-utils.js?v=4"></script>
-<script src="js/format.js?v=4"></script>
+<script src="js/data.js?v=6"></script>
+<script src="js/dom-utils.js?v=6"></script>
+<script src="js/format.js?v=6"></script>
 
 <!-- App state, calculations, charts -->
-<script src="js/state.js?v=4"></script>
-<script src="js/compute.js?v=4"></script>
-<script src="js/charts.js?v=4"></script>
+<script src="js/state.js?v=6"></script>
+<script src="js/compute.js?v=6"></script>
+<script src="js/charts.js?v=6"></script>
 
 <!-- One tab = one component -->
-<script src="js/components/instructions.js?v=4"></script>
-<script src="js/components/dashboard.js?v=4"></script>
-<script src="js/components/raw-materials.js?v=4"></script>
-<script src="js/components/daily.js?v=4"></script>
-<script src="js/components/weekly.js?v=4"></script>
-<script src="js/components/monthly.js?v=4"></script>
+<script src="js/components/dashboard.js?v=6"></script>
+<script src="js/components/raw-materials.js?v=6"></script>
+<script src="js/components/compare.js?v=6"></script>
+<script src="js/components/daily.js?v=6"></script>
+<script src="js/components/weekly.js?v=6"></script>
+<script src="js/components/monthly.js?v=6"></script>
 
 <!-- Setup bar, event wiring, entry point -->
-<script src="js/setup-bar.js?v=4"></script>
-<script src="js/events.js?v=4"></script>
-<script src="js/cloud.js?v=4"></script>
-<script src="js/main.js?v=4"></script>
+<script src="js/setup-bar.js?v=6"></script>
+<script src="js/events.js?v=6"></script>
+<script src="js/cloud.js?v=6"></script>
+<script src="js/main.js?v=6"></script>
 </body>
 </html>
