@@ -213,7 +213,7 @@ function googleProvider(){
 
 function signInWithGoogle(){
   if (!isFirebaseConfigured() || !cloudAuth){
-    setAuthHint("Cloud save is not connected yet.", true);
+    setAuthHint("Google sign-in is still loading — tap again in a moment.", true);
     return;
   }
   var provider = googleProvider();
@@ -244,17 +244,11 @@ function signOutGoogle(){
   });
 }
 
-function initCloud(){
-  renderAuthBar();
-  el("btn-sign-in").addEventListener("click", signInWithGoogle);
-  el("btn-sign-out").addEventListener("click", signOutGoogle);
-
-  if (!isFirebaseConfigured()) return;
+function startFirebase(){
   if (typeof firebase === "undefined"){
-    console.warn("Firebase SDK failed to load.");
+    setAuthHint("Could not load Google sign-in. Check your network and retry.", true);
     return;
   }
-
   firebase.initializeApp(FIREBASE_CONFIG);
   cloudAuth = firebase.auth();
   cloudDb = firebase.database();
@@ -274,5 +268,39 @@ function initCloud(){
       stopLiveSync();
       setAuthStatus("");
     }
+  });
+}
+
+function loadScript(src){
+  return new Promise(function(resolve, reject){
+    var s = document.createElement("script");
+    s.src = src;
+    s.onload = function(){ resolve(); };
+    s.onerror = function(){ reject(new Error("Failed to load " + src)); };
+    document.head.appendChild(s);
+  });
+}
+
+function loadFirebaseSdk(){
+  var urls = [
+    "https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js",
+    "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js",
+    "https://www.gstatic.com/firebasejs/11.6.0/firebase-database-compat.js"
+  ];
+  var chain = Promise.resolve();
+  urls.forEach(function(src){
+    chain = chain.then(function(){ return loadScript(src); });
+  });
+  return chain;
+}
+
+function initCloud(){
+  renderAuthBar();
+  el("btn-sign-in").addEventListener("click", signInWithGoogle);
+  el("btn-sign-out").addEventListener("click", signOutGoogle);
+
+  if (!isFirebaseConfigured()) return;
+  loadFirebaseSdk().then(startFirebase).catch(function(){
+    setAuthHint("Could not load Google sign-in. Check your network and retry.", true);
   });
 }

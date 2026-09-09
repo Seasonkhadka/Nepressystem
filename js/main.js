@@ -24,12 +24,12 @@ function rerenderAllFromState(){
   refreshDerived();
 }
 
+initTabs();
 renderInstructions();
 initSetupBar();
 renderRawMaterialsTab();
 renderDailyTab();
 initRawEvents();
 initDailyEvents();
-refreshDerived();
-initTabs();
+try { refreshDerived(); } catch (err){ console.error(err); }
 initCloud();

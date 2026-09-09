@@ -76,7 +76,7 @@
   .subtitle-input{ display:block; width:100%; margin-top:4px; background:transparent; border:none; border-bottom:1.5px dashed transparent; color:var(--accent-ink); opacity:0.92; font-size:13.5px; font-family:inherit; padding:2px 0; }
   .subtitle-input::placeholder{ color:rgba(255,255,255,0.6); }
   .subtitle-input:hover, .subtitle-input:focus{ border-bottom-color:rgba(255,255,255,0.4); outline:none; }
-  .topbar-aside{ display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+  .topbar-aside{ display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex:none; }
   .topbar .currency-note{ color:var(--accent-ink); opacity:0.85; font-size:12.5px; white-space:nowrap; }
   .auth-bar{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; min-height:36px; }
   .auth-hint{ margin:0; color:var(--accent-ink); opacity:0.85; font-size:11px; line-height:1.35; max-width:220px; text-align:right; }
