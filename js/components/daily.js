@@ -42,7 +42,7 @@ function renderDailyTab(){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
-      '<p class="lede">Enter sales on each day. <b>COGS</b> comes from Raw Materials. <b>Labor</b> comes from the Labor tab (shifts + monthly salary). <b>Overhead</b> is rent and fees from the bar above — not wages.</p>'+
+      '<p class="lede">Enter sales on each day. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
       '<div class="legend">'+
         '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
@@ -113,11 +113,11 @@ function renderCalculationsTab(){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Profit &amp; loss</h2>'+
-      '<p class="lede">Daily, weekly, and monthly views for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' on one page. Enter sales on the daily rows. COGS, labor, and overhead fill in from Raw Materials, the Labor tab, and the overhead settings above.</p>'+
+      '<p class="lede">Daily, weekly, and monthly views for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' on one page. Enter sales on the daily rows. COGS, labor, and overhead fill in from Raw Materials and the Labor tab.</p>'+
       '<div class="key-grid">'+
         '<div class="key-item"><div><div class="eyebrow">COGS</div><p class="lede" style="margin:0">Food you bought this month (Raw Materials). Not rent, not wages.</p></div></div>'+
         '<div class="key-item"><div><div class="eyebrow">Labor</div><p class="lede" style="margin:0">Staff pay from the Labor tab — hourly shifts plus monthly salaries.</p></div></div>'+
-        '<div class="key-item"><div><div class="eyebrow">Overhead</div><p class="lede" style="margin:0">Running the shop: rent, internet, insurance, utilities, card fees, delivery apps. Wages and food are not overhead.</p></div></div>'+
+        '<div class="key-item"><div><div class="eyebrow">Overhead</div><p class="lede" style="margin:0">Fixed (rent) plus not-fixed bills (electricity, water) on the Labor tab. Wages and food are not overhead.</p></div></div>'+
       '</div>'+
       '<nav class="calc-jump" aria-label="Jump to P&amp;L section">'+
         '<a href="#calc-daily">Daily</a>'+

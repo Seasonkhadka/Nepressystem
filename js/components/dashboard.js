@@ -20,7 +20,7 @@ function renderDashboard(model){
     kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
     kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
     kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
-    kpiTile("Overhead %", pct(m.overheadPct), "rent, bills, fees — not wages"),
+    kpiTile("Overhead %", pct(m.overheadPct), "fixed + not-fixed bills"),
     kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus)
   ].join("");
 

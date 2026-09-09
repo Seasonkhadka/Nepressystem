@@ -14,6 +14,11 @@
  *   { id, date, name, role, hours, rate, amount }
  * Monthly salaries (staff paid by the month, not by the hour):
  *   { id, name, role, amount }
+ * Overhead bills (not-fixed — electricity, water; change each month):
+ *   { id, date, name, amount }
+ * Fixed overhead (rent, insurance — same every month until you change it):
+ *   { id, name, amount }
+ * dayArchive: { "YYYY-MM": { 1:{sales...}, ... } } so changing month does not wipe other months.
  *
  * Depends on: data.js (CAT_ORDER, defaultUnit, migrateCat, ASSET_ORDER, defaultAssetLife).
  */
@@ -24,8 +29,39 @@ var nextLumpId = 1;
 var nextAssetId = 1;
 var nextLaborShiftId = 1;
 var nextLaborSalaryId = 1;
+var nextOverheadBillId = 1;
+var nextOverheadFixedId = 1;
 
 function today(){ return new Date(); }
+
+function monthKey(year, month){
+  return String(year) + "-" + pad2(month);
+}
+
+function isoForMonth(year, month){
+  var y = year, m = month;
+  if (!y || !m){
+    if (typeof STATE !== "undefined" && STATE && STATE.year){
+      y = STATE.year; m = STATE.month;
+    } else {
+      var now = today();
+      y = now.getFullYear(); m = now.getMonth()+1;
+    }
+  }
+  var now = today();
+  if (now.getFullYear() === y && now.getMonth()+1 === m) return isoToday();
+  return y + "-" + pad2(m) + "-01";
+}
+
+function stashDays(year, month, days){
+  if (!STATE.dayArchive || typeof STATE.dayArchive !== "object") STATE.dayArchive = {};
+  STATE.dayArchive[monthKey(year, month)] = days;
+}
+
+function daysFromArchive(year, month){
+  var archive = STATE.dayArchive && typeof STATE.dayArchive === "object" ? STATE.dayArchive : {};
+  return normalizeDays(archive[monthKey(year, month)], year, month);
+}
 
 function daysInMonth(year, month){ return new Date(year, month, 0).getDate(); }
 
@@ -190,7 +226,7 @@ function migrateAsset(a){
 }
 
 function blankLaborShift(){
-  return { id: nextLaborShiftId++, date: isoToday(), name: "", role: "", hours: 0, rate: 0, amount: 0 };
+  return { id: nextLaborShiftId++, date: isoForMonth(), name: "", role: "", hours: 0, rate: 0, amount: 0 };
 }
 
 function blankLaborSalary(){
@@ -275,6 +311,53 @@ function compactLaborShifts(list){
 function compactLaborSalaries(list){
   var filled = asArray(list).filter(laborSalaryHasData);
   return filled.length ? filled : [blankLaborSalary()];
+}
+
+function blankOverheadBill(){
+  return { id: nextOverheadBillId++, date: isoForMonth(), name: "", amount: 0 };
+}
+
+function overheadBillHasData(b){
+  if (!b) return false;
+  return String(b.name || "").trim() || (Number(b.amount)||0) > 0;
+}
+
+function migrateOverheadBill(b){
+  if (!b || typeof b !== "object") return blankOverheadBill();
+  return {
+    id: b.id || nextOverheadBillId++,
+    date: b.date || isoForMonth(),
+    name: b.name || "",
+    amount: Number(b.amount) || 0
+  };
+}
+
+function compactOverheadBills(list){
+  var filled = asArray(list).filter(overheadBillHasData);
+  return filled.length ? filled : [blankOverheadBill()];
+}
+
+function blankOverheadFixed(){
+  return { id: nextOverheadFixedId++, name: "", amount: 0 };
+}
+
+function overheadFixedHasData(b){
+  if (!b) return false;
+  return String(b.name || "").trim() || (Number(b.amount)||0) > 0;
+}
+
+function migrateOverheadFixed(b){
+  if (!b || typeof b !== "object") return blankOverheadFixed();
+  return {
+    id: b.id || nextOverheadFixedId++,
+    name: b.name || "",
+    amount: Number(b.amount) || 0
+  };
+}
+
+function compactOverheadFixed(list){
+  var filled = asArray(list).filter(overheadFixedHasData);
+  return filled.length ? filled : [blankOverheadFixed()];
 }
 
 function migrateLump(p){
@@ -371,6 +454,9 @@ function defaultState(){
     assets: ASSET_ORDER.map(function(c){ return blankAsset(c); }),
     laborShifts: [blankLaborShift()],
     laborSalaries: [blankLaborSalary()],
+    overheadBills: [blankOverheadBill()],
+    overheadFixedItems: [blankOverheadFixed()],
+    dayArchive: {},
     days: blankDaysForMonth(year, month)
   };
 }
@@ -420,9 +506,36 @@ function normalizeParsedState(parsed){
   parsed.laborSalaries = compactLaborSalaries(salaries);
   parsed.laborSalaries.forEach(function(s){ if (s && s.id > maxSalary) maxSalary = s.id; });
   nextLaborSalaryId = maxSalary + 1;
+  var maxBill = 0;
+  var bills = asArray(parsed.overheadBills).map(migrateOverheadBill);
+  bills.forEach(function(b){ if (b && b.id > maxBill) maxBill = b.id; });
+  nextOverheadBillId = maxBill + 1;
+  parsed.overheadBills = compactOverheadBills(bills);
+  parsed.overheadBills.forEach(function(b){ if (b && b.id > maxBill) maxBill = b.id; });
+  nextOverheadBillId = maxBill + 1;
+  var maxFix = 0;
+  var fixedItems = asArray(parsed.overheadFixedItems).map(migrateOverheadFixed);
+  if (!fixedItems.some(overheadFixedHasData) && (Number(parsed.overheadFixedMonthly)||0) > 0){
+    var seeded = blankOverheadFixed();
+    seeded.name = "Fixed overhead";
+    seeded.amount = Number(parsed.overheadFixedMonthly);
+    fixedItems = [seeded];
+  }
+  fixedItems.forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
+  nextOverheadFixedId = maxFix + 1;
+  parsed.overheadFixedItems = compactOverheadFixed(fixedItems);
+  parsed.overheadFixedItems.forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
+  nextOverheadFixedId = maxFix + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
   parsed.overheadFixedMonthly = Number(parsed.overheadFixedMonthly)||0;
   parsed.overheadVariableRate = Number(parsed.overheadVariableRate)||0;
+  if (!parsed.dayArchive || typeof parsed.dayArchive !== "object") parsed.dayArchive = {};
+  Object.keys(parsed.dayArchive).forEach(function(k){
+    var parts = String(k).split("-");
+    var y = Number(parts[0]), m = Number(parts[1]);
+    if (y && m) parsed.dayArchive[k] = normalizeDays(parsed.dayArchive[k], y, m);
+  });
+  parsed.dayArchive[monthKey(year, month)] = parsed.days;
   return parsed;
 }
 
@@ -460,6 +573,8 @@ function stateHasUserData(s){
   if (asArray(s.assets).some(assetHasData)) return true;
   if (asArray(s.laborShifts).some(laborShiftHasData)) return true;
   if (asArray(s.laborSalaries).some(laborSalaryHasData)) return true;
+  if (asArray(s.overheadBills).some(overheadBillHasData)) return true;
+  if (asArray(s.overheadFixedItems).some(overheadFixedHasData)) return true;
   if (s.days){
     var keys = Object.keys(s.days);
     for (var i = 0; i < keys.length; i++){
@@ -467,6 +582,20 @@ function stateHasUserData(s){
       if (!d) continue;
       if (d.vacation) return true;
       if ((Number(d.sales) || 0) > 0 || (Number(d.labor) || 0) > 0 || (Number(d.cogsPct) || 0) > 0) return true;
+    }
+  }
+  if (s.dayArchive && typeof s.dayArchive === "object"){
+    var monthKeys = Object.keys(s.dayArchive);
+    for (var a = 0; a < monthKeys.length; a++){
+      var monthDays = s.dayArchive[monthKeys[a]];
+      if (!monthDays) continue;
+      var dayKeys = Object.keys(monthDays);
+      for (var b = 0; b < dayKeys.length; b++){
+        var rec = monthDays[dayKeys[b]];
+        if (!rec) continue;
+        if (rec.vacation) return true;
+        if ((Number(rec.sales) || 0) > 0 || (Number(rec.labor) || 0) > 0 || (Number(rec.cogsPct) || 0) > 0) return true;
+      }
     }
   }
   return false;
@@ -477,6 +606,7 @@ function statesDiffer(a, b){
 }
 
 function saveState(){
+  if (STATE && STATE.year && STATE.days) stashDays(STATE.year, STATE.month, STATE.days);
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch(e){}
   if (typeof scheduleCloudSave === "function") scheduleCloudSave();
 }

@@ -142,6 +142,20 @@ function computeAll(){
     if (!rec.vacation || !openDaysTrue) laborByDay[day] += salaryPerOpen;
   });
 
+  var billMonth = 0, anyVarBill = false;
+  asArray(STATE.overheadBills).forEach(function(b){
+    if (overheadBillHasData(b)) anyVarBill = true;
+    if (!purchaseInMonth(b, year, month)) return;
+    billMonth += Number(b.amount) || 0;
+  });
+  var fixedMonth = 0, anyFixed = false;
+  asArray(STATE.overheadFixedItems).forEach(function(b){
+    if (overheadFixedHasData(b)) anyFixed = true;
+    fixedMonth += Number(b.amount) || 0;
+  });
+  if (!anyFixed) fixedMonth = Number(STATE.overheadFixedMonthly)||0;
+  var overheadPool = fixedMonth + billMonth;
+
   var daily = dayNums.map(function(day){
     var raw = STATE.days[day] || { vacation:false, sales:0, labor:0 };
     var isWeekendAuto = [0,6].indexOf(dowOf(year, month, day)) > -1;
@@ -155,7 +169,7 @@ function computeAll(){
     }
     var cogsPct = safeDiv(cogsAmt, sales);
     var grossProfit = sales-cogsAmt;
-    var overhead = (Number(STATE.overheadFixedMonthly)||0)/daysThisMonth + sales*((Number(STATE.overheadVariableRate)||0)/100);
+    var overhead = (overheadPool / daysThisMonth) + sales*((Number(STATE.overheadVariableRate)||0)/100);
     var netProfit = grossProfit-labor-overhead;
     return {
       day: day, dow: DOW_NAMES[dowOf(year,month,day)], isWeekendAuto: isWeekendAuto, vacation: !!raw.vacation, tag: tag,
@@ -220,6 +234,13 @@ function computeAll(){
     salaryMonth: salaryMonth,
     monthly: laborHasLedger ? (shiftMonth + salaryMonth) : monthly.labor
   };
+  var overheadInfo = {
+    hasBills: anyVarBill || anyFixed,
+    fixedMonth: fixedMonth,
+    billMonth: billMonth,
+    variableRate: Number(STATE.overheadVariableRate)||0,
+    monthly: monthly.overhead
+  };
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, labor:laborInfo, crosscheck:crosscheck };
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck };
 }

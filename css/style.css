@@ -202,7 +202,7 @@
   .ing-kpi-label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); font-weight:600; }
   .ing-unit-label{ font-size:13px; font-weight:500; color:var(--muted); }
   .purchase-wrap{ margin-bottom:8px; }
-  table.purchase-table, table.compare-table, table.lump-table, table.asset-table, table.labor-table, table.salary-table{ min-width:560px; }
+  table.purchase-table, table.compare-table, table.lump-table, table.asset-table, table.labor-table, table.salary-table, table.overhead-table{ min-width:560px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:760px; }
   table.salary-table{ min-width:480px; }
@@ -219,6 +219,8 @@
   table.labor-table tbody td:nth-child(n+4),
   table.salary-table thead th:nth-child(3),
   table.salary-table tbody td:nth-child(3),
+  table.overhead-table thead th:nth-child(3),
+  table.overhead-table tbody td:nth-child(3),
   table.asset-summary thead th:nth-child(n+2),
   table.asset-summary tbody td:nth-child(n+2){ text-align:right; }
   table.purchase-table thead th:last-child,
@@ -230,7 +232,9 @@
   table.labor-table thead th:last-child,
   table.labor-table tbody td:last-child,
   table.salary-table thead th:last-child,
-  table.salary-table tbody td:last-child{ text-align:center; }
+  table.salary-table tbody td:last-child,
+  table.overhead-table thead th:last-child,
+  table.overhead-table tbody td:last-child{ text-align:center; }
   tr.best-place td{ background:var(--accent-soft); }
   .calc-jump{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
   .calc-jump a{ display:inline-block; padding:7px 12px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:12.5px; text-decoration:none; border:1px solid var(--hairline); }
@@ -244,6 +248,8 @@
   .icon-btn:hover{ color:var(--critical); border-color:var(--critical); }
   .add-row-btn{ appearance:none; border:1.5px dashed var(--hairline-strong); background:transparent; color:var(--accent); font-weight:600; font-size:12.5px; padding:8px 12px; border-radius:8px; cursor:pointer; width:100%; text-align:left; }
   .add-row-btn:hover{ background:var(--accent-soft); }
+  .overhead-var-row{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 14px; margin-top:16px; }
+  .overhead-var-row label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:600; width:100%; }
 
   .note{ font-size:12.5px; color:var(--ink-soft); margin-top:10px; line-height:1.55; }
   .note.callout{ background:var(--accent-soft); border:1px solid var(--hairline); padding:12px 14px; border-radius:10px; color:var(--ink); }

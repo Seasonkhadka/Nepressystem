@@ -32,6 +32,16 @@ function findLaborSalary(id){
   return STATE.laborSalaries.find(function(s){ return s.id === id; });
 }
 
+function findOverheadBill(id){
+  if (!STATE.overheadBills) return null;
+  return STATE.overheadBills.find(function(b){ return b.id === id; });
+}
+
+function findOverheadFixed(id){
+  if (!STATE.overheadFixedItems) return null;
+  return STATE.overheadFixedItems.find(function(b){ return b.id === id; });
+}
+
 function initRawEvents(){
   var host = el("tab-raw");
   var onFieldChange = function(e){
@@ -178,6 +188,11 @@ function initLaborEvents(){
   if (!host) return;
   var onFieldChange = function(e){
     var t = e.target;
+    if (t.id === "input-overhead-var"){
+      STATE.overheadVariableRate = parseFloat(t.value)||0;
+      refreshDerived();
+      return;
+    }
     if (!t.matches("[data-field]")) return;
     var shiftTr = t.closest("tr[data-shift-id]");
     if (shiftTr){
@@ -194,6 +209,26 @@ function initLaborEvents(){
       var field = t.getAttribute("data-field");
       if (field === "name" || field === "role") salary[field] = t.value;
       else salary.amount = parseFloat(t.value) || 0;
+      refreshDerived();
+      return;
+    }
+    var billTr = t.closest("tr[data-bill-id]");
+    if (billTr){
+      var bill = findOverheadBill(Number(billTr.getAttribute("data-bill-id")));
+      if (!bill) return;
+      var bfield = t.getAttribute("data-field");
+      if (bfield === "date" || bfield === "name") bill[bfield] = t.value;
+      else bill.amount = parseFloat(t.value) || 0;
+      refreshDerived();
+      return;
+    }
+    var fixedTr = t.closest("tr[data-fixed-id]");
+    if (fixedTr){
+      var rec = findOverheadFixed(Number(fixedTr.getAttribute("data-fixed-id")));
+      if (!rec) return;
+      var ffield = t.getAttribute("data-field");
+      if (ffield === "name") rec.name = t.value;
+      else rec.amount = parseFloat(t.value) || 0;
       refreshDerived();
     }
   };
@@ -221,6 +256,28 @@ function initLaborEvents(){
       var lid = Number(t.getAttribute("data-remove-salary"));
       STATE.laborSalaries = (STATE.laborSalaries || []).filter(function(s){ return s.id !== lid; });
       if (!STATE.laborSalaries.length) STATE.laborSalaries.push(blankLaborSalary());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-add-bill]")){
+      if (!STATE.overheadBills) STATE.overheadBills = [];
+      STATE.overheadBills.push(blankOverheadBill());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-bill]")){
+      var bid = Number(t.getAttribute("data-remove-bill"));
+      STATE.overheadBills = (STATE.overheadBills || []).filter(function(b){ return b.id !== bid; });
+      if (!STATE.overheadBills.length) STATE.overheadBills.push(blankOverheadBill());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-add-fixed]")){
+      if (!STATE.overheadFixedItems) STATE.overheadFixedItems = [];
+      STATE.overheadFixedItems.push(blankOverheadFixed());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-fixed]")){
+      var fid = Number(t.getAttribute("data-remove-fixed"));
+      STATE.overheadFixedItems = (STATE.overheadFixedItems || []).filter(function(b){ return b.id !== fid; });
+      if (!STATE.overheadFixedItems.length) STATE.overheadFixedItems.push(blankOverheadFixed());
       renderLaborTab();
       refreshDerived();
     }
