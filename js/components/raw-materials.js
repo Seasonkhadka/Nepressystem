@@ -1,6 +1,6 @@
 /**
- * components/raw-materials.js — Meat, Groceries, Vegetables as itemized
- * ledgers (qty × ₩/unit), then a No bill table where you type the line total.
+ * components/raw-materials.js — compact ledgers: Meat, Groceries
+ * (Kitchen / Outside / Drinks), Vegetables, then No bill.
  */
 
 function unitSelectHtml(current){
@@ -9,77 +9,136 @@ function unitSelectHtml(current){
   }).join("");
 }
 
-function numAttr(v){
-  v = Number(v)||0;
-  return v ? String(v) : "";
+function groceryMoveHtml(i){
+  if (GROCERY_CATS.indexOf(i.cat) < 0) return "";
+  return '<select class="cell-input raw-move" data-ing-field="cat" title="Move within groceries">'+
+    GROCERY_CATS.map(function(c){
+      return '<option value="'+c+'"'+(c===i.cat?" selected":"")+'>'+CAT_META[c].label+'</option>';
+    }).join("")+
+  '</select>';
 }
 
-function purchaseRowHtml(p){
-  return '<tr data-pur-id="'+p.id+'">'+
-    '<td><input class="cell-input" type="date" data-field="date" value="'+esc(p.date||"")+'"></td>'+
-    '<td><input class="cell-input text" type="text" data-field="place" placeholder="Market / supplier" value="'+esc(p.place)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="1" data-field="packs" placeholder="0" value="'+numAttr(p.packs)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="0.01" data-field="qty" placeholder="0" value="'+numAttr(p.qty)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="10" data-field="unitPrice" placeholder="0" value="'+numAttr(p.unitPrice)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+numAttr(lineTotal(p))+'"></td>'+
-    '<td><button class="icon-btn" type="button" data-remove-pur="'+p.id+'" title="Remove purchase" aria-label="Remove purchase">×</button></td>'+
-  '</tr>';
+function numAttr(v){
+  var n = Number(v)||0;
+  return n ? String(n) : "";
+}
+
+function purchaseOtherHint(p){
+  if (!p.date || purchaseInMonth(p, STATE.year, STATE.month)) return "";
+  var parts = String(p.date).split("-");
+  var m = Number(parts[1]);
+  return 'Dated '+(MONTH_NAMES[m-1]||"")+' '+parts[0]+' — switch the month above to include this in This month.';
+}
+
+function purchaseCellsHtml(p){
+  return '<td class="raw-date"><input class="cell-input" type="date" data-field="date" value="'+esc(p.date||"")+'"></td>'+
+    '<td class="raw-place"><input class="cell-input text" type="text" data-field="place" placeholder="Market" value="'+esc(p.place)+'"></td>'+
+    '<td class="raw-num"><input class="cell-input" type="number" min="0" step="1" data-field="packs" placeholder="0" value="'+numAttr(p.packs)+'"></td>'+
+    '<td class="raw-num"><input class="cell-input" type="number" min="0" step="0.01" data-field="qty" placeholder="0" value="'+numAttr(p.qty)+'"></td>'+
+    '<td class="raw-num"><input class="cell-input" type="number" min="0" step="1" data-field="unitPrice" placeholder="0" value="'+numAttr(p.unitPrice)+'"></td>'+
+    '<td class="raw-num"><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+numAttr(lineTotal(p))+'"></td>';
+}
+
+function ingredientRowsHtml(i){
+  var purs = (i.purchases && i.purchases.length) ? i.purchases : [blankPurchase()];
+  var n = purs.length;
+  return purs.map(function(p, idx){
+    var other = p.date && !purchaseInMonth(p, STATE.year, STATE.month);
+    var hint = purchaseOtherHint(p);
+    var nameCells = "";
+    if (idx === 0){
+      nameCells =
+        '<td rowspan="'+n+'" class="raw-item">'+
+          '<input class="cell-input text ing-name" type="text" data-ing-field="name" placeholder="Item" value="'+esc(i.name)+'">'+
+          groceryMoveHtml(i)+
+          '<span class="ing-avg" data-ing-avg>'+avgUnitText(i)+'</span>'+
+        '</td>'+
+        '<td rowspan="'+n+'"><select class="cell-input" data-ing-field="unit">'+unitSelectHtml(i.unit)+'</select></td>';
+    }
+    var btns = "";
+    if (idx === 0){
+      btns += '<button class="icon-btn" type="button" data-add-pur="'+i.id+'" title="Another buy">+</button>';
+      btns += '<button class="icon-btn" type="button" data-remove-ing="'+i.id+'" title="Remove item">×</button>';
+    } else {
+      btns += '<button class="icon-btn" type="button" data-remove-pur="'+p.id+'" title="Remove buy">×</button>';
+    }
+    return '<tr data-ing-id="'+i.id+'" data-pur-id="'+p.id+'"'+(other?' class="purchase-other-month"':'')+(hint?' title="'+esc(hint)+'"':'')+'>'+
+      nameCells+
+      purchaseCellsHtml(p)+
+      '<td class="raw-actions">'+btns+'</td>'+
+    '</tr>';
+  }).join("");
 }
 
 function lumpRowHtml(p){
   var amt = Number(p.amount)||0;
   return '<tr data-lump-id="'+p.id+'">'+
-    '<td><input class="cell-input" type="date" data-field="date" value="'+esc(p.date||"")+'"></td>'+
-    '<td><input class="cell-input text" type="text" data-field="place" placeholder="Where you paid" value="'+esc(p.place)+'"></td>'+
-    '<td><input class="cell-input text" type="text" data-field="note" placeholder="What it was (optional)" value="'+esc(p.note)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+(amt||"")+'"></td>'+
-    '<td><button class="icon-btn" type="button" data-remove-lump="'+p.id+'" title="Remove row" aria-label="Remove row">×</button></td>'+
+    '<td class="raw-date"><input class="cell-input" type="date" data-field="date" value="'+esc(p.date||"")+'"></td>'+
+    '<td class="raw-place"><input class="cell-input text" type="text" data-field="place" placeholder="Where you paid" value="'+esc(p.place)+'"></td>'+
+    '<td><input class="cell-input text" type="text" data-field="note" placeholder="What it was" value="'+esc(p.note)+'"></td>'+
+    '<td class="raw-num"><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+(amt||"")+'"></td>'+
+    '<td class="raw-actions"><button class="icon-btn" type="button" data-remove-lump="'+p.id+'" title="Remove row" aria-label="Remove row">×</button></td>'+
   '</tr>';
 }
 
-function ingredientCardHtml(i){
-  var rows = (i.purchases||[]).map(purchaseRowHtml).join("");
-  return '<article class="ing-card" data-ing-id="'+i.id+'">'+
-    '<div class="ing-head">'+
-      '<input class="cell-input text ing-name" type="text" data-ing-field="name" placeholder="Item name" value="'+esc(i.name)+'">'+
-      '<label class="ing-unit">Unit <select class="cell-input" data-ing-field="unit">'+unitSelectHtml(i.unit)+'</select></label>'+
-      '<div class="ing-kpis">'+
-        '<div><span class="ing-kpi-label">Daily</span><span class="tnum" data-ing-daily>'+won(i.dailyCost)+'</span></div>'+
-        '<div><span class="ing-kpi-label">Weekly</span><span class="tnum" data-ing-weekly>'+won(i.weeklyCost)+'</span></div>'+
-        '<div><span class="ing-kpi-label">This month</span><span class="tnum" data-ing-month>'+won(i.monthlyCost)+'</span></div>'+
-        '<div><span class="ing-kpi-label">Avg unit price</span><span class="tnum" data-ing-avg>'+(i.avgUnitMonth?wonPerUnit(i.avgUnitMonth, i.unit):"—")+'</span></div>'+
-      '</div>'+
-      '<button class="icon-btn" type="button" data-remove-ing="'+i.id+'" title="Remove item" aria-label="Remove item">×</button>'+
-    '</div>'+
-    '<div class="table-wrap purchase-wrap"><table class="purchase-table"><thead><tr>'+
-      '<th>Date</th><th>Market / place</th><th>Packets</th><th>Qty / pack</th><th>₩ per unit</th><th>Line total</th><th></th>'+
-    '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    '<button class="add-row-btn" type="button" data-add-pur="'+i.id+'">+ Add purchase (another market or date)</button>'+
-  '</article>';
+function rawTableHead(){
+  return '<thead><tr>'+
+    '<th>Item</th><th>Unit</th><th>Date</th><th>Place</th><th>Packs</th><th>Size</th><th>₩/pack</th><th>Total</th><th></th>'+
+  '</tr></thead>';
+}
+
+function categoryTableHtml(c){
+  var rows = "";
+  (c.items || []).forEach(function(i){ rows += ingredientRowsHtml(i); });
+  return '<div class="table-wrap"><table class="raw-table">'+rawTableHead()+'<tbody>'+rows+'</tbody></table></div>'+
+    '<button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add item</button>';
 }
 
 function categorySectionHtml(c){
-  var body = "";
-  c.items.forEach(function(i){ body += ingredientCardHtml(i); });
+  if (!c) return "";
   return '<section class="card">'+
-    '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
-    '<p class="lede">'+c.lede+'</p>'+
-    body+
-    '<button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add item to '+c.label+'</button>'+
-    '<p class="note">Subtotal — daily <b class="tnum" data-cat-daily="'+c.cat+'">'+won(c.daily)+'</b> · weekly <b class="tnum" data-cat-weekly="'+c.cat+'">'+won(c.weekly)+'</b> · this month <b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
+    '<div class="raw-cat-head">'+
+      '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
+      '<p class="raw-cat-total">This month <b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
+    '</div>'+
+    categoryTableHtml(c)+
+  '</section>';
+}
+
+function groceryGroupHtml(cats){
+  var month = 0;
+  var subs = "";
+  cats.forEach(function(c){
+    if (!c) return;
+    month += c.monthly;
+    subs += '<div class="raw-sub">'+
+      '<div class="raw-sub-head">'+
+        '<h3><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h3>'+
+        '<p class="raw-cat-total"><b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
+      '</div>'+
+      categoryTableHtml(c)+
+    '</div>';
+  });
+  return '<section class="card">'+
+    '<div class="raw-cat-head">'+
+      '<h2>Groceries</h2>'+
+      '<p class="raw-cat-total">This month <b class="tnum" data-grocery-total>'+won(month)+'</b></p>'+
+    '</div>'+
+    subs+
   '</section>';
 }
 
 function lumpSectionHtml(c){
   var rows = (c.lumps || []).map(lumpRowHtml).join("");
   return '<section class="card">'+
-    '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
-    '<p class="lede">'+c.lede+'</p>'+
-    '<div class="table-wrap purchase-wrap"><table class="lump-table"><thead><tr>'+
-      '<th>Date</th><th>Where</th><th>What (optional)</th><th>Line total</th><th></th>'+
+    '<div class="raw-cat-head">'+
+      '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
+      '<p class="raw-cat-total">This month <b class="tnum" data-cat-subtotal="nobill">'+won(c.monthly)+'</b></p>'+
+    '</div>'+
+    '<div class="table-wrap"><table class="raw-table lump-table"><thead><tr>'+
+      '<th>Date</th><th>Where</th><th>What</th><th>Total</th><th></th>'+
     '</tr></thead><tbody id="lump-tbody">'+rows+'</tbody></table></div>'+
-    '<button class="add-row-btn" type="button" data-add-lump>+ Add another total</button>'+
-    '<p class="note">Subtotal — daily <b class="tnum" data-cat-daily="nobill">'+won(c.daily)+'</b> · weekly <b class="tnum" data-cat-weekly="nobill">'+won(c.weekly)+'</b> · this month <b class="tnum" data-cat-subtotal="nobill">'+won(c.monthly)+'</b></p>'+
+    '<button class="add-row-btn" type="button" data-add-lump>+ Add total</button>'+
   '</section>';
 }
 
@@ -87,40 +146,44 @@ function rawMaterialsChartHtml(model){
   return horizBarChart(model.catTotals.map(function(c){ return {label:c.label.replace("&amp;","&"), value:c.monthly, color:c.color}; }), {aria:"Monthly raw-material cost by category"});
 }
 
+function catById(model, cat){
+  var found = null;
+  model.catTotals.forEach(function(c){ if (c.cat === cat) found = c; });
+  return found;
+}
+
 function renderRawMaterialsTab(){
   var model = computeAll();
-  var body = "";
-  model.catTotals.forEach(function(c){
-    if (c.cat === "nobill") body += lumpSectionHtml(c);
-    else body += categorySectionHtml(c);
-  });
+  var groceryCats = GROCERY_CATS.map(function(id){ return catById(model, id); });
 
   el("tab-raw").innerHTML =
     '<section class="card">'+
-      '<h2>Raw materials</h2>'+
-      '<p class="lede">Meat, groceries, vegetables, and no-bill totals for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' become this month\'s P&amp;L COGS. <b>Packets</b> is how many packs; <b>Qty / pack</b> is the size of one pack. ₩ per unit uses packets × size. Type the line total from the receipt if you prefer.</p>'+
-      '<p class="note">Grand total — daily <b class="tnum" id="raw-grand-daily">'+won(model.rawGrand.daily)+'</b> · weekly <b class="tnum" id="raw-grand-weekly">'+won(model.rawGrand.weekly)+'</b> · this month <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
+      '<div class="raw-cat-head"><h2>Raw materials</h2></div>'+
+      '<div class="raw-summary">'+
+        '<div class="raw-sum"><span class="raw-sum-label">This month</span><span class="raw-sum-val tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</span></div>'+
+        '<div class="raw-sum"><span class="raw-sum-label">Daily</span><span class="raw-sum-val tnum" id="raw-grand-daily">'+won(model.rawGrand.daily)+'</span></div>'+
+        '<div class="raw-sum"><span class="raw-sum-label">Weekly</span><span class="raw-sum-val tnum" id="raw-grand-weekly">'+won(model.rawGrand.weekly)+'</span></div>'+
+      '</div>'+
+      '<p class="raw-hint">Packs × ₩/pack = total. Size is what’s in one pack. Totals follow the month selected above.</p>'+
     '</section>'+
-    body+
-    '<section class="card"><h2>Monthly cost share by category</h2><div id="raw-chart">'+rawMaterialsChartHtml(model)+'</div></section>';
+    categorySectionHtml(catById(model, "meat"))+
+    groceryGroupHtml(groceryCats)+
+    categorySectionHtml(catById(model, "veg"))+
+    lumpSectionHtml(catById(model, "nobill"))+
+    '<section class="card"><h2>This month by category</h2><div class="raw-chart" id="raw-chart">'+rawMaterialsChartHtml(model)+'</div></section>';
 }
 
 function refreshRawComputedCells(model){
   var host = el("tab-raw");
   if (!host) return;
   model.ingredients.forEach(function(i){
-    var card = host.querySelector('.ing-card[data-ing-id="'+i.id+'"]');
-    if (!card) return;
-    var dailyEl = card.querySelector("[data-ing-daily]");
-    var weeklyEl = card.querySelector("[data-ing-weekly]");
-    var monthEl = card.querySelector("[data-ing-month]");
-    var avgEl = card.querySelector("[data-ing-avg]");
-    if (dailyEl) dailyEl.textContent = won(i.dailyCost);
-    if (weeklyEl) weeklyEl.textContent = won(i.weeklyCost);
-    if (monthEl) monthEl.textContent = won(i.monthlyCost);
-    if (avgEl) avgEl.textContent = i.avgUnitMonth ? wonPerUnit(i.avgUnitMonth, i.unit) : "—";
+    var first = host.querySelector('tr[data-ing-id="'+i.id+'"]');
+    if (first){
+      var avgEl = first.querySelector("[data-ing-avg]");
+      if (avgEl) avgEl.textContent = avgUnitText(i);
+    }
     (i.purchases||[]).forEach(function(p){
-      var tr = card.querySelector('tr[data-pur-id="'+p.id+'"]');
+      var tr = host.querySelector('tr[data-pur-id="'+p.id+'"]');
       if (!tr) return;
       var idleSet = function(sel, v){
         var node = tr.querySelector(sel);
@@ -132,14 +195,14 @@ function refreshRawComputedCells(model){
       idleSet('[data-field="amount"]', niceNum(lineTotal(p)));
     });
   });
+  var groceryMonth = 0;
   model.catTotals.forEach(function(c){
     var sub = host.querySelector('[data-cat-subtotal="'+c.cat+'"]');
-    var dEl = host.querySelector('[data-cat-daily="'+c.cat+'"]');
-    var wEl = host.querySelector('[data-cat-weekly="'+c.cat+'"]');
     if (sub) sub.textContent = won(c.monthly);
-    if (dEl) dEl.textContent = won(c.daily);
-    if (wEl) wEl.textContent = won(c.weekly);
+    if (GROCERY_CATS.indexOf(c.cat) >= 0) groceryMonth += c.monthly;
   });
+  var gTot = host.querySelector("[data-grocery-total]");
+  if (gTot) gTot.textContent = won(groceryMonth);
   var gd = el("raw-grand-daily");
   var gw = el("raw-grand-weekly");
   var g = el("raw-grand");

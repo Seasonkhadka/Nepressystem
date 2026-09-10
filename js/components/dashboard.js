@@ -55,7 +55,7 @@ function renderDashboard(model){
       '<div class="block"><div class="label">COGS % of sales</div><div class="amt tnum">'+(model.monthly.sales ? pct(model.monthly.cogsPct) : "—")+'</div></div>'+
     '</div>'+
     '<p class="note">'+(model.rawGrand.monthly
-      ? "COGS is this month's Raw Materials (meat, groceries, vegetables, no-bill). Days with more sales take a larger share. Add daily sales on P&amp;L to see the %."
+      ? "COGS is this month's Raw Materials (meat, kitchen, outside, drinks, vegetables, no-bill). Days with more sales take a larger share. Add daily sales on P&amp;L to see the %."
       : "Add purchases in Raw Materials — that total becomes P&amp;L COGS for the month.")+'</p>';
 
   var g = model.assetGrand || { invested:0, monthly:0 };

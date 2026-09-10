@@ -10,18 +10,20 @@ function placeKey(place){
 function compareRowsForIngredient(i){
   var byPlace = {};
   (i.purchases || []).forEach(function(p){
-    var qty = purchaseQty(p);
+    var packs = purchasePriceCount(p);
+    var weight = purchaseQty(p);
     var tot = lineTotal(p);
-    if (qty <= 0 && tot <= 0) return;
+    if (packs <= 0 && weight <= 0 && tot <= 0) return;
     var key = placeKey(p.place);
-    if (!byPlace[key]) byPlace[key] = { place: key, count: 0, qty: 0, spend: 0, lastPrice: 0, lastDate: "" };
+    if (!byPlace[key]) byPlace[key] = { place: key, count: 0, qty: 0, weight: 0, spend: 0, lastPrice: 0, lastDate: "" };
     var g = byPlace[key];
     g.count += 1;
-    g.qty += qty;
+    g.qty += packs;
+    g.weight += weight;
     g.spend += tot;
     if (!g.lastDate || String(p.date) >= g.lastDate){
       g.lastDate = p.date || "";
-      g.lastPrice = qty > 0 ? tot / qty : (Number(p.unitPrice)||0);
+      g.lastPrice = packs > 0 ? tot / packs : (Number(p.unitPrice)||0);
     }
   });
   var rows = Object.keys(byPlace).map(function(k){
@@ -41,24 +43,29 @@ function renderCompareTab(){
     var rows = compareRowsForIngredient(i);
     if (!rows.length) return;
     any = true;
+    var packMode = i.usesPacks;
+    var unit = packMode ? "pack" : (i.unit || "unit");
     var cheapest = rows[0].avg;
     var body = rows.map(function(r, idx){
       var delta = r.avg - cheapest;
       var badge = idx === 0
         ? '<span class="tag weekday">Cheapest</span>'
-        : '<span class="tnum" style="color:var(--ember)">+'+won(delta)+"/"+esc(i.unit)+'</span>';
+        : '<span class="tnum" style="color:var(--ember)">+'+won(delta)+"/"+esc(unit)+'</span>';
+      var qtyLabel = packMode
+        ? (Math.round(r.qty*100)/100)+" pack"+(r.weight ? " · "+(Math.round(r.weight*100)/100)+" "+esc(i.unit) : "")
+        : (Math.round(r.qty*100)/100)+" "+esc(i.unit);
       return '<tr'+(idx===0?' class="best-place"':'')+'>'+
         '<td>'+esc(r.place)+'</td>'+
         '<td class="tnum">'+r.count+'</td>'+
-        '<td class="tnum">'+(Math.round(r.qty*100)/100)+' '+esc(i.unit)+'</td>'+
-        '<td class="tnum">'+wonPerUnit(r.avg, i.unit)+'</td>'+
-        '<td class="tnum">'+wonPerUnit(r.lastPrice, i.unit)+'</td>'+
+        '<td class="tnum">'+qtyLabel+'</td>'+
+        '<td class="tnum">'+wonPerUnit(r.avg, unit)+'</td>'+
+        '<td class="tnum">'+wonPerUnit(r.lastPrice, unit)+'</td>'+
         '<td>'+badge+'</td>'+
       '</tr>';
     }).join("");
     blocks += '<section class="card">'+
-      '<h2>'+esc(i.name)+' <span class="ing-unit-label">per '+esc(i.unit)+'</span></h2>'+
-      '<p class="lede">Weighted average ₩/'+esc(i.unit)+' by market. Cheapest source is highlighted.</p>'+
+      '<h2>'+esc(i.name)+' <span class="ing-unit-label">per '+esc(unit)+'</span></h2>'+
+      '<p class="lede">Weighted average ₩/'+esc(unit)+' by market. Cheapest source is highlighted.</p>'+
       '<div class="table-wrap"><table class="compare-table"><thead><tr>'+
         '<th>Market / place</th><th>Buys</th><th>Qty bought</th><th>Avg ₩/unit</th><th>Last ₩/unit</th><th></th>'+
       '</tr></thead><tbody>'+body+'</tbody></table></div>'+
@@ -67,11 +74,11 @@ function renderCompareTab(){
 
   if (!any){
     blocks = '<section class="card"><h2>Supplier price comparison</h2>'+
-      '<p class="lede">Add an item name, then log purchases with a market, quantity, and ₩ per unit on Meat, Groceries, or Vegetables. No-bill totals are not compared here.</p>'+
+      '<p class="lede">Add an item name, then log purchases with a market, packets, and ₩/pack on Raw Materials. No-bill totals are not compared here.</p>'+
       '<p class="note empty">No comparable purchases yet.</p></section>';
   } else {
     blocks = '<section class="card"><h2>Supplier price comparison</h2>'+
-      '<p class="lede">Compare the same ingredient across markets. Average ₩/unit is quantity-weighted, so a 5 kg buy counts more than a 1 kg buy. Last ₩/unit is the most recent receipt at that market.</p></section>' + blocks;
+      '<p class="lede">Compare the same ingredient across markets. Average ₩/pack is packet-weighted. Qty / pack is only the size of one pack. Last ₩/pack is the most recent receipt at that market.</p></section>' + blocks;
   }
 
   el("tab-compare").innerHTML = blocks;

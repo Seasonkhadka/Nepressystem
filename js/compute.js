@@ -43,7 +43,7 @@ function sumDays(days){
 function lineTotal(p){
   var amt = Number(p.amount);
   if (isFinite(amt) && amt > 0) return amt;
-  return purchaseQty(p) * (Number(p.unitPrice)||0);
+  return purchasePriceCount(p) * (Number(p.unitPrice)||0);
 }
 
 function assetMonthly(a){
@@ -62,11 +62,13 @@ function computeAll(){
   var ingredients = list.map(function(i){
     var purchases = asArray(i.purchases);
     var monthlyCost = 0, qtyMonth = 0, allCost = 0, allQty = 0;
+    var usesPacks = false;
     purchases.forEach(function(p){
       var tot = lineTotal(p);
-      var q = purchaseQty(p);
+      var q = purchasePriceCount(p);
       allCost += tot;
       allQty += q;
+      if ((Number(p.packs)||0) > 0) usesPacks = true;
       if (purchaseInMonth(p, year, month)){
         monthlyCost += tot;
         qtyMonth += q;
@@ -75,7 +77,7 @@ function computeAll(){
     var dailyCost = daysThisMonth ? monthlyCost / daysThisMonth : 0;
     return {
       id: i.id, cat: i.cat, name: i.name || "", unit: i.unit || defaultUnit(i.cat),
-      purchases: purchases,
+      purchases: purchases, usesPacks: usesPacks,
       qtyMonth: qtyMonth, monthlyCost: monthlyCost,
       avgUnitMonth: qtyMonth ? monthlyCost / qtyMonth : 0,
       avgUnitAll: allQty ? allCost / allQty : 0,

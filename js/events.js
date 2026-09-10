@@ -57,15 +57,20 @@ function initRawEvents(){
       return;
     }
 
-    var card = t.closest(".ing-card");
-    if (!card) return;
-    var ing = findIngredient(Number(card.getAttribute("data-ing-id")));
+    var row = t.closest("tr[data-ing-id]");
+    if (!row) return;
+    var ing = findIngredient(Number(row.getAttribute("data-ing-id")));
     if (!ing) return;
 
     if (t.matches("[data-ing-field]")){
       var ifield = t.getAttribute("data-ing-field");
       if (ifield === "name") ing.name = t.value;
       else if (ifield === "unit") ing.unit = t.value;
+      else if (ifield === "cat"){
+        ing.cat = migrateCat(t.value);
+        renderRawMaterialsTab();
+        renderCompareTab();
+      }
       refreshDerived();
       return;
     }
@@ -102,9 +107,9 @@ function initRawEvents(){
       renderRawMaterialsTab();
       refreshDerived();
     } else if (t.matches("[data-remove-pur]")){
-      var card = t.closest(".ing-card");
-      if (!card) return;
-      var ingRm = findIngredient(Number(card.getAttribute("data-ing-id")));
+      var rowRm = t.closest("tr[data-ing-id]");
+      if (!rowRm) return;
+      var ingRm = findIngredient(Number(rowRm.getAttribute("data-ing-id")));
       if (!ingRm) return;
       var pid = Number(t.getAttribute("data-remove-pur"));
       ingRm.purchases = (ingRm.purchases || []).filter(function(p){ return p.id !== pid; });

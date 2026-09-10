@@ -9,12 +9,15 @@
 var STORAGE_KEY = "restaurant-pl-calculator-v1";
 
 var CAT_META = {
-  meat:    { label: "Meat", color: "var(--chart-2)", lede: "Each cut with quantity and ₩ per unit so you can compare markets." },
-  grocery: { label: "Groceries", color: "var(--chart-1)", lede: "Rice, oil, sauce, packaging, and other store items with a unit price." },
-  veg:     { label: "Vegetables", color: "var(--chart-3)", lede: "Each vegetable with quantity and ₩ per unit. A second buy does not overwrite the first price." },
-  nobill:  { label: "No bill", color: "var(--chart-4)", lede: "No itemized receipt — you only know where you paid and the total. Type the line total yourself. No quantity or ₩ per unit needed." }
+  meat:    { label: "Meat", color: "var(--chart-2)", lede: "" },
+  kitchen: { label: "Kitchen", color: "var(--chart-1)", lede: "Oil, sauce, rice, noodles — cooking stock." },
+  outside: { label: "Outside", color: "var(--chart-5)", lede: "Packaging, bags, napkins, guest supplies." },
+  drinks:  { label: "Drinks", color: "var(--chart-6)", lede: "Soda, juice, beer, bottled drinks." },
+  veg:     { label: "Vegetables", color: "var(--chart-3)", lede: "" },
+  nobill:  { label: "No bill", color: "var(--chart-4)", lede: "No itemized receipt — type the total." }
 };
-var CAT_ORDER = ["meat", "grocery", "veg"];
+var CAT_ORDER = ["meat", "kitchen", "outside", "drinks", "veg"];
+var GROCERY_CATS = ["kitchen", "outside", "drinks"];
 
 var ASSET_META = {
   inventory: { label: "Inventory", color: "var(--chart-1)", lede: "Stock you keep on hand — extra rice, oil, packaging, spare supplies. This is not the monthly meat and vegetable ledger." },
@@ -44,12 +47,17 @@ var TAG_META = {
 var UNIT_OPTIONS = ["kg", "g", "L", "ml", "ea", "bunch", "pack", "box"];
 
 function defaultUnit(cat){
+  if (cat === "drinks") return "L";
+  if (cat === "outside") return "ea";
   return "kg";
 }
 
 function migrateCat(cat){
   if (cat === "meat") return "meat";
   if (cat === "veg") return "veg";
-  if (cat === "grocery" || cat === "groceries") return "grocery";
-  return "grocery";
+  if (cat === "kitchen") return "kitchen";
+  if (cat === "outside") return "outside";
+  if (cat === "drinks" || cat === "drink") return "drinks";
+  if (cat === "grocery" || cat === "groceries") return "kitchen";
+  return "kitchen";
 }

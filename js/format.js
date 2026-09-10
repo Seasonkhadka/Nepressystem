@@ -26,6 +26,11 @@ function wonPerUnit(v, unit){
   return won(v) + "/" + (unit || "unit");
 }
 
+function avgUnitText(i){
+  if (!i || !i.avgUnitMonth) return "—";
+  return wonPerUnit(i.avgUnitMonth, i.usesPacks ? "pack" : (i.unit || "unit"));
+}
+
 function signedWon(v){ return (v < 0 ? "−" : "") + won(Math.abs(v)); }
 function signedPct(v, d){ return (v < 0 ? "−" : "+") + pct(Math.abs(v), d); }
 

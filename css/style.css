@@ -20,11 +20,12 @@
     --row-weekend-ink:#7a4415;
     --row-vacation:#e7ab6c;
     --row-vacation-ink:#552f08;
-    --chart-1:#2a78d6;
-    --chart-2:#eb6834;
-    --chart-3:#1baf7a;
-    --chart-4:#c98100;
-    --chart-5:#e87ba4;
+      --chart-1:#2a78d6;
+      --chart-2:#eb6834;
+      --chart-3:#1baf7a;
+      --chart-4:#c98100;
+      --chart-5:#e87ba4;
+      --chart-6:#6b5ce7;
     --shadow: 0 1px 2px rgba(33,31,25,0.07), 0 8px 20px rgba(33,31,25,0.09);
     --radius: 14px;
   }
@@ -39,7 +40,7 @@
       --good:#0ca30c; --warning-dot:#fab219; --critical:#e66767;
       --row-weekend:#3a2c17; --row-weekend-ink:#f0c793;
       --row-vacation:#5c3c14; --row-vacation-ink:#f7d9a8;
-      --chart-1:#3987e5; --chart-2:#d95926; --chart-3:#199e70; --chart-4:#c98500; --chart-5:#d55181;
+      --chart-1:#3987e5; --chart-2:#d95926; --chart-3:#199e70; --chart-4:#c98500; --chart-5:#d55181; --chart-6:#7d72ee;
       --shadow: 0 1px 2px rgba(0,0,0,0.45), 0 10px 24px rgba(0,0,0,0.4);
     }
   }
@@ -53,7 +54,7 @@
     --good:#0ca30c; --warning-dot:#fab219; --critical:#e66767;
     --row-weekend:#3a2c17; --row-weekend-ink:#f0c793;
     --row-vacation:#5c3c14; --row-vacation-ink:#f7d9a8;
-    --chart-1:#3987e5; --chart-2:#d95926; --chart-3:#199e70; --chart-4:#c98500; --chart-5:#d55181;
+    --chart-1:#3987e5; --chart-2:#d95926; --chart-3:#199e70; --chart-4:#c98500; --chart-5:#d55181; --chart-6:#7d72ee;
     --shadow: 0 1px 2px rgba(0,0,0,0.45), 0 10px 24px rgba(0,0,0,0.4);
   }
 
@@ -193,15 +194,41 @@
   .vac-toggle{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
   .vac-toggle input{ accent-color: var(--accent); width:14px; height:14px; }
 
-  .ing-card{ margin:12px 0 16px; padding:14px; border:1px solid var(--hairline); border-radius:12px; background:var(--surface); }
-  .ing-head{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin-bottom:10px; }
-  .ing-name{ flex:1 1 180px; font-weight:600; }
-  .ing-unit{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-soft); font-weight:600; }
-  .ing-unit select{ min-width:72px; text-align:left; }
-  .ing-kpis{ display:flex; flex-wrap:wrap; gap:12px 18px; margin-left:auto; }
-  .ing-kpi-label{ display:block; font-size:10px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); font-weight:600; }
   .ing-unit-label{ font-size:13px; font-weight:500; color:var(--muted); }
   .purchase-wrap{ margin-bottom:8px; }
+
+  #tab-raw section.card{ padding:14px 16px; margin-bottom:12px; }
+  #tab-raw .card h2{ font-size:16px; margin:0; }
+  .raw-summary{ display:flex; flex-wrap:wrap; gap:10px 22px; align-items:baseline; margin:0; }
+  .raw-sum{ display:flex; flex-direction:column; gap:2px; }
+  .raw-sum-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); font-weight:600; }
+  .raw-sum-val{ font-family:"Bricolage Grotesque",sans-serif; font-size:20px; font-weight:700; }
+  .raw-hint{ margin:8px 0 0; font-size:12px; color:var(--muted); line-height:1.4; }
+  .raw-cat-head, .raw-sub-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .raw-sub-head h3{ margin:0; font-size:13.5px; font-weight:700; }
+  .raw-cat-total{ font-size:13px; color:var(--ink-soft); font-weight:600; margin:0; }
+  .raw-sub{ margin-top:0; padding-top:0; border-top:none; }
+  .raw-sub + .raw-sub{ margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); }
+  .raw-chart{ margin-top:10px; }
+  table.raw-table{ min-width:640px; font-size:12.5px; }
+  #tab-raw table.raw-table thead th{ padding:6px 8px; }
+  #tab-raw table.raw-table tbody td{ padding:4px 6px; vertical-align:top; }
+  #tab-raw .raw-table .cell-input{ padding:4px 6px; font-size:12.5px; min-width:48px; }
+  #tab-raw .raw-table .cell-input.text{ min-width:88px; }
+  #tab-raw .raw-table .ing-name{ min-width:108px; font-weight:600; }
+  #tab-raw .raw-table select.cell-input{ min-width:56px; text-align:left; }
+  #tab-raw .raw-table select.raw-move{ min-width:88px; margin-top:4px; font-size:11.5px; font-weight:500; }
+  .raw-item{ vertical-align:top; white-space:normal; }
+  .raw-item .ing-name, .raw-item .raw-move{ display:block; width:100%; }
+  .ing-avg{ display:block; margin-top:2px; font-size:10px; color:var(--muted); font-weight:500; }
+  .raw-actions{ display:inline-flex; gap:4px; justify-content:center; }
+  td.raw-num{ text-align:right; }
+  td.raw-place, td.raw-date{ text-align:left; }
+  table.raw-table thead th:nth-child(n+5){ text-align:right; }
+  table.raw-table thead th:last-child, table.raw-table tbody td.raw-actions{ text-align:center; }
+  tr.purchase-other-month td{ opacity:0.72; }
+  tr.purchase-other-month input[data-field="date"]{ box-shadow:inset 0 0 0 1px var(--warning-dot); }
+  #tab-raw .add-row-btn{ margin-top:8px; padding:6px 10px; font-size:12px; }
   table.purchase-table, table.compare-table, table.lump-table, table.asset-table, table.labor-table, table.salary-table, table.overhead-table{ min-width:560px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:760px; }
@@ -246,6 +273,7 @@
 
   .icon-btn{ appearance:none; border:1px solid var(--hairline-strong); background:var(--surface); color:var(--ink-soft); width:24px; height:24px; border-radius:6px; cursor:pointer; font-size:14px; line-height:1; }
   .icon-btn:hover{ color:var(--critical); border-color:var(--critical); }
+  .icon-btn[data-add-pur]:hover, .icon-btn[data-add-cat]:hover{ color:var(--accent); border-color:var(--accent); }
   .add-row-btn{ appearance:none; border:1.5px dashed var(--hairline-strong); background:transparent; color:var(--accent); font-weight:600; font-size:12.5px; padding:8px 12px; border-radius:8px; cursor:pointer; width:100%; text-align:left; }
   .add-row-btn:hover{ background:var(--accent-soft); }
   .overhead-var-row{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 14px; margin-top:16px; }

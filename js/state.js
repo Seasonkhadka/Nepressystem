@@ -4,9 +4,9 @@
  *
  * Ingredient shape (Meat / Groceries / Vegetables):
  *   { id, cat, name, unit, purchases: [{ id, date, place, packs, qty, unitPrice, amount }] }
- * packs = number of packets; qty = size of one pack (kg, L, …).
- * Total quantity = packs × qty when packs > 0, otherwise qty.
- * Line total auto-fills from total quantity × ₩/unit, or you type it yourself.
+ * packs = number of packets; qty = size of one pack (g, kg, L, …) — size only.
+ * ₩ per pack = line total ÷ packets when packs > 0; otherwise ₩ per qty.
+ * Line total auto-fills from packets × ₩/pack, or you type it yourself.
  * Lump / no-bill rows (no itemized receipt):
  *   { id, date, place, note, amount }  — you type the line total yourself.
  * Long-term assets (inventory, setup, utensils, gas):
@@ -106,6 +106,16 @@ function purchaseQty(p){
   return packs > 0 ? packs * qty : qty;
 }
 
+function purchasePriceCount(p){
+  var packs = Number(p && p.packs) || 0;
+  if (packs > 0) return packs;
+  return Number(p && p.qty) || 0;
+}
+
+function ingredientUsesPacks(i){
+  return asArray(i && i.purchases).some(function(p){ return (Number(p.packs)||0) > 0; });
+}
+
 function applyPurchaseField(pur, field, raw){
   if (field === "date" || field === "place"){
     pur[field] = raw;
@@ -116,20 +126,21 @@ function applyPurchaseField(pur, field, raw){
     pur.packs = n;
   } else if (field === "qty"){
     pur.qty = n;
+    if ((Number(pur.packs)||0) > 0) return;
   } else if (field === "unitPrice"){
     pur.unitPrice = n;
-    var q = purchaseQty(pur);
+    var q = purchasePriceCount(pur);
     if (q > 0) pur.amount = niceNum(q * n);
     return;
   } else if (field === "amount"){
     pur.amount = n;
-    var q = purchaseQty(pur);
+    var q = purchasePriceCount(pur);
     if (q > 0) pur.unitPrice = niceNum(n / q);
     return;
   } else {
     return;
   }
-  var q = purchaseQty(pur);
+  var q = purchasePriceCount(pur);
   if ((Number(pur.unitPrice)||0) > 0){
     pur.amount = niceNum(q * Number(pur.unitPrice));
   } else if (q > 0 && (Number(pur.amount)||0) > 0){
@@ -407,12 +418,20 @@ function migratePurchase(p){
     unitPrice = qty > 0 ? total / qty : 0;
   }
   if (!isFinite(amount) || amount < 0) amount = 0;
-  var q = packs > 0 ? packs * qty : qty;
-  if (packs > 1 && qty > 0 && amount > 0 && Math.abs((Number(unitPrice)||0) * qty - amount) < 1){
-    unitPrice = amount / q;
+  var priceCount = packs > 0 ? packs : qty;
+  var weight = packs > 0 && qty > 0 ? packs * qty : qty;
+  if (packs > 0 && amount > 0 && weight > 0){
+    var perPack = amount / packs;
+    var perWeight = amount / weight;
+    if (Math.abs(perPack - perWeight) > 0.05){
+      var up = Number(unitPrice) || 0;
+      if (Math.abs(up - perWeight) <= Math.abs(up - perPack) + 0.0001){
+        unitPrice = perPack;
+      }
+    }
   }
-  if (!amount && q && unitPrice) amount = q * unitPrice;
-  if (!unitPrice && q && amount) unitPrice = amount / q;
+  if (!amount && priceCount && unitPrice) amount = priceCount * unitPrice;
+  if (!unitPrice && priceCount && amount) unitPrice = amount / priceCount;
   return {
     id: p.id || nextPurchaseId++,
     date: p.date || isoToday(),
