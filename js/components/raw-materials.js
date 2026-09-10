@@ -52,7 +52,7 @@ function ingredientCardHtml(i){
       '<button class="icon-btn" type="button" data-remove-ing="'+i.id+'" title="Remove item" aria-label="Remove item">×</button>'+
     '</div>'+
     '<div class="table-wrap purchase-wrap"><table class="purchase-table"><thead><tr>'+
-      '<th>Date</th><th>Market / place</th><th>Packets</th><th>Qty</th><th>₩ per unit</th><th>Line total</th><th></th>'+
+      '<th>Date</th><th>Market / place</th><th>Packets</th><th>Qty / pack</th><th>₩ per unit</th><th>Line total</th><th></th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-pur="'+i.id+'">+ Add purchase (another market or date)</button>'+
   '</article>';
@@ -98,7 +98,7 @@ function renderRawMaterialsTab(){
   el("tab-raw").innerHTML =
     '<section class="card">'+
       '<h2>Raw materials</h2>'+
-      '<p class="lede">Meat, groceries, vegetables, and no-bill totals for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' become this month\'s P&amp;L COGS. <b>Packets</b> is how many packs you bought; <b>Qty</b> is the weight or volume. Line total auto-fills from qty × ₩ per unit — or type the total yourself.</p>'+
+      '<p class="lede">Meat, groceries, vegetables, and no-bill totals for '+MONTH_NAMES[STATE.month-1]+' '+STATE.year+' become this month\'s P&amp;L COGS. <b>Packets</b> is how many packs; <b>Qty / pack</b> is the size of one pack. ₩ per unit uses packets × size. Type the line total from the receipt if you prefer.</p>'+
       '<p class="note">Grand total — daily <b class="tnum" id="raw-grand-daily">'+won(model.rawGrand.daily)+'</b> · weekly <b class="tnum" id="raw-grand-weekly">'+won(model.rawGrand.weekly)+'</b> · this month <b class="tnum" id="raw-grand">'+won(model.rawGrand.monthly)+'</b></p>'+
     '</section>'+
     body+

@@ -43,7 +43,7 @@ function sumDays(days){
 function lineTotal(p){
   var amt = Number(p.amount);
   if (isFinite(amt) && amt > 0) return amt;
-  return (Number(p.qty)||0) * (Number(p.unitPrice)||0);
+  return purchaseQty(p) * (Number(p.unitPrice)||0);
 }
 
 function assetMonthly(a){
@@ -64,7 +64,7 @@ function computeAll(){
     var monthlyCost = 0, qtyMonth = 0, allCost = 0, allQty = 0;
     purchases.forEach(function(p){
       var tot = lineTotal(p);
-      var q = Number(p.qty)||0;
+      var q = purchaseQty(p);
       allCost += tot;
       allQty += q;
       if (purchaseInMonth(p, year, month)){

@@ -4,8 +4,9 @@
  *
  * Ingredient shape (Meat / Groceries / Vegetables):
  *   { id, cat, name, unit, purchases: [{ id, date, place, packs, qty, unitPrice, amount }] }
- * packs = number of packets; qty = weight/volume in the item unit.
- * Line total (amount) auto-fills from qty × ₩/unit, or you type it yourself.
+ * packs = number of packets; qty = size of one pack (kg, L, …).
+ * Total quantity = packs × qty when packs > 0, otherwise qty.
+ * Line total auto-fills from total quantity × ₩/unit, or you type it yourself.
  * Lump / no-bill rows (no itemized receipt):
  *   { id, date, place, note, amount }  — you type the line total yourself.
  * Long-term assets (inventory, setup, utensils, gas):
@@ -99,6 +100,12 @@ function niceNum(v){
   return Math.round(v * 10000) / 10000;
 }
 
+function purchaseQty(p){
+  var qty = Number(p && p.qty) || 0;
+  var packs = Number(p && p.packs) || 0;
+  return packs > 0 ? packs * qty : qty;
+}
+
 function applyPurchaseField(pur, field, raw){
   if (field === "date" || field === "place"){
     pur[field] = raw;
@@ -107,27 +114,26 @@ function applyPurchaseField(pur, field, raw){
   var n = parseFloat(raw) || 0;
   if (field === "packs"){
     pur.packs = n;
-    return;
-  }
-  if (field === "qty"){
+  } else if (field === "qty"){
     pur.qty = n;
-    if ((Number(pur.unitPrice)||0) > 0){
-      pur.amount = niceNum(n * Number(pur.unitPrice));
-    } else if (n > 0 && (Number(pur.amount)||0) > 0){
-      pur.unitPrice = niceNum(Number(pur.amount) / n);
-    }
-    return;
-  }
-  if (field === "unitPrice"){
+  } else if (field === "unitPrice"){
     pur.unitPrice = n;
-    var qty = Number(pur.qty)||0;
-    if (qty > 0) pur.amount = niceNum(qty * n);
+    var q = purchaseQty(pur);
+    if (q > 0) pur.amount = niceNum(q * n);
+    return;
+  } else if (field === "amount"){
+    pur.amount = n;
+    var q = purchaseQty(pur);
+    if (q > 0) pur.unitPrice = niceNum(n / q);
+    return;
+  } else {
     return;
   }
-  if (field === "amount"){
-    pur.amount = n;
-    var qty = Number(pur.qty)||0;
-    if (qty > 0) pur.unitPrice = niceNum(n / qty);
+  var q = purchaseQty(pur);
+  if ((Number(pur.unitPrice)||0) > 0){
+    pur.amount = niceNum(q * Number(pur.unitPrice));
+  } else if (q > 0 && (Number(pur.amount)||0) > 0){
+    pur.unitPrice = niceNum(Number(pur.amount) / q);
   }
 }
 
@@ -401,8 +407,12 @@ function migratePurchase(p){
     unitPrice = qty > 0 ? total / qty : 0;
   }
   if (!isFinite(amount) || amount < 0) amount = 0;
-  if (!amount && qty && unitPrice) amount = qty * unitPrice;
-  if (!unitPrice && qty && amount) unitPrice = amount / qty;
+  var q = packs > 0 ? packs * qty : qty;
+  if (packs > 1 && qty > 0 && amount > 0 && Math.abs((Number(unitPrice)||0) * qty - amount) < 1){
+    unitPrice = amount / q;
+  }
+  if (!amount && q && unitPrice) amount = q * unitPrice;
+  if (!unitPrice && q && amount) unitPrice = amount / q;
   return {
     id: p.id || nextPurchaseId++,
     date: p.date || isoToday(),

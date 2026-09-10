@@ -10,7 +10,7 @@ function placeKey(place){
 function compareRowsForIngredient(i){
   var byPlace = {};
   (i.purchases || []).forEach(function(p){
-    var qty = Number(p.qty)||0;
+    var qty = purchaseQty(p);
     var tot = lineTotal(p);
     if (qty <= 0 && tot <= 0) return;
     var key = placeKey(p.place);
@@ -21,7 +21,7 @@ function compareRowsForIngredient(i){
     g.spend += tot;
     if (!g.lastDate || String(p.date) >= g.lastDate){
       g.lastDate = p.date || "";
-      g.lastPrice = (Number(p.qty)||0) > 0 ? lineTotal(p) / Number(p.qty) : (Number(p.unitPrice)||0);
+      g.lastPrice = qty > 0 ? tot / qty : (Number(p.unitPrice)||0);
     }
   });
   var rows = Object.keys(byPlace).map(function(k){
