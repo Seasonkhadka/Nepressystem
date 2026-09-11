@@ -193,6 +193,25 @@ function stopLiveSync(){
   }
 }
 
+var AUTH_REDIRECT_KEY = "nepres-auth-redirect";
+
+function enableSignInButton(){
+  var btn = el("btn-sign-in");
+  if (btn) btn.disabled = false;
+}
+
+function markRedirectPending(){
+  try { sessionStorage.setItem(AUTH_REDIRECT_KEY, String(Date.now())); } catch (e){}
+}
+
+function clearRedirectPending(){
+  try { sessionStorage.removeItem(AUTH_REDIRECT_KEY); } catch (e){}
+}
+
+function hadRedirectPending(){
+  try { return !!sessionStorage.getItem(AUTH_REDIRECT_KEY); } catch (e){ return false; }
+}
+
 function setAuthHint(text, isError){
   var node = el("auth-hint");
   if (!node) return;
@@ -200,22 +219,35 @@ function setAuthHint(text, isError){
   node.classList.toggle("error", !!isError);
 }
 
+function showAuthError(msg){
+  if (!msg) return;
+  setAuthHint(msg, true);
+  window.alert(msg);
+}
+
 function authErrorMessage(err){
   var code = err && err.code;
-  if (code === "auth/unauthorized-domain"){
-    return "This site's domain isn't allowed yet. In Firebase: Authentication → Settings → Authorized domains, add localhost and seasonkhadka.github.io.";
+  var raw = (err && err.message) || "";
+  if (code === "auth/unauthorized-domain" || code === "auth/unauthorized-continue-uri"){
+    return "This site is not allowed to sign in yet. In Firebase: Authentication → Settings → Authorized domains, add seasonkhadka.github.io and localhost.";
   }
   if (code === "auth/operation-not-allowed"){
     return "Google sign-in is not enabled yet. In Firebase: Authentication → Sign-in method → Google → Enable.";
   }
   if (code === "auth/popup-blocked"){
-    return "The sign-in popup was blocked. Allow popups, or wait — retrying without a popup.";
+    return "The sign-in popup was blocked. Allow popups for this site, then tap Sign in again.";
   }
-  if (code === "auth/popup-closed-by-user") return "";
-  if (code === "auth/unauthorized-continue-uri"){
-    return "Add seasonkhadka.github.io under Firebase Authentication → Authorized domains.";
+  if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") return "";
+  if (code === "auth/invalid-api-key" || code === "auth/api-key-not-valid."){
+    return "Firebase rejected the API key. Check firebase-config.js.";
   }
-  return (err && err.message) || "Sign-in failed.";
+  if (/referer|referrer/i.test(raw) || code === "auth/requests-from-referer-are-blocked"){
+    return "Google blocked this website. In Google Cloud → API key → HTTP referrers, allow https://seasonkhadka.github.io/*";
+  }
+  if (code === "auth/network-request-failed"){
+    return "Network blocked Google sign-in. Use Chrome or Safari on https://seasonkhadka.github.io/Nepressystem/ — not Kakao or Instagram.";
+  }
+  return raw || "Sign-in failed.";
 }
 
 function googleProvider(){
@@ -226,21 +258,41 @@ function googleProvider(){
 
 function signInWithGoogle(){
   if (!isFirebaseConfigured() || !cloudAuth){
-    setAuthHint("Google sign-in is still loading — tap again in a moment.", true);
+    showAuthError("Google sign-in is still loading — tap again in a moment.");
     return;
   }
   var provider = googleProvider();
-  el("btn-sign-in").disabled = true;
+  var btn = el("btn-sign-in");
+  if (btn) btn.disabled = true;
   setAuthHint("Opening Google…");
-  // Popups are blocked on GitHub Pages and most phones. Redirect is reliable.
-  cloudAuth.signInWithRedirect(provider).catch(function(err){
-    el("btn-sign-in").disabled = false;
-    var msg = authErrorMessage(err);
-    if (msg){
-      setAuthHint(msg, true);
-      window.alert(msg);
+
+  // Popup first. Redirect often comes back to this page with no login and no
+  // error, which looks like the button did nothing — especially on a new phone.
+  cloudAuth.signInWithPopup(provider).then(function(){
+    enableSignInButton();
+    clearRedirectPending();
+  }).catch(function(err){
+    if (err && (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request")){
+      enableSignInButton();
+      setAuthHint("Sign-in was cancelled. Tap Sign in again.");
+      return;
     }
+    if (err && err.code === "auth/popup-blocked"){
+      setAuthHint("Popup blocked — sending you to Google…");
+      markRedirectPending();
+      return cloudAuth.signInWithRedirect(provider).catch(function(redirErr){
+        enableSignInButton();
+        clearRedirectPending();
+        showAuthError(authErrorMessage(redirErr));
+      });
+    }
+    enableSignInButton();
+    showAuthError(authErrorMessage(err));
   });
+
+  setTimeout(function(){
+    if (!cloudUser) enableSignInButton();
+  }, 5000);
 }
 
 function signOutGoogle(){
@@ -259,7 +311,7 @@ function signOutGoogle(){
 
 function startFirebase(){
   if (typeof firebase === "undefined"){
-    setAuthHint("Could not load Google sign-in. Check your network and retry.", true);
+    showAuthError("Could not load Google sign-in. Check your network and retry.");
     return;
   }
   firebase.initializeApp(FIREBASE_CONFIG);
@@ -267,17 +319,29 @@ function startFirebase(){
   cloudDb = firebase.database();
   firebaseAppReady = true;
 
-  cloudAuth.getRedirectResult().catch(function(err){
-    el("btn-sign-in").disabled = false;
-    var msg = authErrorMessage(err);
-    if (msg) setAuthHint(msg, true);
+  cloudAuth.getRedirectResult().then(function(result){
+    enableSignInButton();
+    if (result && result.user){
+      clearRedirectPending();
+      return;
+    }
+    if (hadRedirectPending() && !cloudAuth.currentUser){
+      clearRedirectPending();
+      showAuthError("Google did not finish signing you in. Open https://seasonkhadka.github.io/Nepressystem/ in Chrome or Safari (not Kakao), then tap Sign in again.");
+    }
+  }).catch(function(err){
+    enableSignInButton();
+    clearRedirectPending();
+    showAuthError(authErrorMessage(err));
   });
 
   cloudAuth.onAuthStateChanged(function(user){
     cloudUser = user || null;
     renderAuthBar();
-    if (cloudUser) syncOnSignIn();
-    else {
+    if (cloudUser){
+      clearRedirectPending();
+      syncOnSignIn();
+    } else {
       stopLiveSync();
       setAuthStatus("");
     }
@@ -312,8 +376,17 @@ function initCloud(){
   el("btn-sign-in").addEventListener("click", signInWithGoogle);
   el("btn-sign-out").addEventListener("click", signOutGoogle);
 
-  if (!isFirebaseConfigured()) return;
-  loadFirebaseSdk().then(startFirebase).catch(function(){
-    setAuthHint("Could not load Google sign-in. Check your network and retry.", true);
+  if (!isFirebaseConfigured()){
+    showAuthError("Google sign-in is not configured.");
+    return;
+  }
+  setAuthHint("Loading Google sign-in…");
+  loadFirebaseSdk().then(function(){
+    startFirebase();
+    if (!cloudUser && el("auth-hint") && !el("auth-hint").classList.contains("error")){
+      setAuthHint("Use the same Google account on every device.");
+    }
+  }).catch(function(){
+    showAuthError("Could not load Google sign-in. Check your network and retry.");
   });
 }
