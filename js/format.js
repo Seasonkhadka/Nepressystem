@@ -28,7 +28,9 @@ function wonPerUnit(v, unit){
 
 function avgUnitText(i){
   if (!i || !i.avgUnitMonth) return "—";
-  return wonPerUnit(i.avgUnitMonth, i.usesPacks ? "pack" : (i.unit || "unit"));
+  if (i.usesWeight) return wonPerUnit(i.avgUnitMonth, i.unit || "unit");
+  if (i.usesPacks) return wonPerUnit(i.avgUnitMonth, "pack");
+  return wonPerUnit(i.avgUnitMonth, i.unit || "unit");
 }
 
 function signedWon(v){ return (v < 0 ? "−" : "") + won(Math.abs(v)); }

@@ -62,13 +62,14 @@ function computeAll(){
   var ingredients = list.map(function(i){
     var purchases = asArray(i.purchases);
     var monthlyCost = 0, qtyMonth = 0, allCost = 0, allQty = 0;
-    var usesPacks = false;
+    var usesPacks = false, usesWeight = false;
     purchases.forEach(function(p){
       var tot = lineTotal(p);
-      var q = purchasePriceCount(p);
+      var q = purchaseMeasure(p);
       allCost += tot;
       allQty += q;
       if ((Number(p.packs)||0) > 0) usesPacks = true;
+      if (purchaseQty(p) > 0) usesWeight = true;
       if (purchaseInMonth(p, year, month)){
         monthlyCost += tot;
         qtyMonth += q;
@@ -77,7 +78,7 @@ function computeAll(){
     var dailyCost = daysThisMonth ? monthlyCost / daysThisMonth : 0;
     return {
       id: i.id, cat: i.cat, name: i.name || "", unit: i.unit || defaultUnit(i.cat),
-      purchases: purchases, usesPacks: usesPacks,
+      purchases: purchases, usesPacks: usesPacks, usesWeight: usesWeight,
       qtyMonth: qtyMonth, monthlyCost: monthlyCost,
       avgUnitMonth: qtyMonth ? monthlyCost / qtyMonth : 0,
       avgUnitAll: allQty ? allCost / allQty : 0,

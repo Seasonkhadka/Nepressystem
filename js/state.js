@@ -112,8 +112,10 @@ function purchasePriceCount(p){
   return Number(p && p.qty) || 0;
 }
 
-function ingredientUsesPacks(i){
-  return asArray(i && i.purchases).some(function(p){ return (Number(p.packs)||0) > 0; });
+function purchaseMeasure(p){
+  var weight = purchaseQty(p);
+  if (weight > 0) return weight;
+  return purchasePriceCount(p);
 }
 
 function applyPurchaseField(pur, field, raw){
