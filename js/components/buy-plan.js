@@ -1,7 +1,7 @@
 /**
  * components/buy-plan.js — read-only extract of Raw Materials by date.
  * Groups purchases into Mon–Sun weeks inside the selected month.
- * Weekly bought = average per week you actually purchased (from dates).
+ * Weekly bought = typical per week for planning (from purchase dates).
  */
 
 function purchaseDayNum(p){
@@ -55,8 +55,11 @@ function buyPlanRows(){
     byWeek.forEach(function(w){
       if (w.packs > 0 || w.qty > 0 || w.amt > 0) activeWeeks += 1;
     });
-    var weekPacks = activeWeeks ? monthPacks / activeWeeks : 0;
-    var weekQty = activeWeeks ? monthQty / activeWeeks : 0;
+    // One big buy in a single week → spread across the month (not equal to monthly).
+    // Regular buys in several weeks → average per shopping week.
+    var weekDiv = activeWeeks > 1 ? activeWeeks : weeks.length;
+    var weekPacks = weekDiv ? monthPacks / weekDiv : 0;
+    var weekQty = weekDiv ? monthQty / weekDiv : 0;
 
     rows.push({
       name: name,
@@ -98,10 +101,10 @@ function renderBuyPlanTab(){
     '<section class="card">'+
       "<h2>Buy plan</h2>"+
       "<p class=\"lede\">From purchase dates in "+MONTH_NAMES[STATE.month-1]+" "+STATE.year+". "+
-      "<b>Weekly bought</b> = average per week you actually bought (Mon–Sun buckets, "+plan.weekCount+" weeks this month). "+
+      "<b>Weekly bought</b> = typical amount per week — if you bought in several weeks, average of those trips; if you bought once, spread across "+plan.weekCount+" weeks in this month. "+
       "<b>Monthly bought</b> = full month total. Format: packs (kg/L).</p>"+
       '<div class="table-wrap"><table class="buy-table"><thead><tr>'+
-        "<th>Item</th><th>Weekly bought (avg)</th><th>Monthly bought</th><th>Total price</th>"+
+        "<th>Item</th><th>Weekly bought</th><th>Monthly bought</th><th>Total price</th>"+
       "</tr></thead><tbody>"+body+"</tbody></table></div>"+
     "</section>";
 }
