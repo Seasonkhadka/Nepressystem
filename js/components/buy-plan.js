@@ -1,57 +1,63 @@
 /**
  * components/buy-plan.js — read-only extract of Raw Materials by date.
- * One row per item: weekly bought, monthly bought, month total ₩.
- * Does not change how purchases are entered.
+ * Groups purchases into Mon–Sun weeks inside the selected month.
+ * Weekly bought = average per week you actually purchased (from dates).
  */
 
-function mondayWeekBounds(d){
-  var start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  var back = (start.getDay() + 6) % 7;
-  start.setDate(start.getDate() - back);
-  start.setHours(0, 0, 0, 0);
-  var end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  end.setHours(23, 59, 59, 999);
-  return { start: start, end: end };
-}
-
-function purchaseDateObj(p){
-  if (!p || !p.date) return null;
+function purchaseDayNum(p){
+  if (!p || !p.date) return 0;
   var parts = String(p.date).split("-");
-  if (parts.length < 3) return null;
-  var dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-  if (isNaN(dt.getTime())) return null;
-  return dt;
+  return Number(parts[2]) || 0;
 }
 
-function purchaseInWeekRange(p, start, end){
-  var dt = purchaseDateObj(p);
-  if (!dt) return false;
-  return dt >= start && dt <= end;
+function weekIndexForDay(day, weeks){
+  for (var w = 0; w < weeks.length; w++){
+    if (weeks[w].indexOf(day) >= 0) return w;
+  }
+  return -1;
+}
+
+function monthWeeks(year, month){
+  var n = daysInMonth(year, month);
+  var dayNums = [];
+  for (var d = 1; d <= n; d++) dayNums.push(d);
+  return buildWeeks(dayNums);
 }
 
 function buyPlanRows(){
   var year = STATE.year, month = STATE.month;
-  var week = mondayWeekBounds(today());
+  var weeks = monthWeeks(year, month);
   var rows = [];
   asArray(STATE.ingredients).forEach(function(i){
     var name = String(i.name || "").trim();
     if (!name) return;
     var unit = i.unit || defaultUnit(i.cat);
-    var weekPacks = 0, weekQty = 0, monthPacks = 0, monthQty = 0, monthAmt = 0;
+    var byWeek = weeks.map(function(){ return { packs: 0, qty: 0, amt: 0 }; });
+    var monthPacks = 0, monthQty = 0, monthAmt = 0;
     asArray(i.purchases).forEach(function(p){
       if (!purchaseInMonth(p, year, month)) return;
+      var day = purchaseDayNum(p);
+      var wi = weekIndexForDay(day, weeks);
+      if (wi < 0) return;
       var packs = Number(p.packs) || 0;
       var qty = purchaseQty(p);
+      var amt = lineTotal(p);
+      byWeek[wi].packs += packs;
+      byWeek[wi].qty += qty;
+      byWeek[wi].amt += amt;
       monthPacks += packs;
       monthQty += qty;
-      monthAmt += lineTotal(p);
-      if (purchaseInWeekRange(p, week.start, week.end)){
-        weekPacks += packs;
-        weekQty += qty;
-      }
+      monthAmt += amt;
     });
     if (monthPacks <= 0 && monthQty <= 0 && monthAmt <= 0) return;
+
+    var activeWeeks = 0;
+    byWeek.forEach(function(w){
+      if (w.packs > 0 || w.qty > 0 || w.amt > 0) activeWeeks += 1;
+    });
+    var weekPacks = activeWeeks ? monthPacks / activeWeeks : 0;
+    var weekQty = activeWeeks ? monthQty / activeWeeks : 0;
+
     rows.push({
       name: name,
       unit: unit,
@@ -59,11 +65,12 @@ function buyPlanRows(){
       weekQty: weekQty,
       monthPacks: monthPacks,
       monthQty: monthQty,
-      monthAmt: monthAmt
+      monthAmt: monthAmt,
+      activeWeeks: activeWeeks
     });
   });
   rows.sort(function(a, b){ return b.monthAmt - a.monthAmt; });
-  return { rows: rows, week: week };
+  return { rows: rows, weekCount: weeks.length };
 }
 
 function renderBuyPlanTab(){
@@ -71,9 +78,6 @@ function renderBuyPlanTab(){
   if (!host) return;
   var plan = buyPlanRows();
   var rows = plan.rows;
-  var ws = plan.week.start;
-  var we = plan.week.end;
-  var weekLabel = ws.getDate()+"–"+we.getDate()+" "+MONTH_ABBR[ws.getMonth()]+" "+ws.getFullYear();
   var total = 0;
   var body = rows.map(function(r){
     total += r.monthAmt;
@@ -93,9 +97,11 @@ function renderBuyPlanTab(){
   host.innerHTML =
     '<section class="card">'+
       "<h2>Buy plan</h2>"+
-      "<p class=\"lede\">Extracted from Raw Materials by date. Week is Mon–Sun "+weekLabel+". Monthly is "+MONTH_NAMES[STATE.month-1]+" "+STATE.year+". Packets, with kg/L in brackets. Total price is this month only.</p>"+
+      "<p class=\"lede\">From purchase dates in "+MONTH_NAMES[STATE.month-1]+" "+STATE.year+". "+
+      "<b>Weekly bought</b> = average per week you actually bought (Mon–Sun buckets, "+plan.weekCount+" weeks this month). "+
+      "<b>Monthly bought</b> = full month total. Format: packs (kg/L).</p>"+
       '<div class="table-wrap"><table class="buy-table"><thead><tr>'+
-        "<th>Item</th><th>Weekly bought</th><th>Monthly bought</th><th>Total price</th>"+
+        "<th>Item</th><th>Weekly bought (avg)</th><th>Monthly bought</th><th>Total price</th>"+
       "</tr></thead><tbody>"+body+"</tbody></table></div>"+
     "</section>";
 }
