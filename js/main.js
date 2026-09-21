@@ -18,6 +18,7 @@ function refreshDerived(){
   renderMonthlyTab(model);
   renderDashboard(model);
   renderCompareTab();
+  renderBuyPlanTab();
 }
 
 function rerenderAllFromState(){

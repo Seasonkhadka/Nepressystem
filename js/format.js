@@ -26,6 +26,14 @@ function wonPerUnit(v, unit){
   return won(v) + "/" + (unit || "unit");
 }
 
+function fmtQty(n){
+  return String(Math.round((Number(n)||0) * 100) / 100);
+}
+
+function boughtLabel(packs, weight, unit){
+  return fmtQty(packs)+" pack ("+fmtQty(weight)+" "+(unit||"kg")+")";
+}
+
 function avgUnitText(i){
   if (!i || !i.avgUnitMonth) return "—";
   if (i.usesWeight) return wonPerUnit(i.avgUnitMonth, i.unit || "unit");
