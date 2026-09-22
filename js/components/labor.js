@@ -45,16 +45,16 @@ function renderLaborTab(){
   var model = computeAll();
   var L = model.labor || { shiftMonth:0, salaryMonth:0, monthly:0, hasLedger:false };
   var O = model.overhead || { billMonth:0, fixedMonth:0, monthly:0, variableRate:0, hasBills:false };
-  var shifts = asArray(STATE.laborShifts).filter(function(s){
+  var shifts = sortByDate(asArray(STATE.laborShifts).filter(function(s){
     return purchaseInMonth(s, STATE.year, STATE.month);
-  });
+  }));
   var otherShiftCount = asArray(STATE.laborShifts).filter(function(s){
     return laborShiftHasData(s) && !purchaseInMonth(s, STATE.year, STATE.month);
   }).length;
   var salaries = asArray(STATE.laborSalaries);
-  var bills = asArray(STATE.overheadBills).filter(function(b){
+  var bills = sortByDate(asArray(STATE.overheadBills).filter(function(b){
     return purchaseInMonth(b, STATE.year, STATE.month);
-  });
+  }));
   var otherBillCount = asArray(STATE.overheadBills).filter(function(b){
     return overheadBillHasData(b) && !purchaseInMonth(b, STATE.year, STATE.month);
   }).length;

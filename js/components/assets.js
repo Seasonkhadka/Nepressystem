@@ -19,7 +19,7 @@ function assetRowHtml(a){
 }
 
 function assetSectionHtml(c){
-  var rows = (c.items || []).map(assetRowHtml).join("");
+  var rows = sortByDate(c.items || []).map(assetRowHtml).join("");
   return '<section class="card">'+
     '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
     '<p class="lede">'+c.lede+'</p>'+

@@ -89,7 +89,7 @@ function rawTableHead(){
 
 function categoryTableHtml(c){
   var rows = "";
-  (c.items || []).forEach(function(i){ rows += ingredientRowsHtml(i); });
+  sortByName(c.items || [], "name").forEach(function(i){ rows += ingredientRowsHtml(i); });
   return '<div class="table-wrap"><table class="raw-table">'+rawTableHead()+'<tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add item</button>';
 }
@@ -129,7 +129,7 @@ function groceryGroupHtml(cats){
 }
 
 function lumpSectionHtml(c){
-  var rows = (c.lumps || []).map(lumpRowHtml).join("");
+  var rows = sortByDate(c.lumps || []).map(lumpRowHtml).join("");
   return '<section class="card">'+
     '<div class="raw-cat-head">'+
       '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+

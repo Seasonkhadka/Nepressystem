@@ -25,3 +25,21 @@ function purchaseInMonth(p, year, month){
   var parts = String(p.date).split("-");
   return Number(parts[0]) === year && Number(parts[1]) === month;
 }
+
+function sortByName(list, key){
+  return (Array.isArray(list) ? list.slice() : []).sort(function(a, b){
+    return String(a[key] || "").localeCompare(String(b[key] || ""), undefined, { sensitivity: "base" });
+  });
+}
+
+function sortByDate(list, key){
+  key = key || "date";
+  return (Array.isArray(list) ? list.slice() : []).sort(function(a, b){
+    var da = String(a[key] || "");
+    var db = String(b[key] || "");
+    if (da && db) return da.localeCompare(db);
+    if (da) return -1;
+    if (db) return 1;
+    return 0;
+  });
+}
