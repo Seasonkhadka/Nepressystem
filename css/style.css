@@ -230,11 +230,16 @@
   tr.purchase-other-month td{ opacity:0.72; }
   tr.purchase-other-month input[data-field="date"]{ box-shadow:inset 0 0 0 1px var(--warning-dot); }
   #tab-raw .add-row-btn{ margin-top:8px; padding:6px 10px; font-size:12px; }
+  .labor-subhead{ margin:18px 0 6px; font-size:15px; font-weight:700; }
+  tr.labor-unpaid td{ background:rgba(255, 180, 80, 0.08); }
+  select.labor-paid{ min-width:88px; }
+  td.labor-part-staff{ font-weight:600; white-space:nowrap; }
   table.purchase-table, table.compare-table, table.lump-table, table.asset-table, table.labor-table, table.salary-table, table.overhead-table, table.buy-table{ min-width:560px; }
   table.buy-table{ min-width:520px; }
   table.purchase-table{ min-width:680px; }
-  table.asset-table, table.labor-table{ min-width:760px; }
-  table.salary-table{ min-width:480px; }
+  table.asset-table, table.labor-table{ min-width:860px; }
+  table.salary-table{ min-width:560px; }
+  table.salary-parts-table{ min-width:520px; }
   table.asset-summary{ min-width:360px; }
   table.purchase-table thead th:nth-child(n+3),
   table.purchase-table tbody td:nth-child(n+3),
@@ -250,6 +255,10 @@
   table.labor-table tbody td:nth-child(n+4),
   table.salary-table thead th:nth-child(3),
   table.salary-table tbody td:nth-child(3),
+  table.salary-table thead th:nth-child(4),
+  table.salary-table tbody td:nth-child(4),
+  table.salary-parts-table thead th:nth-child(3),
+  table.salary-parts-table tbody td:nth-child(3),
   table.overhead-table thead th:nth-child(3),
   table.overhead-table tbody td:nth-child(3),
   table.asset-summary thead th:nth-child(n+2),
@@ -264,6 +273,8 @@
   table.labor-table tbody td:last-child,
   table.salary-table thead th:last-child,
   table.salary-table tbody td:last-child,
+  table.salary-parts-table thead th:last-child,
+  table.salary-parts-table tbody td:last-child,
   table.overhead-table thead th:last-child,
   table.overhead-table tbody td:last-child{ text-align:center; }
   tr.best-place td{ background:var(--accent-soft); }

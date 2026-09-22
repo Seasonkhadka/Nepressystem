@@ -126,17 +126,26 @@ function computeAll(){
   var laborByDay = {};
   dayNums.forEach(function(day){ laborByDay[day] = 0; });
   var shiftMonth = 0, salaryMonth = 0, laborHasLedger = false;
+  var shiftPaid = 0, shiftUnpaid = 0, salaryPartPaid = 0, salaryPartUnpaid = 0;
   asArray(STATE.laborShifts).forEach(function(s){
     if (laborShiftHasData(s)) laborHasLedger = true;
     if (!purchaseInMonth(s, year, month)) return;
     var tot = laborShiftTotal(s);
     shiftMonth += tot;
+    if (s.paid) shiftPaid += tot;
+    else shiftUnpaid += tot;
     var day = Number(String(s.date).split("-")[2]) || 0;
     if (laborByDay[day] != null) laborByDay[day] += tot;
   });
   asArray(STATE.laborSalaries).forEach(function(s){
     if (laborSalaryHasData(s)) laborHasLedger = true;
     salaryMonth += Number(s.amount) || 0;
+    asArray(s.parts).forEach(function(p){
+      if (!purchaseInMonth(p, year, month)) return;
+      var amt = Number(p.amount) || 0;
+      if (p.paid) salaryPartPaid += amt;
+      else salaryPartUnpaid += amt;
+    });
   });
   var salaryOpenDays = openDaysTrue || daysThisMonth;
   var salaryPerOpen = salaryOpenDays ? salaryMonth / salaryOpenDays : 0;
@@ -235,7 +244,15 @@ function computeAll(){
     hasLedger: laborHasLedger,
     shiftMonth: shiftMonth,
     salaryMonth: salaryMonth,
-    monthly: laborHasLedger ? (shiftMonth + salaryMonth) : monthly.labor
+    monthly: laborHasLedger ? (shiftMonth + salaryMonth) : monthly.labor,
+    openDays: openDaysTrue || daysThisMonth,
+    salaryDaily: salaryPerOpen,
+    shiftPaid: shiftPaid,
+    shiftUnpaid: shiftUnpaid,
+    salaryPartPaid: salaryPartPaid,
+    salaryPartUnpaid: salaryPartUnpaid,
+    paidTotal: shiftPaid + salaryPartPaid,
+    unpaidTotal: shiftUnpaid + salaryPartUnpaid
   };
   var overheadInfo = {
     hasBills: anyVarBill || anyFixed,

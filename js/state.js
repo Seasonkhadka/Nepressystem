@@ -12,9 +12,9 @@
  * Long-term assets (inventory, setup, utensils, gas):
  *   { id, cat, date, name, qty, unitPrice, amount, lifeMonths }
  * Labor shifts (variable, by day):
- *   { id, date, name, role, hours, rate, amount }
+ *   { id, date, name, role, hours, rate, amount, paid }
  * Monthly salaries (staff paid by the month, not by the hour):
- *   { id, name, role, amount }
+ *   { id, name, role, amount, parts: [{ id, date, amount, paid }] }
  * Overhead bills (not-fixed — electricity, water; change each month):
  *   { id, date, name, amount }
  * Fixed overhead (rent, insurance — same every month until you change it):
@@ -30,6 +30,7 @@ var nextLumpId = 1;
 var nextAssetId = 1;
 var nextLaborShiftId = 1;
 var nextLaborSalaryId = 1;
+var nextSalaryPartId = 1;
 var nextOverheadBillId = 1;
 var nextOverheadFixedId = 1;
 
@@ -245,11 +246,15 @@ function migrateAsset(a){
 }
 
 function blankLaborShift(){
-  return { id: nextLaborShiftId++, date: isoForMonth(), name: "", role: "", hours: 0, rate: 0, amount: 0 };
+  return { id: nextLaborShiftId++, date: isoForMonth(), name: "", role: "", hours: 0, rate: 0, amount: 0, paid: false };
 }
 
 function blankLaborSalary(){
-  return { id: nextLaborSalaryId++, name: "", role: "", amount: 0 };
+  return { id: nextLaborSalaryId++, name: "", role: "", amount: 0, parts: [] };
+}
+
+function blankSalaryPart(){
+  return { id: nextSalaryPartId++, date: isoForMonth(), amount: 0, paid: false };
 }
 
 function laborShiftHasData(s){
@@ -264,6 +269,10 @@ function laborSalaryHasData(s){
 }
 
 function applyLaborShiftField(s, field, raw){
+  if (field === "paid"){
+    s.paid = raw === "yes" || raw === true;
+    return;
+  }
   if (field === "date" || field === "name" || field === "role"){
     s[field] = raw;
     return;
@@ -308,7 +317,18 @@ function migrateLaborShift(s){
     role: s.role || "",
     hours: hours,
     rate: niceNum(rate),
-    amount: niceNum(amount)
+    amount: niceNum(amount),
+    paid: !!s.paid
+  };
+}
+
+function migrateSalaryPart(p){
+  if (!p || typeof p !== "object") return blankSalaryPart();
+  return {
+    id: p.id || nextSalaryPartId++,
+    date: p.date || isoForMonth(),
+    amount: Number(p.amount) || 0,
+    paid: !!p.paid
   };
 }
 
@@ -318,8 +338,19 @@ function migrateLaborSalary(s){
     id: s.id || nextLaborSalaryId++,
     name: s.name || "",
     role: s.role || "",
-    amount: Number(s.amount) || 0
+    amount: Number(s.amount) || 0,
+    parts: asArray(s.parts).map(migrateSalaryPart)
   };
+}
+
+function salaryPartHasData(p){
+  if (!p) return false;
+  return (Number(p.amount)||0) > 0 || !!String(p.date||"").trim();
+}
+
+function findSalaryPart(salary, partId){
+  if (!salary || !salary.parts) return null;
+  return salary.parts.find(function(p){ return p.id === partId; });
 }
 
 function compactLaborShifts(list){
@@ -524,7 +555,7 @@ function normalizeParsedState(parsed){
   parsed.assets = compactAssets(assets);
   parsed.assets.forEach(function(a){ if (a && a.id > maxAsset) maxAsset = a.id; });
   nextAssetId = maxAsset + 1;
-  var maxShift = 0, maxSalary = 0;
+  var maxShift = 0, maxSalary = 0, maxPart = 0;
   var shifts = asArray(parsed.laborShifts).map(migrateLaborShift);
   shifts.forEach(function(s){ if (s && s.id > maxShift) maxShift = s.id; });
   nextLaborShiftId = maxShift + 1;
@@ -532,11 +563,19 @@ function normalizeParsedState(parsed){
   parsed.laborShifts.forEach(function(s){ if (s && s.id > maxShift) maxShift = s.id; });
   nextLaborShiftId = maxShift + 1;
   var salaries = asArray(parsed.laborSalaries).map(migrateLaborSalary);
-  salaries.forEach(function(s){ if (s && s.id > maxSalary) maxSalary = s.id; });
+  salaries.forEach(function(s){
+    if (s && s.id > maxSalary) maxSalary = s.id;
+    asArray(s.parts).forEach(function(p){ if (p && p.id > maxPart) maxPart = p.id; });
+  });
   nextLaborSalaryId = maxSalary + 1;
+  nextSalaryPartId = maxPart + 1;
   parsed.laborSalaries = compactLaborSalaries(salaries);
-  parsed.laborSalaries.forEach(function(s){ if (s && s.id > maxSalary) maxSalary = s.id; });
+  parsed.laborSalaries.forEach(function(s){
+    if (s && s.id > maxSalary) maxSalary = s.id;
+    asArray(s.parts).forEach(function(p){ if (p && p.id > maxPart) maxPart = p.id; });
+  });
   nextLaborSalaryId = maxSalary + 1;
+  nextSalaryPartId = maxPart + 1;
   var maxBill = 0;
   var bills = asArray(parsed.overheadBills).map(migrateOverheadBill);
   bills.forEach(function(b){ if (b && b.id > maxBill) maxBill = b.id; });

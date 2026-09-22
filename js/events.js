@@ -199,6 +199,23 @@ function initLaborEvents(){
       return;
     }
     if (!t.matches("[data-field]")) return;
+    var partTr = t.closest("tr[data-salary-part-id]");
+    if (partTr){
+      var salary = findLaborSalary(Number(partTr.getAttribute("data-salary-id")));
+      var part = salary ? findSalaryPart(salary, Number(partTr.getAttribute("data-salary-part-id"))) : null;
+      if (!part) return;
+      var pfield = t.getAttribute("data-field");
+      if (pfield === "date"){
+        part.date = t.value;
+        renderLaborTab();
+        refreshDerived();
+        return;
+      }
+      if (pfield === "paid") part.paid = t.value === "yes";
+      else part.amount = parseFloat(t.value) || 0;
+      refreshDerived();
+      return;
+    }
     var shiftTr = t.closest("tr[data-shift-id]");
     if (shiftTr){
       var shift = findLaborShift(Number(shiftTr.getAttribute("data-shift-id")));
@@ -255,6 +272,23 @@ function initLaborEvents(){
     } else if (t.matches("[data-add-salary]")){
       if (!STATE.laborSalaries) STATE.laborSalaries = [];
       STATE.laborSalaries.push(blankLaborSalary());
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-add-salary-part]")){
+      var salId = Number(t.getAttribute("data-add-salary-part"));
+      var sal = findLaborSalary(salId);
+      if (sal){
+        if (!sal.parts) sal.parts = [];
+        sal.parts.push(blankSalaryPart());
+      }
+      renderLaborTab();
+      refreshDerived();
+    } else if (t.matches("[data-remove-salary-part]")){
+      var partId = Number(t.getAttribute("data-remove-salary-part"));
+      asArray(STATE.laborSalaries).forEach(function(s){
+        if (!s.parts) return;
+        s.parts = s.parts.filter(function(p){ return p.id !== partId; });
+      });
       renderLaborTab();
       refreshDerived();
     } else if (t.matches("[data-remove-salary]")){
