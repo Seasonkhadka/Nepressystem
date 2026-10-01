@@ -67,43 +67,52 @@ function rawIngredientNameListId(cat){
   return "raw-name-list-" + cat;
 }
 
-/** Trim + collapse spaces; names must match exactly (case-sensitive) to merge. */
+/** Trim, collapse spaces, strip invisible chars for matching. */
 function ingredientExactName(name){
-  return String(name || "").trim().replace(/\s+/g, " ");
+  var s = String(name || "").trim().replace(/\s+/g, " ");
+  try { s = s.normalize("NFC"); } catch (e) {}
+  return s.replace(/[\u200b-\u200d\ufeff]/g, "");
 }
 
-/** Price Compare: one group per category + exact name; purchases from all matching rows. */
+/** Price Compare: merge same product (normalized name + unit) across all Raw Materials rows. */
 function groupIngredientsForCompare(ingredients){
   var groups = {};
   asArray(ingredients).forEach(function(i){
+    if (!i || i.cat === "nobill") return;
     var display = ingredientExactName(i.name);
     if (!display) return;
-    var key = i.cat + "\0" + display;
+    var u = i.unit || defaultUnit(i.cat);
+    var key = ingredientNameKey(display) + "\0" + u;
     if (!groups[key]){
       groups[key] = {
-        cat: i.cat,
         name: display,
-        unit: i.unit || defaultUnit(i.cat),
+        unit: u,
         purchases: [],
         rowCount: 0,
         leaderPurchases: -1,
-        unitMixed: false
+        cats: {}
       };
     }
     var g = groups[key];
     g.rowCount += 1;
-    var u = i.unit || defaultUnit(i.cat);
-    if (g.unit && u && g.unit !== u) g.unitMixed = true;
+    g.cats[i.cat] = true;
     var nPurch = asArray(i.purchases).length;
     if (nPurch > g.leaderPurchases){
       g.leaderPurchases = nPurch;
       g.name = display;
-      if (i.unit) g.unit = u;
     }
     asArray(i.purchases).forEach(function(p){ g.purchases.push(p); });
   });
   return Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a, b){
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+}
+
+function ingredientCompareCategoryLabels(catsMap){
+  return Object.keys(catsMap || {}).map(function(c){
+    return (CAT_META[c] && CAT_META[c].label) || c;
+  }).sort(function(a, b){
+    return a.localeCompare(b, undefined, { sensitivity: "base" });
   });
 }
 

@@ -52,11 +52,14 @@ function renderCompareTab(){
     if (!rows.length) return;
     any = true;
     var unit = g.unit || "unit";
-    var mergeNote = g.rowCount > 1
-      ? '<p class="note">Combined '+g.rowCount+' Raw Materials rows with the same name in this category (all months).</p>'
+    var catLabels = ingredientCompareCategoryLabels(g.cats);
+    var catBadge = catLabels.length
+      ? ' <span class="ing-unit-label">'+esc(catLabels.join(" · "))+'</span>'
       : "";
-    var unitNote = g.unitMixed
-      ? '<p class="note" style="color:var(--warning-dot)">Those rows used different units — showing per '+esc(unit)+' from the row with the most buys.</p>'
+    var mergeNote = g.rowCount > 1
+      ? '<p class="note">Combined '+g.rowCount+' Raw Materials rows named “'+esc(g.name)+'”'+
+        (catLabels.length > 1 ? " across "+esc(catLabels.join(", ")) : "")+
+        " (all months).</p>"
       : "";
     var cheapest = rows[0].avg;
     var body = rows.map(function(r, idx){
@@ -80,8 +83,8 @@ function renderCompareTab(){
       '</tr>';
     }).join("");
     blocks += '<section class="card">'+
-      '<h2>'+esc(g.name)+' <span class="ing-unit-label">per '+esc(unit)+'</span></h2>'+
-      mergeNote+unitNote+
+      '<h2>'+esc(g.name)+catBadge+' <span class="ing-unit-label">per '+esc(unit)+'</span></h2>'+
+      mergeNote+
       '<p class="lede">Cheapest is the lowest ₩/'+esc(unit)+' — pack size is counted, so 800 g and 3.3 kg bottles can be compared.</p>'+
       '<div class="table-wrap"><table class="compare-table"><thead><tr>'+
         '<th>Market / place</th><th>Buys</th><th>Qty bought</th><th>Avg ₩/'+esc(unit)+'</th><th>Last ₩/'+esc(unit)+'</th><th></th>'+
