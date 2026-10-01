@@ -23,11 +23,23 @@ function numAttr(v){
   return n ? String(n) : "";
 }
 
-function purchaseOtherHint(p){
-  if (!p.date || purchaseInMonth(p, STATE.year, STATE.month)) return "";
-  var parts = String(p.date).split("-");
-  var m = Number(parts[1]);
-  return 'Dated '+(MONTH_NAMES[m-1]||"")+' '+parts[0]+' — switch the month above to include this in This month.';
+function purchasesThisMonth(i){
+  return asArray(i.purchases).filter(function(p){
+    return purchaseInMonth(p, STATE.year, STATE.month);
+  });
+}
+
+function rawOtherMonthCounts(){
+  var purchases = 0, lumps = 0;
+  asArray(STATE.ingredients).forEach(function(i){
+    asArray(i.purchases).forEach(function(p){
+      if (p.date && !purchaseInMonth(p, STATE.year, STATE.month)) purchases += 1;
+    });
+  });
+  asArray(STATE.lumps).forEach(function(p){
+    if (p.date && !purchaseInMonth(p, STATE.year, STATE.month)) lumps += 1;
+  });
+  return { purchases: purchases, lumps: lumps };
 }
 
 function purchaseCellsHtml(p){
@@ -40,11 +52,10 @@ function purchaseCellsHtml(p){
 }
 
 function ingredientRowsHtml(i){
-  var purs = (i.purchases && i.purchases.length) ? i.purchases : [blankPurchase()];
+  var purs = purchasesThisMonth(i);
+  if (!purs.length) return "";
   var n = purs.length;
   return purs.map(function(p, idx){
-    var other = p.date && !purchaseInMonth(p, STATE.year, STATE.month);
-    var hint = purchaseOtherHint(p);
     var nameCells = "";
     if (idx === 0){
       nameCells =
@@ -62,7 +73,7 @@ function ingredientRowsHtml(i){
     } else {
       btns += '<button class="icon-btn" type="button" data-remove-pur="'+p.id+'" title="Remove buy">×</button>';
     }
-    return '<tr data-ing-id="'+i.id+'" data-pur-id="'+p.id+'"'+(other?' class="purchase-other-month"':'')+(hint?' title="'+esc(hint)+'"':'')+'>'+
+    return '<tr data-ing-id="'+i.id+'" data-pur-id="'+p.id+'">'+
       nameCells+
       purchaseCellsHtml(p)+
       '<td class="raw-actions">'+btns+'</td>'+
@@ -128,8 +139,14 @@ function groceryGroupHtml(cats){
   '</section>';
 }
 
+function lumpsThisMonth(lumps){
+  return sortByDate(asArray(lumps).filter(function(p){
+    return purchaseInMonth(p, STATE.year, STATE.month);
+  }));
+}
+
 function lumpSectionHtml(c){
-  var rows = sortByDate(c.lumps || []).map(lumpRowHtml).join("");
+  var rows = lumpsThisMonth(c.lumps || []).map(lumpRowHtml).join("");
   return '<section class="card">'+
     '<div class="raw-cat-head">'+
       '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
@@ -155,6 +172,17 @@ function catById(model, cat){
 function renderRawMaterialsTab(){
   var model = computeAll();
   var groceryCats = GROCERY_CATS.map(function(id){ return catById(model, id); });
+  var monthLabel = MONTH_NAMES[STATE.month-1]+" "+STATE.year;
+  var other = rawOtherMonthCounts();
+  var otherNote = "";
+  if (other.purchases){
+    otherNote += other.purchases+' buy'+(other.purchases===1?"":"s")+' in other months';
+  }
+  if (other.lumps){
+    if (otherNote) otherNote += " · ";
+    otherNote += other.lumps+' no-bill row'+(other.lumps===1?"":"s")+' in other months';
+  }
+  if (otherNote) otherNote = '<p class="note">'+otherNote+' — change the month above to see them.</p>';
 
   el("tab-raw").innerHTML =
     '<section class="card">'+
@@ -164,7 +192,8 @@ function renderRawMaterialsTab(){
         '<div class="raw-sum"><span class="raw-sum-label">Daily</span><span class="raw-sum-val tnum" id="raw-grand-daily">'+won(model.rawGrand.daily)+'</span></div>'+
         '<div class="raw-sum"><span class="raw-sum-label">Weekly</span><span class="raw-sum-val tnum" id="raw-grand-weekly">'+won(model.rawGrand.weekly)+'</span></div>'+
       '</div>'+
-      '<p class="raw-hint">Packs × ₩/pack = total. Size is what’s in one pack. Totals follow the month selected above.</p>'+
+      '<p class="raw-hint">Showing <b>'+monthLabel+'</b> only. Packs × ₩/pack = total. Size is what’s in one pack.</p>'+
+      otherNote+
     '</section>'+
     categorySectionHtml(catById(model, "meat"))+
     groceryGroupHtml(groceryCats)+

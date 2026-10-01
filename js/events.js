@@ -51,7 +51,13 @@ function initRawEvents(){
       var lump = findLump(Number(lumpTr.getAttribute("data-lump-id")));
       if (!lump || !t.matches("[data-field]")) return;
       var lfield = t.getAttribute("data-field");
-      if (lfield === "date" || lfield === "place" || lfield === "note") lump[lfield] = t.value;
+      if (lfield === "date"){
+        lump.date = t.value;
+        renderRawMaterialsTab();
+        refreshDerived();
+        return;
+      }
+      if (lfield === "place" || lfield === "note") lump[lfield] = t.value;
       else lump[lfield] = parseFloat(t.value) || 0;
       refreshDerived();
       return;
@@ -81,7 +87,14 @@ function initRawEvents(){
     var pur = findPurchase(ing, Number(tr.getAttribute("data-pur-id")));
     if (!pur) return;
     var field = t.getAttribute("data-field");
-    if (field === "date" || field === "place") pur[field] = t.value;
+    if (field === "date"){
+      pur.date = t.value;
+      renderRawMaterialsTab();
+      renderCompareTab();
+      refreshDerived();
+      return;
+    }
+    if (field === "place") pur.place = t.value;
     else applyPurchaseField(pur, field, t.value);
     refreshDerived();
   };

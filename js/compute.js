@@ -8,6 +8,31 @@
 
 function safeDiv(a, b){ return b ? a/b : 0; }
 
+function computeProfitAllocation(netProfit, overheadMonth){
+  var b = PROFIT_BUCKET;
+  var profit = Number(netProfit) || 0;
+  var oh = Math.max(0, Number(overheadMonth) || 0);
+  var profitBase = Math.max(0, profit);
+  var tax = profitBase * b.taxRate;
+  var maintenance = profitBase * b.maintRate;
+  var vacation = oh * (b.vacationMonths / b.semesterAccrualMonths);
+  var reserved = tax + maintenance + vacation;
+  var afterBuckets = profit - reserved;
+  var afterPositive = Math.max(0, afterBuckets);
+  return {
+    netProfit: profit,
+    overheadMonth: oh,
+    tax: tax,
+    maintenance: maintenance,
+    vacation: vacation,
+    reserved: reserved,
+    afterBuckets: afterBuckets,
+    share15: afterPositive * b.shareRate,
+    leftAfterShare: afterPositive * (1 - b.shareRate),
+    shortfall: afterBuckets < 0 ? -afterBuckets : 0
+  };
+}
+
 function dowOf(year, month, day){ return new Date(year, month-1, day).getDay(); }
 
 function buildWeeks(dayNums){
@@ -262,5 +287,7 @@ function computeAll(){
     monthly: monthly.overhead
   };
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck };
+  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead);
+
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation };
 }

@@ -50,3 +50,34 @@ function marginStatus(m, hasSales){
   if (m >= 0.05) return { label: "Watch", color: "var(--warning-dot)" };
   return { label: "Critical", color: "var(--critical)" };
 }
+
+function profitAllocationHtml(a){
+  if (!a) return "";
+  var b = PROFIT_BUCKET;
+  var vacNote = b.vacationMonths + " mo vacation overhead ÷ " + b.semesterAccrualMonths + " mo semester accrual";
+  function row(label, val, note, highlight){
+    var noteHtml = note ? '<span class="profit-bucket-note">'+note+'</span>' : "";
+    return '<div class="formula"'+(highlight ? ' style="background:var(--accent-soft)"' : "")+'>'+
+      '<dt>'+label+noteHtml+'</dt>'+
+      '<dd class="tnum" style="font-size:13px;color:var(--ink)">'+signedWon(val)+'</dd></div>';
+  }
+  var shortfall = a.shortfall > 0
+    ? '<p class="note" style="color:var(--warning-dot)">Buckets total more than this month\'s net profit by '+won(a.shortfall)+'. Reduce the share or raise profit before paying out.</p>'
+    : "";
+  return '<section class="card profit-buckets">'+
+    '<h2>Profit buckets (planning)</h2>'+
+    '<p class="lede">Split <b>net profit</b> into reserves. Tax and maintenance are '+pct(b.taxRate, 0)+' and '+pct(b.maintRate, 0)+' of net profit (zero if the month is a loss). '+
+      'Vacation accrual is '+won(a.vacation)+' this month: overhead × ('+vacNote+') so '+b.vacationMonths+' closed months are funded while you work '+b.semesterAccrualMonths+' months.</p>'+
+    '<div class="formula-list">'+
+      row("Net profit (start)", a.netProfit, "", true)+
+      row("1. Tax bucket", -a.tax, pct(b.taxRate, 0)+" of net profit")+
+      row("2. Vacation bucket", -a.vacation, "overhead × "+b.vacationMonths+"/"+b.semesterAccrualMonths)+
+      row("3. Maintenance bucket", -a.maintenance, pct(b.maintRate, 0)+" of net profit")+
+      row("After buckets", a.afterBuckets, "what is left in the business", true)+
+      row("15% share", a.share15, pct(b.shareRate, 0)+" of after buckets", true)+
+      row("Left after 15% share", a.leftAfterShare, "keep or reinvest", false)+
+    '</div>'+
+    shortfall+
+    '<p class="note">The 15% is taken <b>after</b> tax, vacation, and maintenance buckets — reserves are funded first.</p>'+
+  '</section>';
+}

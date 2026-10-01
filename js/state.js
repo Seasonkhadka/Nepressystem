@@ -92,7 +92,7 @@ function normalizeDays(days, year, month){
 }
 
 function blankPurchase(){
-  return { id: nextPurchaseId++, date: isoToday(), place: "", packs: 0, qty: 0, unitPrice: 0, amount: 0 };
+  return { id: nextPurchaseId++, date: isoForMonth(), place: "", packs: 0, qty: 0, unitPrice: 0, amount: 0 };
 }
 
 function niceNum(v){
@@ -156,7 +156,7 @@ function blankIngredient(cat){
 }
 
 function blankLump(){
-  return { id: nextLumpId++, date: isoToday(), place: "", note: "", amount: 0 };
+  return { id: nextLumpId++, date: isoForMonth(), place: "", note: "", amount: 0 };
 }
 
 function blankAsset(cat){

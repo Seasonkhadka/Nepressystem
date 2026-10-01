@@ -98,5 +98,6 @@ function renderDashboard(model){
       trend+
     '</section>'+
     '<section class="card"><h2>COGS from raw materials</h2><p class="lede">Purchases you log this month are the cost of goods sold. You no longer type a COGS % on each day.</p>'+crossCheckHtml+'</section>'+
+    profitAllocationHtml(model.profitAllocation)+
     capitalHtml;
 }

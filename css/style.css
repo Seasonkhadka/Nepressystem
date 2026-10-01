@@ -278,6 +278,7 @@
   table.overhead-table thead th:last-child,
   table.overhead-table tbody td:last-child{ text-align:center; }
   tr.best-place td{ background:var(--accent-soft); }
+  .profit-bucket-note{ display:block; font-weight:400; font-size:11px; color:var(--muted); margin-top:2px; }
   .calc-jump{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
   .calc-jump a{ display:inline-block; padding:7px 12px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:12.5px; text-decoration:none; border:1px solid var(--hairline); }
   .calc-jump a:hover{ background:var(--surface-2); }

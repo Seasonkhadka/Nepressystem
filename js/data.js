@@ -8,6 +8,15 @@
 
 var STORAGE_KEY = "restaurant-pl-calculator-v1";
 
+/** Net-profit set-asides (planning — not tax advice). */
+var PROFIT_BUCKET = {
+  taxRate: 0.10,
+  maintRate: 0.05,
+  shareRate: 0.15,
+  vacationMonths: 2.5,
+  semesterAccrualMonths: 3.5
+};
+
 var CAT_META = {
   meat:    { label: "Meat", color: "var(--chart-2)", lede: "" },
   kitchen: { label: "Kitchen", color: "var(--chart-1)", lede: "Oil, sauce, rice, noodles — cooking stock." },

@@ -38,6 +38,7 @@ function renderMonthlyTab(model){
       '</div>'+
       '<div class="tie-out"><span class="check">'+(tie1?"✓":"!")+'</span> Matches sum of daily rows ('+won(sumOfDays)+').</div>'+
       '<div class="tie-out"><span class="check">'+(tie2?"✓":"!")+'</span> Matches sum of weekly rows ('+won(sumOfWeeks)+').</div>'+
-      '<p class="note">→ These 11 figures feed the Main Dashboard tiles and charts directly — nothing on that tab is entered separately.</p>'+
-    '</section>';
+      '<p class="note">→ These figures feed the Main Dashboard tiles and charts directly — nothing on that tab is entered separately.</p>'+
+    '</section>'+
+    profitAllocationHtml(model.profitAllocation);
 }
