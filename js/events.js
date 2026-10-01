@@ -22,6 +22,11 @@ function findAsset(id){
   return STATE.assets.find(function(a){ return a.id === id; });
 }
 
+function findSetupLoan(id){
+  if (!STATE.setupLoans) return null;
+  return STATE.setupLoans.find(function(l){ return l.id === id; });
+}
+
 function findLaborShift(id){
   if (!STATE.laborShifts) return null;
   return STATE.laborShifts.find(function(s){ return s.id === id; });
@@ -40,6 +45,17 @@ function findOverheadBill(id){
 function findOverheadFixed(id){
   if (!STATE.overheadFixedItems) return null;
   return STATE.overheadFixedItems.find(function(b){ return b.id === id; });
+}
+
+function applySetupPlanField(field, raw){
+  if (!STATE.setupPlan) STATE.setupPlan = migrateSetupPlan(null);
+  var n = parseFloat(raw) || 0;
+  if (field === "monthlySales") STATE.setupPlan.monthlySales = n;
+  else if (field === "ingPctOfSales") STATE.setupPlan.ingPctOfSales = n;
+  else if (field === "rent") STATE.setupPlan.rent = n;
+  else if (field === "staff") STATE.setupPlan.staff = n;
+  else if (field === "utilities") STATE.setupPlan.utilities = n;
+  else if (field === "otherFixed") STATE.setupPlan.otherFixed = n;
 }
 
 function initRawEvents(){
@@ -149,18 +165,14 @@ function initDailyEvents(){
   if (!host) return;
   var onDayChange = function(e){
     var t = e.target;
-    if (!t.matches("input[data-field]")) return;
-    var tr = t.closest("tr[data-day]");
-    if (!tr) return;
-    var day = Number(tr.getAttribute("data-day"));
-    var rec = STATE.days[day];
-    if (!rec){
-      rec = STATE.days[day] = { vacation:false, sales:0, cogsPct:0, labor:0 };
-    }
-    var field = t.getAttribute("data-field");
-    if (field === "cogsPct" || field === "labor") return;
+    if (!t.matches("[data-day-field]")) return;
+    var day = Number(t.closest("tr[data-day]").getAttribute("data-day"));
+    if (!day) return;
+    var rec = STATE.days[day] || { vacation:false, sales:0, labor:0 };
+    var field = t.getAttribute("data-day-field");
     if (field === "vacation") rec.vacation = t.checked;
     else rec[field] = parseFloat(t.value) || 0;
+    STATE.days[day] = rec;
     refreshDerived();
   };
   host.addEventListener("input", onDayChange);
@@ -172,11 +184,52 @@ function initAssetEvents(){
   if (!host) return;
   var onFieldChange = function(e){
     var t = e.target;
+    if (t.id === "setup-download-csv"){
+      downloadAssetsCsv();
+      return;
+    }
+    if (t.id === "setup-total-record"){
+      if (!STATE.setupFunding) STATE.setupFunding = migrateSetupFunding(null);
+      STATE.setupFunding.totalInvestedRecord = parseFloat(t.value) || 0;
+      refreshDerived();
+      return;
+    }
+    if (t.id === "plan-sales"){ applySetupPlanField("monthlySales", t.value); refreshDerived(); return; }
+    if (t.id === "plan-ing-pct"){ applySetupPlanField("ingPctOfSales", t.value); refreshDerived(); return; }
+    if (t.id === "plan-rent"){ applySetupPlanField("rent", t.value); refreshDerived(); return; }
+    if (t.id === "plan-staff"){ applySetupPlanField("staff", t.value); refreshDerived(); return; }
+    if (t.id === "plan-util"){ applySetupPlanField("utilities", t.value); refreshDerived(); return; }
+    if (t.id === "plan-other"){ applySetupPlanField("otherFixed", t.value); refreshDerived(); return; }
+
+    var loanCard = t.closest(".setup-loan-card");
+    if (loanCard && t.matches("[data-loan-field]")){
+      var loan = findSetupLoan(Number(loanCard.getAttribute("data-loan-id")));
+      if (!loan) return;
+      var lf = t.getAttribute("data-loan-field");
+      if (lf === "name") loan[lf] = t.value;
+      else loan[lf] = parseFloat(t.value) || 0;
+      refreshDerived();
+      if (e.type === "change") renderAssetsTab();
+      return;
+    }
+
     var tr = t.closest("tr[data-asset-id]");
     if (!tr || !t.matches("[data-field]")) return;
     var rec = findAsset(Number(tr.getAttribute("data-asset-id")));
     if (!rec) return;
-    applyAssetField(rec, t.getAttribute("data-field"), t.value);
+    var field = t.getAttribute("data-field");
+    if (field === "included"){
+      applyAssetField(rec, field, t.checked);
+      renderAssetsTab();
+      refreshDerived();
+      return;
+    }
+    applyAssetField(rec, field, t.value);
+    if (field === "rowCat"){
+      renderAssetsTab();
+      refreshDerived();
+      return;
+    }
     refreshDerived();
   };
   host.addEventListener("input", onFieldChange);
@@ -207,7 +260,7 @@ function initLaborEvents(){
   var onFieldChange = function(e){
     var t = e.target;
     if (t.id === "input-overhead-var"){
-      STATE.overheadVariableRate = parseFloat(t.value)||0;
+      STATE.overheadVariableRate = parseFloat(t.value) || 0;
       refreshDerived();
       return;
     }
@@ -345,22 +398,19 @@ function showTab(name){
     panels[i].hidden = !on;
     if (on) shown = true;
   }
-  if (!shown){
-    var dash = el("tab-dashboard");
-    if (dash){ dash.hidden = false; name = "dashboard"; }
-  }
-  var buttons = document.querySelectorAll(".tabs [data-tab]");
-  for (var j = 0; j < buttons.length; j++){
-    var isOn = buttons[j].getAttribute("data-tab") === name;
-    buttons[j].setAttribute("aria-selected", isOn ? "true" : "false");
+  if (!shown && panels.length) panels[0].hidden = false;
+  var tabs = document.querySelectorAll(".tab");
+  for (var j = 0; j < tabs.length; j++){
+    var active = tabs[j].getAttribute("data-tab") === name;
+    tabs[j].classList.toggle("active", active);
+    tabs[j].setAttribute("aria-selected", active ? "true" : "false");
   }
 }
 
 function initTabs(){
-  var buttons = document.querySelectorAll(".tabs [data-tab]");
-  for (var i = 0; i < buttons.length; i++){
-    buttons[i].addEventListener("click", function(){
-      showTab(this.getAttribute("data-tab"));
+  document.querySelectorAll(".tab").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      showTab(btn.getAttribute("data-tab"));
     });
-  }
+  });
 }

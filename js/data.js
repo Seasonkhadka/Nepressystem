@@ -29,12 +29,36 @@ var CAT_ORDER = ["meat", "kitchen", "outside", "drinks", "veg"];
 var GROCERY_CATS = ["kitchen", "outside", "drinks"];
 
 var ASSET_META = {
-  inventory: { label: "Inventory", color: "var(--chart-1)", lede: "Stock you keep on hand — extra rice, oil, packaging, spare supplies. This is not the monthly meat and vegetable ledger." },
-  setup:     { label: "Setup cost", color: "var(--chart-4)", lede: "One-time opening costs: deposit, renovation, sign, licenses, furniture." },
-  utensil:   { label: "Utensils", color: "var(--chart-3)", lede: "Pots, pans, plates, knives, and tools that last months or years." },
-  gas:       { label: "Gas & equipment", color: "var(--chart-2)", lede: "Gas range, cylinders, hood, fridge, and other kitchen equipment that lasts a long time." }
+  inventory: { label: "Inventory", color: "var(--chart-1)", lede: "Opening stock and consumables on hand — not the monthly meat and vegetable ledger." },
+  setup:     { label: "Setup cost", color: "var(--chart-4)", lede: "Equipment, contractor work, deposit, and cash float. Pick a category per row so totals stay honest." },
+  utensil:   { label: "Utensils", color: "var(--chart-3)", lede: "Pots, pans, plates, knives, and long-life tools." },
+  gas:       { label: "Gas & equipment", color: "var(--chart-2)", lede: "(Legacy — rows move to Setup cost on load.)" }
 };
 var ASSET_ORDER = ["inventory", "setup", "utensil", "gas"];
+var ASSET_SECTION_ORDER = ["inventory", "setup", "utensil"];
+
+var ASSET_ROW_CAT = {
+  opening:    { label: "Opening stock & consumables", spread: false },
+  equipment:  { label: "Equipment & fit-out", spread: true },
+  contractor: { label: "Contractor fit-out", spread: true },
+  deposit:    { label: "Refundable deposit", spread: false },
+  cashfloat:  { label: "Cash float (not a cost)", spread: false }
+};
+var ASSET_ROW_CAT_ORDER = ["opening", "equipment", "contractor", "deposit", "cashfloat"];
+
+var SETUP_LOAN_DEFAULTS = [
+  { name: "Loan A", principal: 15421430, annualRate: 3, termMonths: 36, termNote: "assumed term" },
+  { name: "Loan B", principal: 20000000, annualRate: 15, termMonths: 36, termNote: "assumed term" }
+];
+var SETUP_FUNDING_DEFAULT = { totalInvestedRecord: 53718450 };
+var SETUP_PLAN_DEFAULT = {
+  monthlySales: 15000000,
+  ingPctOfSales: 35,
+  rent: 2000000,
+  staff: 4500000,
+  utilities: 400000,
+  otherFixed: 300000
+};
 
 function defaultAssetLife(cat){
   if (cat === "gas") return 60;

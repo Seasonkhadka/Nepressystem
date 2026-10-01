@@ -72,7 +72,7 @@ function renderDashboard(model){
         '<p class="lede">Long-term money already spent. Suggested ₩/month is the cost spread over each item\'s life — it is not added to P&amp;L automatically.</p>'+
         '<div class="kpi-grid">'+
           kpiTile("Total invested", won(g.invested), "inventory, setup, utensils, gas")+
-          kpiTile("Suggested ₩/month", won(g.monthly), "copy into Fixed Overhead if you want it on P&amp;L")+
+          kpiTile("Setup spread / month", won(g.monthly), "equipment + contractor only — see Setup &amp; assets")+
         '</div>'+
         '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Invested</th><th>₩ / month</th></tr></thead><tbody>'+capRows+'</tbody></table></div>'+
       '</section>';

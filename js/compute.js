@@ -71,10 +71,188 @@ function lineTotal(p){
   return purchasePriceCount(p) * (Number(p.unitPrice)||0);
 }
 
-function assetMonthly(a){
+function assetSpreadMonthly(a){
+  if (a && a.included === false) return 0;
+  var rowCat = (a && a.rowCat) || "equipment";
+  if (!assetRowSpreads(rowCat)) return 0;
   var tot = lineTotal(a);
-  var life = Number(a.lifeMonths)||0;
+  var life = Number(a.lifeMonths) || 0;
   return life > 0 ? tot / life : 0;
+}
+
+function assetMonthly(a){
+  return assetSpreadMonthly(a);
+}
+
+function loanMonthlyPayment(principal, annualRatePct, termMonths){
+  var P = Number(principal) || 0;
+  var n = Number(termMonths) || 0;
+  if (P <= 0 || n <= 0) return 0;
+  var r = (Number(annualRatePct) || 0) / 100 / 12;
+  if (r <= 0) return P / n;
+  return P * r / (1 - Math.pow(1 + r, -n));
+}
+
+function buildLoanSchedule(principal, annualRatePct, termMonths, maxRows){
+  maxRows = maxRows || 60;
+  var P = Number(principal) || 0;
+  var n = Math.min(Number(termMonths) || 0, maxRows);
+  var r = (Number(annualRatePct) || 0) / 100 / 12;
+  var payment = loanMonthlyPayment(P, annualRatePct, termMonths);
+  var rows = [];
+  var balance = P;
+  var totalInterest = 0;
+  var month1 = { interest: 0, principal: 0 };
+  for (var m = 1; m <= n; m++){
+    var interest = r > 0 ? balance * r : 0;
+    var principalPaid = payment - interest;
+    if (principalPaid > balance) principalPaid = balance;
+    var closing = balance - principalPaid;
+    if (m === 1) month1 = { interest: interest, principal: principalPaid };
+    totalInterest += interest;
+    rows.push({ month: m, opening: balance, interest: interest, principal: principalPaid, closing: closing, payment: payment });
+    balance = closing;
+  }
+  return { payment: payment, totalInterest: totalInterest, month1: month1, rows: rows };
+}
+
+function assetRowWarnings(a, allRows){
+  var msgs = [];
+  var name = String(a.name || "").trim();
+  var amt = lineTotal(a);
+  var qty = Number(a.qty) || 0;
+  var up = Number(a.unitPrice) || 0;
+  if (name && amt <= 0) msgs.push("Item name but total is 0");
+  if ((!qty || !up) && amt > 0) msgs.push("Check what this is — total without qty/price");
+  if (assetRowSpreads(a.rowCat) && Number(a.lifeMonths) === 1) msgs.push("Life is 1 month on a spread category");
+  if (a.included !== false && a.date && amt > 0){
+    var dup = false;
+    allRows.forEach(function(b){
+      if (b.id === a.id || b.included === false) return;
+      if (b.date === a.date && lineTotal(b) === amt) dup = true;
+    });
+    if (dup) msgs.push("Possible duplicate (same date & amount)");
+  }
+  return msgs;
+}
+
+function computeSetupAssets(){
+  var rawItems = asArray(STATE.assets);
+  var enriched = rawItems.map(function(a){
+    var rowCat = a.rowCat && ASSET_ROW_CAT[a.rowCat] ? a.rowCat : inferAssetRowCategory(a.name, a.cat);
+    var included = a.included !== false;
+    var amount = lineTotal(a);
+    var spreads = assetRowSpreads(rowCat);
+    var life = Number(a.lifeMonths) || 0;
+    var monthly = included && spreads && life > 0 ? amount / life : 0;
+    return {
+      id: a.id, cat: a.cat === "gas" ? "setup" : a.cat, rowCat: rowCat,
+      included: included, date: a.date, name: a.name || "", note: a.note || "",
+      qty: Number(a.qty) || 0, unitPrice: Number(a.unitPrice) || 0, amount: amount,
+      lifeMonths: life, spreads: spreads, monthly: monthly
+    };
+  });
+  enriched.forEach(function(a){
+    a.warnings = assetRowWarnings(a, enriched);
+  });
+
+  var byRowCat = {};
+  ASSET_ROW_CAT_ORDER.forEach(function(k){
+    byRowCat[k] = { key: k, label: ASSET_ROW_CAT[k].label, total: 0, monthly: 0 };
+  });
+  var includedTotal = 0;
+  var spreadMonthly = 0;
+  enriched.forEach(function(a){
+    if (!a.included) return;
+    includedTotal += a.amount;
+    if (byRowCat[a.rowCat]) {
+      byRowCat[a.rowCat].total += a.amount;
+      byRowCat[a.rowCat].monthly += a.monthly;
+    }
+    spreadMonthly += a.monthly;
+  });
+
+  var assetCats = ASSET_SECTION_ORDER.map(function(cat){
+    var items = enriched.filter(function(a){ return a.cat === cat; });
+    var invested = 0, monthly = 0;
+    items.forEach(function(a){
+      if (!a.included) return;
+      invested += a.amount;
+      monthly += a.monthly;
+    });
+    return {
+      cat: cat, label: ASSET_META[cat].label, color: ASSET_META[cat].color, lede: ASSET_META[cat].lede,
+      items: items, invested: invested, monthly: monthly
+    };
+  });
+
+  var loans = asArray(STATE.setupLoans).map(function(l){
+    var sched = buildLoanSchedule(l.principal, l.annualRate, l.termMonths, 60);
+    return {
+      id: l.id, name: l.name || "Loan", principal: Number(l.principal) || 0,
+      annualRate: Number(l.annualRate) || 0, termMonths: Number(l.termMonths) || 0,
+      termNote: l.termNote || "assumed term",
+      payment: sched.payment, totalInterest: sched.totalInterest,
+      month1Interest: sched.month1.interest, month1Principal: sched.month1.principal,
+      schedule: sched.rows
+    };
+  });
+  var loanPaymentTotal = loans.reduce(function(s, l){ return s + l.payment; }, 0);
+  var loanInterestM1 = loans.reduce(function(s, l){ return s + l.month1Interest; }, 0);
+  var loanPrincipalTotal = loans.reduce(function(s, l){ return s + l.principal; }, 0);
+
+  var funding = migrateSetupFunding(STATE.setupFunding);
+  var record = Number(funding.totalInvestedRecord) || 0;
+  var ownMoney = record - loanPrincipalTotal;
+  var reconDiff = includedTotal - record;
+  var loanShares = loans.map(function(l){
+    return { name: l.name, principal: l.principal, pct: record > 0 ? l.principal / record : 0 };
+  });
+
+  var plan = migrateSetupPlan(STATE.setupPlan);
+  var sales = Number(plan.monthlySales) || 0;
+  var ingPct = Number(plan.ingPctOfSales) || 0;
+  var ingredients = sales * (ingPct / 100);
+  var fixedCosts = (Number(plan.rent) || 0) + (Number(plan.staff) || 0) + (Number(plan.utilities) || 0) + (Number(plan.otherFixed) || 0);
+  var grossProfit = sales - ingredients;
+  var operatingBeforeLoans = grossProfit - fixedCosts;
+  var cashLeft = operatingBeforeLoans - loanPaymentTotal;
+  var profitView = operatingBeforeLoans - spreadMonthly - loanInterestM1;
+  var marginAfterIng = 1 - ingPct / 100;
+  var cashBreakEven = marginAfterIng > 0 ? (fixedCosts + loanPaymentTotal) / marginAfterIng : 0;
+  var acctBreakEven = marginAfterIng > 0 ? (fixedCosts + spreadMonthly + loanInterestM1) / marginAfterIng : 0;
+  var monthsRecover = cashLeft > 0 && ownMoney > 0 ? ownMoney / cashLeft : null;
+
+  return {
+    items: enriched,
+    assetCats: assetCats,
+    assetGrand: { invested: includedTotal, monthly: spreadMonthly },
+    byRowCat: ASSET_ROW_CAT_ORDER.map(function(k){ return byRowCat[k]; }),
+    rowCatGrand: { total: includedTotal, monthly: spreadMonthly },
+    loans: loans,
+    loanTotals: { payment: loanPaymentTotal, interestM1: loanInterestM1, principal: loanPrincipalTotal },
+    funding: {
+      record: record,
+      ownMoney: ownMoney,
+      loanShares: loanShares,
+      ownPct: record > 0 ? ownMoney / record : 0,
+      reconDiff: reconDiff,
+      reconOk: Math.round(reconDiff) === 0
+    },
+    plan: {
+      inputs: plan,
+      ingredients: ingredients,
+      grossProfit: grossProfit,
+      fixedCosts: fixedCosts,
+      operatingBeforeLoans: operatingBeforeLoans,
+      loanPayment: loanPaymentTotal,
+      cashLeft: cashLeft,
+      profitView: profitView,
+      cashBreakEven: cashBreakEven,
+      acctBreakEven: acctBreakEven,
+      monthsRecover: monthsRecover
+    }
+  };
 }
 
 function computeAll(){
@@ -239,24 +417,9 @@ function computeAll(){
     return t;
   });
 
-  var assetList = asArray(STATE.assets).map(function(a){
-    var invested = lineTotal(a);
-    return {
-      id: a.id, cat: a.cat, date: a.date, name: a.name || "",
-      qty: Number(a.qty)||0, unitPrice: Number(a.unitPrice)||0, amount: invested,
-      lifeMonths: Number(a.lifeMonths)||0,
-      monthly: assetMonthly(a)
-    };
-  });
-  var assetCats = ASSET_ORDER.map(function(cat){
-    var items = assetList.filter(function(a){ return a.cat === cat; });
-    var invested = 0, monthlyAlloc = 0;
-    items.forEach(function(a){ invested += a.amount; monthlyAlloc += a.monthly; });
-    return { cat: cat, label: ASSET_META[cat].label, color: ASSET_META[cat].color, lede: ASSET_META[cat].lede, items: items, invested: invested, monthly: monthlyAlloc };
-  });
-  var assetGrand = assetCats.reduce(function(a,c){
-    a.invested += c.invested; a.monthly += c.monthly; return a;
-  }, { invested:0, monthly:0 });
+  var setupAssets = computeSetupAssets();
+  var assetCats = setupAssets.assetCats;
+  var assetGrand = setupAssets.assetGrand;
 
   var crosscheck = {
     baseline: rawGrand.monthly,
@@ -289,5 +452,5 @@ function computeAll(){
 
   var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead);
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation };
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation };
 }

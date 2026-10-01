@@ -238,6 +238,23 @@
   table.buy-table{ min-width:520px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:860px; }
+  table.asset-table-wide{ min-width:980px; }
+  tr.asset-excluded td{ opacity:0.55; }
+  .asset-warn, .asset-warn-cell .asset-warn{ color:var(--critical); font-size:11px; line-height:1.35; }
+  .asset-life-off{ opacity:0.45; }
+  td.asset-inc{ text-align:center; width:36px; }
+  .setup-loan-fields{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px; margin-bottom:8px; }
+  .setup-loan-fields label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; }
+  .setup-term-note{ font-weight:400; color:var(--muted); font-size:10px; }
+  .setup-sched-details{ margin-top:10px; }
+  .setup-sched-details summary{ cursor:pointer; font-weight:600; font-size:13px; }
+  table.loan-sched-table{ min-width:520px; font-size:11px; }
+  .setup-funding-row{ margin:8px 0 12px; }
+  .setup-funding-row label{ font-weight:600; font-size:13px; }
+  .setup-plan-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; margin-bottom:12px; }
+  .setup-plan-grid label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; }
+  .setup-ok{ color:var(--good); }
+  .setup-bad{ color:var(--critical); }
   table.salary-table{ min-width:560px; }
   table.salary-parts-table{ min-width:520px; }
   table.asset-summary{ min-width:360px; }

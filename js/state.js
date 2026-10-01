@@ -9,8 +9,11 @@
  * Line total auto-fills from packets × ₩/pack, or you type it yourself.
  * Lump / no-bill rows (no itemized receipt):
  *   { id, date, place, note, amount }  — you type the line total yourself.
- * Long-term assets (inventory, setup, utensils, gas):
- *   { id, cat, date, name, qty, unitPrice, amount, lifeMonths }
+ * Long-term assets (inventory, setup, utensils):
+ *   { id, cat, rowCat, included, date, name, qty, unitPrice, amount, lifeMonths, note }
+ * setupLoans: [{ id, name, principal, annualRate, termMonths, termNote }]
+ * setupFunding: { totalInvestedRecord }
+ * setupPlan: { monthlySales, ingPctOfSales, rent, staff, utilities, otherFixed }
  * Labor shifts (variable, by day):
  *   { id, date, name, role, hours, rate, amount, paid }
  * Monthly salaries (staff paid by the month, not by the hour):
@@ -28,6 +31,7 @@ var nextIngId = 1;
 var nextPurchaseId = 1;
 var nextLumpId = 1;
 var nextAssetId = 1;
+var nextSetupLoanId = 1;
 var nextLaborShiftId = 1;
 var nextLaborSalaryId = 1;
 var nextSalaryPartId = 1;
@@ -159,16 +163,41 @@ function blankLump(){
   return { id: nextLumpId++, date: isoForMonth(), place: "", note: "", amount: 0 };
 }
 
+function defaultAssetRowCat(sectionCat){
+  if (sectionCat === "inventory") return "opening";
+  return "equipment";
+}
+
+function inferAssetRowCategory(name, sectionCat){
+  var raw = String(name || "");
+  var n = raw.toLowerCase();
+  if (/wholesalemart|startup\s*cost|packaging|\bpaper\b|cups|gas canister/i.test(raw)) return "opening";
+  if (/damoha/i.test(n)) return "contractor";
+  if (/deposite|deposit/i.test(n) && !/equipment|fit-out/i.test(n)) return "deposit";
+  if (/bankcashexchange|cash float/i.test(n)) return "cashfloat";
+  if (sectionCat === "inventory") return "opening";
+  return "equipment";
+}
+
+function assetRowSpreads(rowCat){
+  var m = ASSET_ROW_CAT[rowCat];
+  return !!(m && m.spread);
+}
+
 function blankAsset(cat){
+  cat = cat === "gas" ? "setup" : (cat || "inventory");
   return {
     id: nextAssetId++,
-    cat: cat || "inventory",
+    cat: cat,
+    rowCat: defaultAssetRowCat(cat),
+    included: true,
     date: isoToday(),
     name: "",
     qty: 0,
     unitPrice: 0,
     amount: 0,
-    lifeMonths: defaultAssetLife(cat)
+    lifeMonths: defaultAssetLife(cat),
+    note: ""
   };
 }
 
@@ -180,8 +209,11 @@ function assetHasData(a){
 
 function compactAssets(list){
   var kept = [];
-  ASSET_ORDER.forEach(function(cat){
-    var items = list.filter(function(a){ return a.cat === cat; });
+  ASSET_SECTION_ORDER.forEach(function(cat){
+    var items = list.filter(function(a){
+      var c = a.cat === "gas" ? "setup" : a.cat;
+      return c === cat;
+    });
     var filled = items.filter(assetHasData);
     if (filled.length) kept = kept.concat(filled);
     else kept.push(blankAsset(cat));
@@ -189,8 +221,61 @@ function compactAssets(list){
   return kept;
 }
 
+function blankSetupLoan(seed){
+  seed = seed || {};
+  return {
+    id: nextSetupLoanId++,
+    name: seed.name || "Loan",
+    principal: Number(seed.principal) || 0,
+    annualRate: Number(seed.annualRate) || 0,
+    termMonths: Number(seed.termMonths) || 36,
+    termNote: seed.termNote || "assumed term"
+  };
+}
+
+function migrateSetupLoans(list){
+  var src = asArray(list);
+  if (!src.length){
+    return SETUP_LOAN_DEFAULTS.map(function(d){ return blankSetupLoan(d); });
+  }
+  return src.map(function(l){
+    if (!l || typeof l !== "object") return blankSetupLoan();
+    return {
+      id: l.id || nextSetupLoanId++,
+      name: l.name || "Loan",
+      principal: Number(l.principal) || 0,
+      annualRate: Number(l.annualRate) || 0,
+      termMonths: Number(l.termMonths) || 36,
+      termNote: l.termNote || "assumed term"
+    };
+  });
+}
+
+function migrateSetupFunding(f){
+  f = f && typeof f === "object" ? f : {};
+  var n = Number(f.totalInvestedRecord);
+  return { totalInvestedRecord: isFinite(n) && n > 0 ? n : SETUP_FUNDING_DEFAULT.totalInvestedRecord };
+}
+
+function migrateSetupPlan(p){
+  p = p && typeof p === "object" ? p : {};
+  var d = SETUP_PLAN_DEFAULT;
+  return {
+    monthlySales: Number(p.monthlySales) || d.monthlySales,
+    ingPctOfSales: Number(p.ingPctOfSales) || d.ingPctOfSales,
+    rent: Number(p.rent) || d.rent,
+    staff: Number(p.staff) || d.staff,
+    utilities: Number(p.utilities) || d.utilities,
+    otherFixed: Number(p.otherFixed) || d.otherFixed
+  };
+}
+
 function applyAssetField(a, field, raw){
-  if (field === "date" || field === "name"){
+  if (field === "included"){
+    a.included = raw === true || raw === "yes" || raw === "on" || raw === "1";
+    return;
+  }
+  if (field === "rowCat" || field === "date" || field === "name" || field === "note"){
     a[field] = raw;
     return;
   }
@@ -224,6 +309,11 @@ function applyAssetField(a, field, raw){
 function migrateAsset(a){
   if (!a || typeof a !== "object") return blankAsset("inventory");
   var cat = ASSET_ORDER.indexOf(a.cat) > -1 ? a.cat : "inventory";
+  if (cat === "gas") cat = "setup";
+  var name = a.name || "";
+  var rowCat = a.rowCat && ASSET_ROW_CAT[a.rowCat]
+    ? a.rowCat
+    : inferAssetRowCategory(name, cat);
   var qty = Number(a.qty) || 0;
   var unitPrice = Number(a.unitPrice);
   var amount = Number(a.amount);
@@ -232,16 +322,19 @@ function migrateAsset(a){
   if (!amount && qty && unitPrice) amount = qty * unitPrice;
   if (!unitPrice && qty && amount) unitPrice = amount / qty;
   var life = Number(a.lifeMonths);
-  if (!isFinite(life) || life < 0) life = defaultAssetLife(cat);
+  if (!isFinite(life) || life < 0) life = defaultAssetLife(cat === "inventory" ? "inventory" : "setup");
   return {
     id: a.id || nextAssetId++,
     cat: cat,
+    rowCat: rowCat,
+    included: a.included !== false,
     date: a.date || isoToday(),
-    name: a.name || "",
+    name: name,
     qty: qty,
     unitPrice: niceNum(unitPrice),
     amount: niceNum(amount),
-    lifeMonths: life
+    lifeMonths: life,
+    note: a.note || ""
   };
 }
 
@@ -513,7 +606,10 @@ function defaultState(){
     overheadVariableRate: 0,
     ingredients: CAT_ORDER.map(function(c){ return blankIngredient(c); }),
     lumps: [blankLump()],
-    assets: ASSET_ORDER.map(function(c){ return blankAsset(c); }),
+    assets: ASSET_SECTION_ORDER.map(function(c){ return blankAsset(c); }),
+    setupLoans: SETUP_LOAN_DEFAULTS.map(function(d){ return blankSetupLoan(d); }),
+    setupFunding: migrateSetupFunding(null),
+    setupPlan: migrateSetupPlan(null),
     laborShifts: [blankLaborShift()],
     laborSalaries: [blankLaborSalary()],
     overheadBills: [blankOverheadBill()],
@@ -555,6 +651,12 @@ function normalizeParsedState(parsed){
   parsed.assets = compactAssets(assets);
   parsed.assets.forEach(function(a){ if (a && a.id > maxAsset) maxAsset = a.id; });
   nextAssetId = maxAsset + 1;
+  var maxLoan = 0;
+  parsed.setupLoans = migrateSetupLoans(parsed.setupLoans);
+  parsed.setupLoans.forEach(function(l){ if (l && l.id > maxLoan) maxLoan = l.id; });
+  nextSetupLoanId = maxLoan + 1;
+  parsed.setupFunding = migrateSetupFunding(parsed.setupFunding);
+  parsed.setupPlan = migrateSetupPlan(parsed.setupPlan);
   var maxShift = 0, maxSalary = 0, maxPart = 0;
   var shifts = asArray(parsed.laborShifts).map(migrateLaborShift);
   shifts.forEach(function(s){ if (s && s.id > maxShift) maxShift = s.id; });

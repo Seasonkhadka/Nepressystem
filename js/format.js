@@ -8,6 +8,12 @@ function won(v){
   return "₩" + Math.round(v).toLocaleString("en-US");
 }
 
+function wonParen(v){
+  if (!isFinite(v) || v === 0) return "₩0";
+  if (v < 0) return "(" + won(Math.abs(v)) + ")";
+  return won(v);
+}
+
 function wonShort(v){
   if (!isFinite(v)) return "0";
   var av = Math.abs(v);
