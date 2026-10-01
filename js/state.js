@@ -171,12 +171,28 @@ function defaultAssetRowCat(sectionCat){
 function inferAssetRowCategory(name, sectionCat){
   var raw = String(name || "");
   var n = raw.toLowerCase();
-  if (/wholesalemart|startup\s*cost|packaging|\bpaper\b|cups|gas canister/i.test(raw)) return "opening";
-  if (/damoha/i.test(n)) return "contractor";
-  if (/deposite|deposit/i.test(n) && !/equipment|fit-out/i.test(n)) return "deposit";
-  if (/bankcashexchange|cash float/i.test(n)) return "cashfloat";
+  if (/wholesalemart|wholesale|startup\s*cost|packaging|\bpaper\b|cups|gas canister|opening stock|consumable/i.test(raw)) return "opening";
+  if (/damoha|contractor|fit-out|fitout/i.test(n)) return "contractor";
+  if (/deposite|deposit|보증|deposito/i.test(n) && !/equipment|fit-out/i.test(n)) return "deposit";
+  if (/bankcashexchange|cash float|cash exchange/i.test(n)) return "cashfloat";
   if (sectionCat === "inventory") return "opening";
   return "equipment";
+}
+
+function defaultSpreadLife(sectionCat, rowCat){
+  if (rowCat === "contractor") return 36;
+  if (sectionCat === "utensil") return 24;
+  return 36;
+}
+
+function autoTuneAsset(a){
+  if (!a || !assetHasData(a)) return;
+  var cat = a.cat === "gas" ? "setup" : a.cat;
+  if (!a.rowCatManual) a.rowCat = inferAssetRowCategory(a.name, cat);
+  if (assetRowSpreads(a.rowCat)){
+    var life = Number(a.lifeMonths) || 0;
+    if (!life) a.lifeMonths = defaultSpreadLife(cat, a.rowCat);
+  }
 }
 
 function assetRowSpreads(rowCat){
@@ -190,6 +206,7 @@ function blankAsset(cat){
     id: nextAssetId++,
     cat: cat,
     rowCat: defaultAssetRowCat(cat),
+    rowCatManual: false,
     included: true,
     date: isoToday(),
     name: "",
@@ -251,12 +268,6 @@ function migrateSetupLoans(list){
   });
 }
 
-function migrateSetupFunding(f){
-  f = f && typeof f === "object" ? f : {};
-  var n = Number(f.totalInvestedRecord);
-  return { totalInvestedRecord: isFinite(n) && n > 0 ? n : SETUP_FUNDING_DEFAULT.totalInvestedRecord };
-}
-
 function migrateSetupPlan(p){
   p = p && typeof p === "object" ? p : {};
   var d = SETUP_PLAN_DEFAULT;
@@ -275,8 +286,19 @@ function applyAssetField(a, field, raw){
     a.included = raw === true || raw === "yes" || raw === "on" || raw === "1";
     return;
   }
-  if (field === "rowCat" || field === "date" || field === "name" || field === "note"){
+  if (field === "rowCat"){
+    a.rowCat = raw;
+    a.rowCatManual = true;
+    autoTuneAsset(a);
+    return;
+  }
+  if (field === "date" || field === "note"){
     a[field] = raw;
+    return;
+  }
+  if (field === "name"){
+    a.name = raw;
+    if (!a.rowCatManual) autoTuneAsset(a);
     return;
   }
   var n = parseFloat(raw) || 0;
@@ -303,6 +325,7 @@ function applyAssetField(a, field, raw){
     a.amount = n;
     var qty = Number(a.qty)||0;
     if (qty > 0) a.unitPrice = niceNum(n / qty);
+    autoTuneAsset(a);
   }
 }
 
@@ -311,9 +334,8 @@ function migrateAsset(a){
   var cat = ASSET_ORDER.indexOf(a.cat) > -1 ? a.cat : "inventory";
   if (cat === "gas") cat = "setup";
   var name = a.name || "";
-  var rowCat = a.rowCat && ASSET_ROW_CAT[a.rowCat]
-    ? a.rowCat
-    : inferAssetRowCategory(name, cat);
+  var rowCat = a.rowCat && ASSET_ROW_CAT[a.rowCat] ? a.rowCat : inferAssetRowCategory(name, cat);
+  var rowCatManual = !!a.rowCatManual;
   var qty = Number(a.qty) || 0;
   var unitPrice = Number(a.unitPrice);
   var amount = Number(a.amount);
@@ -323,10 +345,11 @@ function migrateAsset(a){
   if (!unitPrice && qty && amount) unitPrice = amount / qty;
   var life = Number(a.lifeMonths);
   if (!isFinite(life) || life < 0) life = defaultAssetLife(cat === "inventory" ? "inventory" : "setup");
-  return {
+  var out = {
     id: a.id || nextAssetId++,
     cat: cat,
     rowCat: rowCat,
+    rowCatManual: rowCatManual,
     included: a.included !== false,
     date: a.date || isoToday(),
     name: name,
@@ -335,6 +358,20 @@ function migrateAsset(a){
     amount: niceNum(amount),
     lifeMonths: life,
     note: a.note || ""
+  };
+  autoTuneAsset(out);
+  return out;
+}
+
+function migrateSetupFunding(f){
+  f = f && typeof f === "object" ? f : {};
+  var n = Number(f.totalInvestedRecord);
+  var manual = !!f.recordManual;
+  return {
+    totalInvestedRecord: manual
+      ? (isFinite(n) ? n : 0)
+      : (isFinite(n) && n > 0 ? n : SETUP_FUNDING_DEFAULT.totalInvestedRecord),
+    recordManual: manual
   };
 }
 

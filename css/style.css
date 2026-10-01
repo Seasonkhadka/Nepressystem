@@ -242,9 +242,7 @@
   tr.asset-excluded td{ opacity:0.55; }
   .asset-warn, .asset-warn-cell .asset-warn{ color:var(--critical); font-size:11px; line-height:1.35; }
   .asset-life-off{ opacity:0.45; }
-  td.asset-inc{ text-align:center; width:36px; position:sticky; left:0; z-index:2; background:var(--surface); }
-  td.asset-actions, table.asset-table-wide th:nth-child(2){ text-align:center; width:40px; padding:4px; position:sticky; left:36px; z-index:2; background:var(--surface); box-shadow:2px 0 6px rgba(0,0,0,0.04); }
-  tr.asset-excluded td.asset-inc, tr.asset-excluded td.asset-actions{ background:var(--surface-2); }
+  td.asset-inc{ text-align:center; width:36px; }
   .setup-loan-fields{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px; margin-bottom:8px; }
   .setup-loan-fields label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; }
   .setup-term-note{ font-weight:400; color:var(--muted); font-size:10px; }

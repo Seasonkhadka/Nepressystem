@@ -24,7 +24,6 @@ function assetRowHtml(a){
   var lifeDisabled = spreads ? "" : ' disabled class="asset-life-off"';
   return '<tr data-asset-id="'+a.id+'"'+(a.included ? "" : ' class="asset-excluded"')+'>'+
     '<td class="asset-inc"><input type="checkbox" data-field="included"'+(a.included ? " checked" : "")+' title="Include in totals"></td>'+
-    '<td class="asset-actions"><button class="icon-btn" type="button" data-remove-asset="'+a.id+'" title="Delete row" aria-label="Delete row">×</button></td>'+
     '<td><input class="cell-input" type="date" data-field="date" value="'+esc(a.date || "")+'"></td>'+
     '<td><select class="cell-input" data-field="rowCat">'+assetRowCatSelectHtml(a.rowCat)+'</select></td>'+
     '<td><input class="cell-input text" type="text" data-field="name" placeholder="Item" value="'+esc(a.name)+'"></td>'+
@@ -34,7 +33,8 @@ function assetRowHtml(a){
     '<td><input class="cell-input" type="number" min="0" step="1" data-field="lifeMonths" placeholder="0" value="'+(spreads && life ? life : "")+'"'+lifeDisabled+'></td>'+
     '<td class="tnum calc" data-asset-monthly">'+(a.monthly ? won(a.monthly) : "—")+'</td>'+
     '<td><input class="cell-input text" type="text" data-field="note" placeholder="Flag / note" value="'+esc(a.note)+'"></td>'+
-    '<td class="asset-warn-cell" colspan="1">'+assetWarningsHtml(a.warnings)+'</td>'+
+    '<td class="asset-warn-cell">'+assetWarningsHtml(a.warnings)+'</td>'+
+    '<td><button class="icon-btn" type="button" data-remove-asset="'+a.id+'" title="Remove row" aria-label="Remove row">×</button></td>'+
   '</tr>';
 }
 
@@ -44,7 +44,7 @@ function assetSectionHtml(c){
     '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
     '<p class="lede">'+c.lede+'</p>'+
     '<div class="table-wrap purchase-wrap"><table class="asset-table asset-table-wide"><thead><tr>'+
-      '<th>Incl.</th><th></th><th>Date</th><th>Category</th><th>Item</th><th>Qty</th><th>₩ each</th><th>Line total</th><th>Life (mo)</th><th>₩ / mo</th><th>Note</th><th>Flags</th>'+
+      '<th>Incl.</th><th>Date</th><th>Category</th><th>Item</th><th>Qty</th><th>₩ each</th><th>Line total</th><th>Life (mo)</th><th>₩ / mo</th><th>Note</th><th></th><th></th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-asset="'+c.cat+'">+ Add item</button>'+
     '<p class="note">Invested (included) <b class="tnum" data-asset-invested="'+c.cat+'">'+won(c.invested)+'</b>'+
@@ -113,6 +113,7 @@ function setupSummaryHtml(s){
     '<h3 class="labor-subhead">Funding</h3>'+
     '<div class="setup-funding-row">'+
       '<label>Total invested (per my records)<input class="field-input" id="setup-total-record" type="number" min="0" step="1000" value="'+(fund.record || "")+'"></label>'+
+      '<p class="setup-hint">'+(fund.recordManual ? "You typed this total — edit anytime." : "Auto = sum of included rows until you change this field.")+'</p>'+
     '</div>'+
     '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Source</th><th>Amount</th><th>Share</th></tr></thead><tbody>'+shareRows+'</tbody></table></div>'+
     '<p class="note '+reconClass+'" id="setup-recon">Check: included rows − records = <b class="tnum">'+wonParen(fund.reconDiff)+'</b> — '+reconText+'</p>'+
@@ -121,35 +122,6 @@ function setupSummaryHtml(s){
     '<p class="note">Loan payments (cash, principal + interest): <b class="tnum" id="setup-loan-payment">'+won(lt.payment)+'</b>'+
       ' · of which interest month 1: <b class="tnum" id="setup-loan-int-m1">'+won(lt.interestM1)+'</b></p>'+
     '<p class="setup-hint">Spread is accounting allocation; loan payment is cash out — do not sum them as one “monthly cost”.</p>'+
-  '</section>';
-}
-
-function setupPlanHtml(p){
-  var i = p.inputs || {};
-  var rec = p.monthsRecover;
-  var recText = rec == null || rec <= 0 ? "Not recovered (cash left ≤ 0)" : (Math.ceil(rec * 10) / 10) + " months";
-  return '<section class="card" id="setup-plan">'+
-    '<h2><span class="cat-chip" style="background:var(--chart-3)"></span>Monthly plan <span class="setup-hint">(editable examples)</span></h2>'+
-    '<div class="setup-plan-grid">'+
-      '<label>Monthly sales<input class="field-input" id="plan-sales" type="number" min="0" step="100000" value="'+assetNumAttr(i.monthlySales)+'"></label>'+
-      '<label>Ingredients &amp; supplies % of sales<input class="field-input" id="plan-ing-pct" type="number" min="0" step="0.5" value="'+assetNumAttr(i.ingPctOfSales)+'"></label>'+
-      '<label>Rent<input class="field-input" id="plan-rent" type="number" min="0" step="10000" value="'+assetNumAttr(i.rent)+'"></label>'+
-      '<label>Staff<input class="field-input" id="plan-staff" type="number" min="0" step="10000" value="'+assetNumAttr(i.staff)+'"></label>'+
-      '<label>Utilities<input class="field-input" id="plan-util" type="number" min="0" step="10000" value="'+assetNumAttr(i.utilities)+'"></label>'+
-      '<label>Other fixed<input class="field-input" id="plan-other" type="number" min="0" step="10000" value="'+assetNumAttr(i.otherFixed)+'"></label>'+
-    '</div>'+
-    '<div class="formula-list">'+
-      '<div class="formula"><dt>Ingredients (= sales × %)</dt><dd class="tnum" id="plan-ingredients">'+won(p.ingredients)+'</dd></div>'+
-      '<div class="formula"><dt>Gross profit</dt><dd class="tnum" id="plan-gross">'+won(p.grossProfit)+'</dd></div>'+
-      '<div class="formula"><dt>Fixed costs</dt><dd class="tnum" id="plan-fixed">'+won(p.fixedCosts)+'</dd></div>'+
-      '<div class="formula"><dt>Operating profit (before loans)</dt><dd class="tnum" id="plan-operating">'+won(p.operatingBeforeLoans)+'</dd></div>'+
-      '<div class="formula"><dt>Loan payment</dt><dd class="tnum" id="plan-loan-pay">'+won(p.loanPayment || 0)+'</dd></div>'+
-      '<div class="formula" style="background:var(--accent-soft)"><dt>Cash left each month</dt><dd class="tnum" id="plan-cash-left">'+wonParen(p.cashLeft)+'</dd></div>'+
-      '<div class="formula"><dt>Profit view (operating − spread − month-1 interest)</dt><dd class="tnum" id="plan-profit-view">'+wonParen(p.profitView)+'</dd></div>'+
-      '<div class="formula"><dt>Cash break-even sales</dt><dd class="tnum" id="plan-be-cash">'+won(p.cashBreakEven)+'</dd></div>'+
-      '<div class="formula"><dt>Accounting break-even sales</dt><dd class="tnum" id="plan-be-acct">'+won(p.acctBreakEven)+'</dd></div>'+
-      '<div class="formula"><dt>Months to recover my own money</dt><dd class="tnum" id="plan-recover">'+recText+'</dd></div>'+
-    '</div>'+
   '</section>';
 }
 
@@ -190,13 +162,11 @@ function renderAssetsTab(){
   (s.assetCats || []).forEach(function(c){ body += assetSectionHtml(c); });
 
   var loansHtml = (s.loans || []).map(loanCardHtml).join("");
-  var plan = s.plan || {};
-  plan.loanPayment = (s.loanTotals || {}).payment;
 
   el("tab-assets").innerHTML =
     '<section class="card">'+
       '<h2>Setup &amp; assets</h2>'+
-      '<p class="lede">Tag each line: opening stock, equipment, contractor, deposit, or cash float. Only <b>Equipment</b> and <b>Contractor</b> spread into ₩/month. Uncheck rows to exclude them from totals.</p>'+
+      '<p class="lede">Category, line total, and ₩/month <b>auto-detect</b> from the item name (unless you change the category dropdown). Opening stock &amp; deposit have no monthly spread. Equipment &amp; contractor spread = line total ÷ life months (life filled in automatically if blank).</p>'+
       '<button class="add-row-btn" type="button" id="setup-download-csv">Download CSV</button>'+
     '</section>'+
     body+
@@ -210,8 +180,7 @@ function renderAssetsTab(){
         loanScheduleTableHtml(s.loans || [])+
       '</details>'+
     '</section>'+
-    setupSummaryHtml(s)+
-    setupPlanHtml(plan);
+    setupSummaryHtml(s);
 }
 
 function refreshAssetComputedCells(model){
@@ -230,6 +199,9 @@ function refreshAssetComputedCells(model){
       };
       idleSet('[data-field="unitPrice"]', niceNum(a.unitPrice));
       idleSet('[data-field="amount"]', niceNum(a.amount));
+      idleSet('[data-field="lifeMonths"]', a.spreads && a.lifeMonths ? a.lifeMonths : "");
+      var sel = tr.querySelector('[data-field="rowCat"]');
+      if (sel && document.activeElement !== sel && sel.value !== a.rowCat) sel.value = a.rowCat;
       var mEl = tr.querySelector("[data-asset-monthly]");
       if (mEl) mEl.textContent = a.monthly ? won(a.monthly) : "—";
       var wCell = tr.querySelector(".asset-warn-cell");
@@ -275,21 +247,4 @@ function refreshAssetComputedCells(model){
     if (rec.value !== String(rv)) rec.value = rv ? String(rv) : "";
   }
 
-  var p = s.plan;
-  p.loanPayment = s.loanTotals.payment;
-  set("plan-ingredients", won(p.ingredients));
-  set("plan-gross", won(p.grossProfit));
-  set("plan-fixed", won(p.fixedCosts));
-  set("plan-operating", won(p.operatingBeforeLoans));
-  set("plan-loan-pay", won(p.loanPayment));
-  set("plan-cash-left", wonParen(p.cashLeft));
-  set("plan-profit-view", wonParen(p.profitView));
-  set("plan-be-cash", won(p.cashBreakEven));
-  set("plan-be-acct", won(p.acctBreakEven));
-  var recEl = el("plan-recover");
-  if (recEl){
-    recEl.textContent = (p.monthsRecover == null || p.monthsRecover <= 0)
-      ? "Not recovered (cash left ≤ 0)"
-      : (Math.ceil(p.monthsRecover * 10) / 10) + " months";
-  }
 }

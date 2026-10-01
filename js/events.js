@@ -47,17 +47,6 @@ function findOverheadFixed(id){
   return STATE.overheadFixedItems.find(function(b){ return b.id === id; });
 }
 
-function applySetupPlanField(field, raw){
-  if (!STATE.setupPlan) STATE.setupPlan = migrateSetupPlan(null);
-  var n = parseFloat(raw) || 0;
-  if (field === "monthlySales") STATE.setupPlan.monthlySales = n;
-  else if (field === "ingPctOfSales") STATE.setupPlan.ingPctOfSales = n;
-  else if (field === "rent") STATE.setupPlan.rent = n;
-  else if (field === "staff") STATE.setupPlan.staff = n;
-  else if (field === "utilities") STATE.setupPlan.utilities = n;
-  else if (field === "otherFixed") STATE.setupPlan.otherFixed = n;
-}
-
 function initRawEvents(){
   var host = el("tab-raw");
   var onFieldChange = function(e){
@@ -191,15 +180,10 @@ function initAssetEvents(){
     if (t.id === "setup-total-record"){
       if (!STATE.setupFunding) STATE.setupFunding = migrateSetupFunding(null);
       STATE.setupFunding.totalInvestedRecord = parseFloat(t.value) || 0;
+      STATE.setupFunding.recordManual = true;
       refreshDerived();
       return;
     }
-    if (t.id === "plan-sales"){ applySetupPlanField("monthlySales", t.value); refreshDerived(); return; }
-    if (t.id === "plan-ing-pct"){ applySetupPlanField("ingPctOfSales", t.value); refreshDerived(); return; }
-    if (t.id === "plan-rent"){ applySetupPlanField("rent", t.value); refreshDerived(); return; }
-    if (t.id === "plan-staff"){ applySetupPlanField("staff", t.value); refreshDerived(); return; }
-    if (t.id === "plan-util"){ applySetupPlanField("utilities", t.value); refreshDerived(); return; }
-    if (t.id === "plan-other"){ applySetupPlanField("otherFixed", t.value); refreshDerived(); return; }
 
     var loanCard = t.closest(".setup-loan-card");
     if (loanCard && t.matches("[data-loan-field]")){
@@ -225,7 +209,7 @@ function initAssetEvents(){
       return;
     }
     applyAssetField(rec, field, t.value);
-    if (field === "rowCat"){
+    if (field === "rowCat" || field === "name"){
       renderAssetsTab();
       refreshDerived();
       return;

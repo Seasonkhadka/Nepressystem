@@ -137,6 +137,9 @@ function assetRowWarnings(a, allRows){
 }
 
 function computeSetupAssets(){
+  asArray(STATE.assets).forEach(function(a){
+    if (assetHasData(a)) autoTuneAsset(a);
+  });
   var rawItems = asArray(STATE.assets);
   var enriched = rawItems.map(function(a){
     var rowCat = a.rowCat && ASSET_ROW_CAT[a.rowCat] ? a.rowCat : inferAssetRowCategory(a.name, a.cat);
@@ -203,25 +206,12 @@ function computeSetupAssets(){
 
   var funding = migrateSetupFunding(STATE.setupFunding);
   var record = Number(funding.totalInvestedRecord) || 0;
+  if (!funding.recordManual && includedTotal > 0) record = includedTotal;
   var ownMoney = record - loanPrincipalTotal;
   var reconDiff = includedTotal - record;
   var loanShares = loans.map(function(l){
     return { name: l.name, principal: l.principal, pct: record > 0 ? l.principal / record : 0 };
   });
-
-  var plan = migrateSetupPlan(STATE.setupPlan);
-  var sales = Number(plan.monthlySales) || 0;
-  var ingPct = Number(plan.ingPctOfSales) || 0;
-  var ingredients = sales * (ingPct / 100);
-  var fixedCosts = (Number(plan.rent) || 0) + (Number(plan.staff) || 0) + (Number(plan.utilities) || 0) + (Number(plan.otherFixed) || 0);
-  var grossProfit = sales - ingredients;
-  var operatingBeforeLoans = grossProfit - fixedCosts;
-  var cashLeft = operatingBeforeLoans - loanPaymentTotal;
-  var profitView = operatingBeforeLoans - spreadMonthly - loanInterestM1;
-  var marginAfterIng = 1 - ingPct / 100;
-  var cashBreakEven = marginAfterIng > 0 ? (fixedCosts + loanPaymentTotal) / marginAfterIng : 0;
-  var acctBreakEven = marginAfterIng > 0 ? (fixedCosts + spreadMonthly + loanInterestM1) / marginAfterIng : 0;
-  var monthsRecover = cashLeft > 0 && ownMoney > 0 ? ownMoney / cashLeft : null;
 
   return {
     items: enriched,
@@ -237,20 +227,8 @@ function computeSetupAssets(){
       loanShares: loanShares,
       ownPct: record > 0 ? ownMoney / record : 0,
       reconDiff: reconDiff,
-      reconOk: Math.round(reconDiff) === 0
-    },
-    plan: {
-      inputs: plan,
-      ingredients: ingredients,
-      grossProfit: grossProfit,
-      fixedCosts: fixedCosts,
-      operatingBeforeLoans: operatingBeforeLoans,
-      loanPayment: loanPaymentTotal,
-      cashLeft: cashLeft,
-      profitView: profitView,
-      cashBreakEven: cashBreakEven,
-      acctBreakEven: acctBreakEven,
-      monthsRecover: monthsRecover
+      reconOk: Math.round(reconDiff) === 0,
+      recordManual: funding.recordManual
     }
   };
 }
