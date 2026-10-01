@@ -51,16 +51,25 @@ function purchaseCellsHtml(p){
     '<td class="raw-num"><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+numAttr(lineTotal(p))+'"></td>';
 }
 
-function ingredientRowsHtml(i){
+function ingredientNameDatalistHtml(cat, names){
+  if (!names || !names.length) return "";
+  var id = rawIngredientNameListId(cat);
+  return '<datalist id="'+id+'">'+
+    names.map(function(n){ return '<option value="'+esc(n)+'">'; }).join("")+
+  '</datalist>';
+}
+
+function ingredientRowsHtml(i, nameListId){
   var purs = purchasesThisMonth(i);
   if (!purs.length) return "";
   var n = purs.length;
+  var listAttr = nameListId ? ' list="'+nameListId+'"' : "";
   return purs.map(function(p, idx){
     var nameCells = "";
     if (idx === 0){
       nameCells =
         '<td rowspan="'+n+'" class="raw-item">'+
-          '<input class="cell-input text ing-name" type="text" data-ing-field="name" placeholder="Item" value="'+esc(i.name)+'">'+
+          '<input class="cell-input text ing-name" type="text" data-ing-field="name" placeholder="Item"'+listAttr+' autocomplete="off" value="'+esc(i.name)+'">'+
           groceryMoveHtml(i)+
           '<span class="ing-avg" data-ing-avg>'+avgUnitText(i)+'</span>'+
         '</td>'+
@@ -98,25 +107,28 @@ function rawTableHead(){
   '</tr></thead>';
 }
 
-function categoryTableHtml(c){
+function categoryTableHtml(c, namesByCat){
+  var listId = rawIngredientNameListId(c.cat);
+  var names = namesByCat && namesByCat[c.cat];
   var rows = "";
-  sortByName(c.items || [], "name").forEach(function(i){ rows += ingredientRowsHtml(i); });
-  return '<div class="table-wrap"><table class="raw-table">'+rawTableHead()+'<tbody>'+rows+'</tbody></table></div>'+
+  sortByName(c.items || [], "name").forEach(function(i){ rows += ingredientRowsHtml(i, listId); });
+  return ingredientNameDatalistHtml(c.cat, names)+
+    '<div class="table-wrap"><table class="raw-table">'+rawTableHead()+'<tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-cat="'+c.cat+'">+ Add item</button>';
 }
 
-function categorySectionHtml(c){
+function categorySectionHtml(c, namesByCat){
   if (!c) return "";
   return '<section class="card">'+
     '<div class="raw-cat-head">'+
       '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
       '<p class="raw-cat-total">This month <b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
     '</div>'+
-    categoryTableHtml(c)+
+    categoryTableHtml(c, namesByCat)+
   '</section>';
 }
 
-function groceryGroupHtml(cats){
+function groceryGroupHtml(cats, namesByCat){
   var month = 0;
   var subs = "";
   cats.forEach(function(c){
@@ -127,7 +139,7 @@ function groceryGroupHtml(cats){
         '<h3><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h3>'+
         '<p class="raw-cat-total"><b class="tnum" data-cat-subtotal="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
       '</div>'+
-      categoryTableHtml(c)+
+      categoryTableHtml(c, namesByCat)+
     '</div>';
   });
   return '<section class="card">'+
@@ -171,6 +183,7 @@ function catById(model, cat){
 
 function renderRawMaterialsTab(){
   var model = computeAll();
+  var namesByCat = collectIngredientNamesByCat(STATE.ingredients);
   var groceryCats = GROCERY_CATS.map(function(id){ return catById(model, id); });
   var monthLabel = MONTH_NAMES[STATE.month-1]+" "+STATE.year;
   var other = rawOtherMonthCounts();
@@ -195,9 +208,9 @@ function renderRawMaterialsTab(){
       '<p class="raw-hint">Showing <b>'+monthLabel+'</b> only. Packs × ₩/pack = total. Size is what’s in one pack.</p>'+
       otherNote+
     '</section>'+
-    categorySectionHtml(catById(model, "meat"))+
-    groceryGroupHtml(groceryCats)+
-    categorySectionHtml(catById(model, "veg"))+
+    categorySectionHtml(catById(model, "meat"), namesByCat)+
+    groceryGroupHtml(groceryCats, namesByCat)+
+    categorySectionHtml(catById(model, "veg"), namesByCat)+
     lumpSectionHtml(catById(model, "nobill"))+
     '<section class="card"><h2>This month by category</h2><div class="raw-chart" id="raw-chart">'+rawMaterialsChartHtml(model)+'</div></section>';
 }

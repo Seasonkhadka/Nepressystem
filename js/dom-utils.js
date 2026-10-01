@@ -32,6 +32,41 @@ function sortByName(list, key){
   });
 }
 
+/** Normalized key so "Chicken" and "chicken" count as one history name. */
+function ingredientNameKey(name){
+  return String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Unique display names per raw-material category from all months. */
+function collectIngredientNamesByCat(ingredients){
+  var byCat = {};
+  asArray(ingredients).forEach(function(i){
+    var display = String(i.name || "").trim().replace(/\s+/g, " ");
+    if (!display) return;
+    var cat = i.cat;
+    if (!byCat[cat]) byCat[cat] = {};
+    var key = ingredientNameKey(display);
+    var purchaseCount = asArray(i.purchases).length;
+    var prev = byCat[cat][key];
+    if (!prev || purchaseCount > prev.purchaseCount ||
+        (purchaseCount === prev.purchaseCount && display.length > prev.display.length)){
+      byCat[cat][key] = { display: display, purchaseCount: purchaseCount };
+    }
+  });
+  var out = {};
+  Object.keys(byCat).forEach(function(cat){
+    out[cat] = Object.keys(byCat[cat]).map(function(k){ return byCat[cat][k].display; });
+    out[cat].sort(function(a, b){
+      return a.localeCompare(b, undefined, { sensitivity: "base" });
+    });
+  });
+  return out;
+}
+
+function rawIngredientNameListId(cat){
+  return "raw-name-list-" + cat;
+}
+
 function sortByDate(list, key){
   key = key || "date";
   return (Array.isArray(list) ? list.slice() : []).sort(function(a, b){
