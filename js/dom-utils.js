@@ -67,6 +67,46 @@ function rawIngredientNameListId(cat){
   return "raw-name-list-" + cat;
 }
 
+/** Trim + collapse spaces; names must match exactly (case-sensitive) to merge. */
+function ingredientExactName(name){
+  return String(name || "").trim().replace(/\s+/g, " ");
+}
+
+/** Price Compare: one group per category + exact name; purchases from all matching rows. */
+function groupIngredientsForCompare(ingredients){
+  var groups = {};
+  asArray(ingredients).forEach(function(i){
+    var display = ingredientExactName(i.name);
+    if (!display) return;
+    var key = i.cat + "\0" + display;
+    if (!groups[key]){
+      groups[key] = {
+        cat: i.cat,
+        name: display,
+        unit: i.unit || defaultUnit(i.cat),
+        purchases: [],
+        rowCount: 0,
+        leaderPurchases: -1,
+        unitMixed: false
+      };
+    }
+    var g = groups[key];
+    g.rowCount += 1;
+    var u = i.unit || defaultUnit(i.cat);
+    if (g.unit && u && g.unit !== u) g.unitMixed = true;
+    var nPurch = asArray(i.purchases).length;
+    if (nPurch > g.leaderPurchases){
+      g.leaderPurchases = nPurch;
+      g.name = display;
+      if (i.unit) g.unit = u;
+    }
+    asArray(i.purchases).forEach(function(p){ g.purchases.push(p); });
+  });
+  return Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a, b){
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
+}
+
 function sortByDate(list, key){
   key = key || "date";
   return (Array.isArray(list) ? list.slice() : []).sort(function(a, b){

@@ -47,12 +47,17 @@ function renderCompareTab(){
   var model = computeAll();
   var blocks = "";
   var any = false;
-  model.ingredients.forEach(function(i){
-    if (!String(i.name||"").trim()) return;
-    var rows = compareRowsForIngredient(i);
+  groupIngredientsForCompare(model.ingredients).forEach(function(g){
+    var rows = compareRowsForIngredient(g);
     if (!rows.length) return;
     any = true;
-    var unit = i.unit || "unit";
+    var unit = g.unit || "unit";
+    var mergeNote = g.rowCount > 1
+      ? '<p class="note">Combined '+g.rowCount+' Raw Materials rows with the same name in this category (all months).</p>'
+      : "";
+    var unitNote = g.unitMixed
+      ? '<p class="note" style="color:var(--warning-dot)">Those rows used different units — showing per '+esc(unit)+' from the row with the most buys.</p>'
+      : "";
     var cheapest = rows[0].avg;
     var body = rows.map(function(r, idx){
       var delta = r.avg - cheapest;
@@ -75,7 +80,8 @@ function renderCompareTab(){
       '</tr>';
     }).join("");
     blocks += '<section class="card">'+
-      '<h2>'+esc(i.name)+' <span class="ing-unit-label">per '+esc(unit)+'</span></h2>'+
+      '<h2>'+esc(g.name)+' <span class="ing-unit-label">per '+esc(unit)+'</span></h2>'+
+      mergeNote+unitNote+
       '<p class="lede">Cheapest is the lowest ₩/'+esc(unit)+' — pack size is counted, so 800 g and 3.3 kg bottles can be compared.</p>'+
       '<div class="table-wrap"><table class="compare-table"><thead><tr>'+
         '<th>Market / place</th><th>Buys</th><th>Qty bought</th><th>Avg ₩/'+esc(unit)+'</th><th>Last ₩/'+esc(unit)+'</th><th></th>'+
