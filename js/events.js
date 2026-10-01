@@ -398,19 +398,22 @@ function showTab(name){
     panels[i].hidden = !on;
     if (on) shown = true;
   }
-  if (!shown && panels.length) panels[0].hidden = false;
-  var tabs = document.querySelectorAll(".tab");
-  for (var j = 0; j < tabs.length; j++){
-    var active = tabs[j].getAttribute("data-tab") === name;
-    tabs[j].classList.toggle("active", active);
-    tabs[j].setAttribute("aria-selected", active ? "true" : "false");
+  if (!shown){
+    var dash = el("tab-dashboard");
+    if (dash){ dash.hidden = false; name = "dashboard"; }
+  }
+  var buttons = document.querySelectorAll(".tabs [data-tab]");
+  for (var j = 0; j < buttons.length; j++){
+    var isOn = buttons[j].getAttribute("data-tab") === name;
+    buttons[j].setAttribute("aria-selected", isOn ? "true" : "false");
   }
 }
 
 function initTabs(){
-  document.querySelectorAll(".tab").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      showTab(btn.getAttribute("data-tab"));
+  var buttons = document.querySelectorAll(".tabs [data-tab]");
+  for (var i = 0; i < buttons.length; i++){
+    buttons[i].addEventListener("click", function(){
+      showTab(this.getAttribute("data-tab"));
     });
-  });
+  }
 }

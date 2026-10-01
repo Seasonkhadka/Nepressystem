@@ -36,6 +36,7 @@ function applyMonthYearChange(){
   renderCalculationsTab();
   renderRawMaterialsTab();
   renderLaborTab();
+  renderAssetsTab();
   refreshDerived();
 }
 
