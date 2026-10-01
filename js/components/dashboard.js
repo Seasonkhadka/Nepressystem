@@ -14,14 +14,17 @@ function kpiTile(eyebrow, value, sub, status){
 function renderDashboard(model){
   var m = model.monthly;
   var hasSales = m.sales > 0;
-  var netStatus = marginStatus(m.netMarginPct, hasSales);
+  var rn = model.realNumbers || model.cashView || { realProfit: m.netProfit, cashAfterLoans: m.netProfit, loanPayment: 0, ownMoney: 0, monthsToRecoverOwnMoney: null };
+  var profitStatus = marginStatus(m.netMarginPct, hasSales);
+  var cashStatus = marginStatus(safeDiv(rn.cashAfterLoans, m.sales), hasSales);
+  var recoverSub = monthsRecoverLabel(rn.monthsToRecoverOwnMoney);
   var kpis = [
+    kpiTile("Real profit", signedWon(rn.realProfit), "after COGS, labor, overhead once", profitStatus),
+    kpiTile("Cash after loans", signedWon(rn.cashAfterLoans), "real profit − loan payment", cashStatus),
+    kpiTile("Get own money back", recoverSub.indexOf("Not") === 0 ? "—" : recoverSub.split(" ")[0]+" mo", recoverSub, null),
     kpiTile("Total Sales", won(m.sales), MONTH_NAMES[STATE.month-1]+" "+STATE.year),
     kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
-    kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
-    kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
-    kpiTile("Overhead %", pct(m.overheadPct), "fixed + not-fixed bills"),
-    kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus)
+    kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin")
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});
@@ -79,7 +82,8 @@ function renderDashboard(model){
   }
 
   el("tab-dashboard").innerHTML =
-    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div></section>'+
+    realNumbersHtml(rn)+
+    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — charts and detail. Headline profit and cash are in <b>Your real numbers</b> above.</p><div class="kpi-grid">'+kpis+'</div></section>'+
     '<section class="card grid-2">'+
       '<div><h2 style="font-size:16px">Average daily sales by traffic type</h2>'+salesChart+'</div>'+
       '<div><h2 style="font-size:16px">Cost ratios &amp; net margin by traffic type</h2>'+pctChart+'</div>'+

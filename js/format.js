@@ -57,6 +57,47 @@ function marginStatus(m, hasSales){
   return { label: "Critical", color: "var(--critical)" };
 }
 
+function monthsRecoverLabel(months){
+  if (months == null || months <= 0) return "Not yet — cash after loans must be positive";
+  return (Math.ceil(months * 10) / 10) + " months at this month\u2019s pace";
+}
+
+function realNumbersHtml(r){
+  if (!r) return "";
+  var neg = r.cashAfterLoans < 0;
+  return '<section class="card real-numbers">'+
+    '<h2>Your real numbers</h2>'+
+    '<p class="lede">Nothing counted twice: food, wages, and rent/bills are already inside <b>real profit</b>. Loan payment is subtracted once for <b>cash left</b>. Equipment spread is shown for reference only — it is <b>not</b> in P&amp;L and <b>not</b> subtracted from cash.</p>'+
+    '<div class="formula-list">'+
+      '<div class="formula" style="background:var(--accent-soft)"><dt>Real profit (this month)</dt>'+
+        '<span class="profit-bucket-note">Sales − COGS − labor − overhead (each once)</span>'+
+        '<dd class="tnum" style="font-size:16px">'+signedWon(r.realProfit)+'</dd></div>'+
+      '<div class="formula"><dt>How profit was built</dt>'+
+        '<span class="profit-bucket-note">Sales '+won(r.sales)+' · COGS '+wonParen(-r.cogsAmt)+' · Labor '+wonParen(-r.labor)+' · Overhead '+wonParen(-r.overhead)+'</span>'+
+        '<dd class="tnum">'+signedWon(r.realProfit)+'</dd></div>'+
+      '<div class="formula real-info-only"><dt>Setup spread (non-cash, info only)</dt>'+
+        '<span class="profit-bucket-note">Equipment &amp; contractor — not subtracted below</span>'+
+        '<dd class="tnum">'+won(r.setupSpreadMonthly)+' / mo</dd></div>'+
+      '<div class="formula"><dt>Loan payment (cash out)</dt>'+
+        '<span class="profit-bucket-note">Both loans — interest already inside</span>'+
+        '<dd class="tnum">'+wonParen(-r.loanPayment)+'</dd></div>'+
+      '<div class="formula"'+(neg ? "" : ' style="background:var(--accent-soft)"')+'><dt>Cash left after loans</dt>'+
+        '<span class="profit-bucket-note">Real profit − loan payment only</span>'+
+        '<dd class="tnum" style="font-size:17px;color:'+(neg ? "var(--critical)" : "var(--ink)")+'">'+signedWon(r.cashAfterLoans)+'</dd></div>'+
+      '<div class="formula"><dt>My own money in the business</dt>'+
+        '<span class="profit-bucket-note">From Setup &amp; assets funding (total − loans)</span>'+
+        '<dd class="tnum">'+won(r.ownMoney)+'</dd></div>'+
+      '<div class="formula"><dt>Months to get my own money back</dt>'+
+        '<span class="profit-bucket-note">Own money ÷ cash left this month</span>'+
+        '<dd class="tnum" style="font-weight:700">'+monthsRecoverLabel(r.monthsToRecoverOwnMoney)+'</dd></div>'+
+    '</div>'+
+  '</section>';
+}
+
+function cashViewHtml(r){
+  return realNumbersHtml(r);
+}
+
 function profitAllocationHtml(a){
   if (!a) return "";
   var b = PROFIT_BUCKET;
@@ -71,8 +112,8 @@ function profitAllocationHtml(a){
     ? '<p class="note" style="color:var(--warning-dot)">Buckets total more than this month\'s net profit by '+won(a.shortfall)+'. Reduce the share or raise profit before paying out.</p>'
     : "";
   return '<section class="card profit-buckets">'+
-    '<h2>Profit buckets (planning)</h2>'+
-    '<p class="lede">Split <b>net profit</b> into reserves. Tax and maintenance are '+pct(b.taxRate, 0)+' and '+pct(b.maintRate, 0)+' of net profit (zero if the month is a loss). '+
+    '<h2>Profit buckets (planning only)</h2>'+
+    '<p class="lede">Optional reserves from real profit — <b>does not change cash left above</b>. Tax and maintenance are '+pct(b.taxRate, 0)+' and '+pct(b.maintRate, 0)+' of net profit (zero if the month is a loss). '+
       'Vacation accrual is '+won(a.vacation)+' this month: overhead × ('+vacNote+') so '+b.vacationMonths+' closed months are funded while you work '+b.semesterAccrualMonths+' months.</p>'+
     '<div class="formula-list">'+
       row("Net profit (start)", a.netProfit, "", true)+
