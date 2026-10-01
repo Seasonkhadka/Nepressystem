@@ -24,6 +24,7 @@ function assetRowHtml(a){
   var lifeDisabled = spreads ? "" : ' disabled class="asset-life-off"';
   return '<tr data-asset-id="'+a.id+'"'+(a.included ? "" : ' class="asset-excluded"')+'>'+
     '<td class="asset-inc"><input type="checkbox" data-field="included"'+(a.included ? " checked" : "")+' title="Include in totals"></td>'+
+    '<td class="asset-actions"><button class="icon-btn" type="button" data-remove-asset="'+a.id+'" title="Delete row" aria-label="Delete row">×</button></td>'+
     '<td><input class="cell-input" type="date" data-field="date" value="'+esc(a.date || "")+'"></td>'+
     '<td><select class="cell-input" data-field="rowCat">'+assetRowCatSelectHtml(a.rowCat)+'</select></td>'+
     '<td><input class="cell-input text" type="text" data-field="name" placeholder="Item" value="'+esc(a.name)+'"></td>'+
@@ -33,8 +34,7 @@ function assetRowHtml(a){
     '<td><input class="cell-input" type="number" min="0" step="1" data-field="lifeMonths" placeholder="0" value="'+(spreads && life ? life : "")+'"'+lifeDisabled+'></td>'+
     '<td class="tnum calc" data-asset-monthly">'+(a.monthly ? won(a.monthly) : "—")+'</td>'+
     '<td><input class="cell-input text" type="text" data-field="note" placeholder="Flag / note" value="'+esc(a.note)+'"></td>'+
-    '<td class="asset-warn-cell">'+assetWarningsHtml(a.warnings)+'</td>'+
-    '<td><button class="icon-btn" type="button" data-remove-asset="'+a.id+'" title="Remove row" aria-label="Remove row">×</button></td>'+
+    '<td class="asset-warn-cell" colspan="1">'+assetWarningsHtml(a.warnings)+'</td>'+
   '</tr>';
 }
 
@@ -44,7 +44,7 @@ function assetSectionHtml(c){
     '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
     '<p class="lede">'+c.lede+'</p>'+
     '<div class="table-wrap purchase-wrap"><table class="asset-table asset-table-wide"><thead><tr>'+
-      '<th>Incl.</th><th>Date</th><th>Category</th><th>Item</th><th>Qty</th><th>₩ each</th><th>Line total</th><th>Life (mo)</th><th>₩ / mo</th><th>Note</th><th></th><th></th>'+
+      '<th>Incl.</th><th></th><th>Date</th><th>Category</th><th>Item</th><th>Qty</th><th>₩ each</th><th>Line total</th><th>Life (mo)</th><th>₩ / mo</th><th>Note</th><th>Flags</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-asset="'+c.cat+'">+ Add item</button>'+
     '<p class="note">Invested (included) <b class="tnum" data-asset-invested="'+c.cat+'">'+won(c.invested)+'</b>'+
