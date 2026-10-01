@@ -199,7 +199,19 @@ function refreshAssetComputedCells(model){
       };
       idleSet('[data-field="unitPrice"]', niceNum(a.unitPrice));
       idleSet('[data-field="amount"]', niceNum(a.amount));
-      idleSet('[data-field="lifeMonths"]', a.spreads && a.lifeMonths ? a.lifeMonths : "");
+      var lifeIn = tr.querySelector('[data-field="lifeMonths"]');
+      if (lifeIn && document.activeElement !== lifeIn){
+        if (a.spreads){
+          lifeIn.disabled = false;
+          lifeIn.classList.remove("asset-life-off");
+          var lifeVal = a.lifeMonths ? String(a.lifeMonths) : "";
+          if (lifeIn.value !== lifeVal) lifeIn.value = lifeVal;
+        } else {
+          lifeIn.disabled = true;
+          lifeIn.classList.add("asset-life-off");
+          if (lifeIn.value !== "") lifeIn.value = "";
+        }
+      }
       var sel = tr.querySelector('[data-field="rowCat"]');
       if (sel && document.activeElement !== sel && sel.value !== a.rowCat) sel.value = a.rowCat;
       var mEl = tr.querySelector("[data-asset-monthly]");

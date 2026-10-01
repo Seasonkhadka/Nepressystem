@@ -204,16 +204,10 @@ function initAssetEvents(){
     var field = t.getAttribute("data-field");
     if (field === "included"){
       applyAssetField(rec, field, t.checked);
-      renderAssetsTab();
       refreshDerived();
       return;
     }
     applyAssetField(rec, field, t.value);
-    if (field === "rowCat" || field === "name"){
-      renderAssetsTab();
-      refreshDerived();
-      return;
-    }
     refreshDerived();
   };
   host.addEventListener("input", onFieldChange);
