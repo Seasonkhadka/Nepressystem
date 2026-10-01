@@ -255,8 +255,6 @@
   .setup-plan-grid label{ display:flex; flex-direction:column; gap:4px; font-size:12px; font-weight:600; }
   .setup-ok{ color:var(--good); }
   .setup-bad{ color:var(--critical); }
-  .real-numbers .formula.real-info-only dt{ color:var(--muted); }
-  .real-numbers .formula.real-info-only dd{ color:var(--muted); }
   table.salary-table{ min-width:560px; }
   table.salary-parts-table{ min-width:520px; }
   table.asset-summary{ min-width:360px; }

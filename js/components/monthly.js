@@ -36,6 +36,7 @@ function renderMonthlyTab(model){
         row("Net Profit", m.netProfit, false, true)+
         row("Net Margin %", m.netMarginPct, true, true)+
       '</div>'+
+      monthlyCashAfterLoansHtml(model.cashView)+
       '<div class="tie-out"><span class="check">'+(tie1?"✓":"!")+'</span> Matches sum of daily rows ('+won(sumOfDays)+').</div>'+
       '<div class="tie-out"><span class="check">'+(tie2?"✓":"!")+'</span> Matches sum of weekly rows ('+won(sumOfWeeks)+').</div>'+
       '<p class="note">→ These figures feed the Main Dashboard tiles and charts directly — nothing on that tab is entered separately.</p>'+

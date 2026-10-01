@@ -430,26 +430,16 @@ function computeAll(){
 
   var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead);
   var loanPay = setupAssets.loanTotals ? setupAssets.loanTotals.payment : 0;
-  var loanIntM1 = setupAssets.loanTotals ? setupAssets.loanTotals.interestM1 : 0;
-  var spread = setupAssets.assetGrand ? setupAssets.assetGrand.monthly : 0;
   var ownMoney = setupAssets.funding ? setupAssets.funding.ownMoney : 0;
-  var realProfit = monthly.netProfit;
-  var cashAfterLoans = realProfit - loanPay;
-  var monthsRecover = cashAfterLoans > 0 && ownMoney > 0 ? ownMoney / cashAfterLoans : null;
-  var realNumbers = {
-    realProfit: realProfit,
-    sales: monthly.sales,
-    cogsAmt: monthly.cogsAmt,
-    labor: monthly.labor,
-    overhead: monthly.overhead,
-    setupSpreadMonthly: spread,
+  var cashAfter = monthly.netProfit - loanPay;
+  var monthsRecover = cashAfter > 0 && ownMoney > 0 ? ownMoney / cashAfter : null;
+  var cashView = {
+    netProfit: monthly.netProfit,
     loanPayment: loanPay,
-    cashAfterLoans: cashAfterLoans,
+    cashAfterLoans: cashAfter,
     ownMoney: ownMoney,
-    monthsToRecoverOwnMoney: monthsRecover,
-    loanInterestM1: loanIntM1
+    monthsToRecover: monthsRecover
   };
-  var cashView = realNumbers;
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation, cashView:cashView, realNumbers:realNumbers };
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation, cashView:cashView };
 }
