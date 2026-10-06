@@ -33,6 +33,7 @@ function applyMonthYearChange(){
   stashDays(STATE.year, STATE.month, STATE.days);
   STATE.month = newMonth; STATE.year = newYear;
   STATE.days = daysFromArchive(STATE.year, STATE.month);
+  populateSetupBar();
   renderCalculationsTab();
   renderRawMaterialsTab();
   renderLaborTab();

@@ -744,20 +744,45 @@ function normalizeParsedState(parsed){
     var y = Number(parts[0]), m = Number(parts[1]);
     if (y && m) parsed.dayArchive[k] = normalizeDays(parsed.dayArchive[k], y, m);
   });
-  parsed.dayArchive[monthKey(year, month)] = parsed.days;
+  return syncDaysForViewMonth(parsed);
+}
+
+/** Daily rows for the month shown in the picker — prefer dayArchive over stale root days. */
+function syncDaysForViewMonth(parsed){
+  if (!parsed.dayArchive || typeof parsed.dayArchive !== "object") parsed.dayArchive = {};
+  var y = Number(parsed.year) || today().getFullYear();
+  var m = Number(parsed.month) || (today().getMonth() + 1);
+  parsed.year = y;
+  parsed.month = m;
+  var mk = monthKey(y, m);
+  parsed.days = normalizeDays(parsed.dayArchive[mk] || parsed.days, y, m);
+  parsed.dayArchive[mk] = parsed.days;
   return parsed;
+}
+
+/** On open, show today’s calendar month and load that month’s saved daily sales. */
+function openToCalendarMonth(parsed){
+  var now = today();
+  var cy = now.getFullYear(), cm = now.getMonth() + 1;
+  if (!parsed.dayArchive || typeof parsed.dayArchive !== "object") parsed.dayArchive = {};
+  if (parsed.year !== cy || parsed.month !== cm){
+    parsed.dayArchive[monthKey(parsed.year, parsed.month)] = normalizeDays(parsed.days, parsed.year, parsed.month);
+    parsed.year = cy;
+    parsed.month = cm;
+  }
+  return syncDaysForViewMonth(parsed);
 }
 
 function loadState(){
   try {
     var raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
-    return normalizeParsedState(JSON.parse(raw));
+    return openToCalendarMonth(normalizeParsedState(JSON.parse(raw)));
   } catch(e){ return defaultState(); }
 }
 
 function replaceState(parsed){
-  STATE = normalizeParsedState(parsed);
+  STATE = syncDaysForViewMonth(normalizeParsedState(parsed));
 }
 
 function stateHasUserData(s){
