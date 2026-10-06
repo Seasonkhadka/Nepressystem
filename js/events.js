@@ -154,13 +154,18 @@ function initDailyEvents(){
   if (!host) return;
   var onDayChange = function(e){
     var t = e.target;
-    if (!t.matches("[data-day-field]")) return;
-    var day = Number(t.closest("tr[data-day]").getAttribute("data-day"));
+    if (!t.matches("[data-field]")) return;
+    var row = t.closest("tr[data-day]");
+    if (!row) return;
+    var day = Number(row.getAttribute("data-day"));
     if (!day) return;
+    if (!STATE.days) STATE.days = {};
     var rec = STATE.days[day] || { vacation:false, sales:0, labor:0 };
-    var field = t.getAttribute("data-day-field");
+    var field = t.getAttribute("data-field");
     if (field === "vacation") rec.vacation = t.checked;
-    else rec[field] = parseFloat(t.value) || 0;
+    else if (field === "sales") rec.sales = parseFloat(t.value) || 0;
+    else if (field === "labor") rec.labor = parseFloat(t.value) || 0;
+    else return;
     STATE.days[day] = rec;
     refreshDerived();
   };

@@ -747,7 +747,29 @@ function normalizeParsedState(parsed){
   return syncDaysForViewMonth(parsed);
 }
 
-/** Daily rows for the month shown in the picker — prefer dayArchive over stale root days. */
+function totalSalesInDays(days){
+  if (!days || typeof days !== "object") return 0;
+  var t = 0;
+  Object.keys(days).forEach(function(k){
+    var d = days[k];
+    if (d) t += Number(d.sales) || 0;
+  });
+  return t;
+}
+
+function pickDaysForMonth(archived, root, year, month){
+  var a = archived ? normalizeDays(archived, year, month) : null;
+  var r = root ? normalizeDays(root, year, month) : null;
+  if (a && r){
+    var sa = totalSalesInDays(a), sr = totalSalesInDays(r);
+    if (sr > sa) return r;
+    if (sa > sr) return a;
+    return a;
+  }
+  return a || r || {};
+}
+
+/** Daily rows for the month shown in the picker — prefer the copy that has sales. */
 function syncDaysForViewMonth(parsed){
   if (!parsed.dayArchive || typeof parsed.dayArchive !== "object") parsed.dayArchive = {};
   var y = Number(parsed.year) || today().getFullYear();
@@ -755,7 +777,7 @@ function syncDaysForViewMonth(parsed){
   parsed.year = y;
   parsed.month = m;
   var mk = monthKey(y, m);
-  parsed.days = normalizeDays(parsed.dayArchive[mk] || parsed.days, y, m);
+  parsed.days = normalizeDays(pickDaysForMonth(parsed.dayArchive[mk], parsed.days, y, m), y, m);
   parsed.dayArchive[mk] = parsed.days;
   return parsed;
 }
@@ -769,6 +791,7 @@ function openToCalendarMonth(parsed){
     parsed.dayArchive[monthKey(parsed.year, parsed.month)] = normalizeDays(parsed.days, parsed.year, parsed.month);
     parsed.year = cy;
     parsed.month = cm;
+    parsed.days = null;
   }
   return syncDaysForViewMonth(parsed);
 }
