@@ -235,6 +235,15 @@
   select.labor-paid{ min-width:88px; }
   td.labor-part-staff{ font-weight:600; white-space:nowrap; }
   table.purchase-table, table.compare-table, table.lump-table, table.asset-table, table.labor-table, table.salary-table, table.overhead-table, table.buy-table{ min-width:560px; }
+  table.compare-master{ min-width:720px; font-size:13px; }
+  table.compare-master .compare-item{ vertical-align:top; min-width:88px; max-width:120px; font-weight:600; }
+  table.compare-master .compare-cat{ vertical-align:top; font-size:12px; color:var(--muted); max-width:100px; }
+  table.compare-master .compare-unit{ vertical-align:top; color:var(--muted); }
+  table.compare-master .compare-qty{ white-space:nowrap; font-size:12px; }
+  table.compare-master .compare-pack{ display:block; font-size:11px; color:var(--muted); font-weight:400; }
+  table.compare-master .compare-delta{ color:var(--ember); font-size:12px; }
+  .compare-merge{ font-size:11px; font-weight:600; color:var(--muted); }
+  #tab-compare .compare-compact .lede{ margin-bottom:12px; }
   table.buy-table{ min-width:520px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:860px; }
@@ -260,8 +269,11 @@
   table.asset-summary{ min-width:360px; }
   table.purchase-table thead th:nth-child(n+3),
   table.purchase-table tbody td:nth-child(n+3),
-  table.compare-table thead th:nth-child(n+2),
-  table.compare-table tbody td:nth-child(n+2),
+  table.compare-table:not(.compare-master) thead th:nth-child(n+2),
+  table.compare-table:not(.compare-master) tbody td:nth-child(n+2),
+  table.compare-master thead th:nth-child(n+5),
+  table.compare-master tbody td:nth-child(n+5),
+  table.compare-master td.compare-unit,
   table.buy-table thead th:nth-child(n+2),
   table.buy-table tbody td:nth-child(n+2),
   table.lump-table thead th:nth-child(4),
