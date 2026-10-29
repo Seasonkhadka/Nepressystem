@@ -138,8 +138,7 @@ function buyPlanTableBody(plan){
     var needCell = r.done
       ? '<span class="buy-tag ok">OK</span>'
       : esc(boughtLabel(r.needPacks, r.needQty, r.unit));
-    var trClass = r.done ? ' class="buy-row-done"' : "";
-    return "<tr"+trClass+">"+
+    return "<tr>"+
       "<td>"+esc(r.name)+merge+"</td>"+
       '<td class="tnum">'+esc(boughtLabel(r.avgPacks, r.avgQty, r.unit))+
         ' <span class="buy-avg-note">'+avgNote+"</span></td>"+

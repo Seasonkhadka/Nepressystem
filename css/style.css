@@ -185,7 +185,7 @@
   .cell-input::placeholder{ color:var(--muted); }
 
   .tag{ display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:0.02em; }
-  .tag.weekday{ background:var(--accent-soft); color:var(--accent); }
+  .tag.weekday{ background:rgba(12,163,12,0.14); color:var(--good); }
   .tag.weekend{ background:rgba(0,0,0,0.08); color:var(--row-weekend-ink); }
   .tag.vacation{ background:rgba(0,0,0,0.1); color:var(--row-vacation-ink); }
   tr.weekend .tag.weekend, tr.vacation .tag.vacation{ background:rgba(255,255,255,0.5); }
@@ -241,14 +241,22 @@
   table.compare-master .compare-unit{ vertical-align:top; color:var(--muted); }
   table.compare-master .compare-qty{ white-space:nowrap; font-size:12px; }
   table.compare-master .compare-pack{ display:block; font-size:11px; color:var(--muted); font-weight:400; }
-  table.compare-master .compare-delta{ color:var(--ember); font-size:12px; }
+  table.compare-master .compare-delta{ color:var(--muted); font-size:12px; }
   .compare-merge{ font-size:11px; font-weight:600; color:var(--muted); }
   #tab-compare .compare-compact .lede{ margin-bottom:12px; }
   table.buy-simple-table{ min-width:480px; font-size:13px; }
   .buy-avg-note{ font-size:11px; color:var(--muted); font-weight:400; }
-  .buy-simple-table .buy-need{ font-weight:600; color:var(--accent); }
-  tr.buy-row-done td{ color:var(--muted); }
-  tr.buy-row-done .buy-need{ font-weight:500; }
+  .buy-simple-table .buy-cur,
+  .buy-simple-table .buy-need{ font-weight:600; color:var(--good); }
+  .buy-tag.ok{
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:2px 8px;
+    border-radius:999px;
+    background:rgba(12,163,12,0.14);
+    color:var(--good);
+  }
   table.buy-table{ min-width:520px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:860px; }
@@ -311,7 +319,7 @@
   table.salary-parts-table tbody td:last-child,
   table.overhead-table thead th:last-child,
   table.overhead-table tbody td:last-child{ text-align:center; }
-  tr.best-place td{ background:var(--accent-soft); }
+  tr.best-place td{ background:rgba(12,163,12,0.08); }
   .profit-bucket-note{ display:block; font-weight:400; font-size:11px; color:var(--muted); margin-top:2px; }
   .calc-jump{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
   .calc-jump a{ display:inline-block; padding:7px 12px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-weight:600; font-size:12.5px; text-decoration:none; border:1px solid var(--hairline); }
