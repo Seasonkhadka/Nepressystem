@@ -26,9 +26,16 @@ function computeBuyPlanSimple(){
     var name = ingredientExactName(i.name);
     if (!name) return;
     var unit = i.unit || defaultUnit(i.cat);
-    var key = buyPlanItemKey(name, unit);
+    var key = findFuzzyNameGroupKey(name, unit, groups, buyPlanItemKey);
+    var nPurch = asArray(i.purchases).length;
     if (!groups[key]){
-      groups[key] = { name: name, unit: unit, byMonth: {} };
+      groups[key] = { name: name, unit: unit, byMonth: {}, rowCount: 0, leaderPurchases: -1 };
+    }
+    var grp = groups[key];
+    grp.rowCount += 1;
+    if (nPurch > grp.leaderPurchases){
+      grp.leaderPurchases = nPurch;
+      grp.name = name;
     }
     asArray(i.purchases).forEach(function(p){
       if (!p || !p.date) return;
@@ -72,6 +79,7 @@ function computeBuyPlanSimple(){
     rows.push({
       name: g.name,
       unit: g.unit,
+      rowCount: g.rowCount || 1,
       monthCount: n,
       avgPacks: avgPacks,
       avgQty: avgQty,
@@ -83,7 +91,9 @@ function computeBuyPlanSimple(){
     });
   });
 
-  rows.sort(function(a, b){ return b.avgAmt - a.avgAmt; });
+  rows.sort(function(a, b){
+    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+  });
   return { rows: rows, curLabel: curLabel, monthCount: rows.length ? rows[0].monthCount : 0 };
 }
 
@@ -92,8 +102,11 @@ function buyPlanTableBody(plan){
     return '<tr><td colspan="4" class="note empty">Nothing left to buy this month — or log more dated purchases on Raw Materials to build an average.</td></tr>';
   }
   var body = plan.rows.map(function(r){
+    var merge = r.rowCount > 1
+      ? ' <span class="buy-avg-note" title="Similar names merged">×'+r.rowCount+"</span>"
+      : "";
     return "<tr>"+
-      "<td>"+esc(r.name)+"</td>"+
+      "<td>"+esc(r.name)+merge+"</td>"+
       '<td class="tnum">'+esc(boughtLabel(r.avgPacks, r.avgQty, r.unit))+
         ' <span class="buy-avg-note">('+r.monthCount+" mo avg)</span></td>"+
       '<td class="tnum">'+esc(boughtLabel(r.curPacks, r.curQty, r.unit))+"</td>"+

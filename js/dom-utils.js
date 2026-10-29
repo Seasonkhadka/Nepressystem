@@ -37,6 +37,50 @@ function ingredientNameKey(name){
   return String(name || "").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+function levenshteinDistance(a, b){
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  var prev = [], cur = [], i, j;
+  for (j = 0; j <= b.length; j++) prev[j] = j;
+  for (i = 1; i <= a.length; i++){
+    cur[0] = i;
+    for (j = 1; j <= b.length; j++){
+      var cost = a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+    }
+    var swap = prev;
+    prev = cur;
+    cur = swap;
+  }
+  return prev[b.length];
+}
+
+/** True when names look like the same item (case, spacing, small typos). */
+function ingredientNamesSimilar(a, b){
+  var ka = ingredientNameKey(a);
+  var kb = ingredientNameKey(b);
+  if (!ka || !kb) return false;
+  if (ka === kb) return true;
+  var maxLen = Math.max(ka.length, kb.length);
+  if (maxLen < 3) return false;
+  var d = levenshteinDistance(ka, kb);
+  if (maxLen <= 5) return d <= 1;
+  if (maxLen <= 10) return d <= 2;
+  return d <= 3 && d / maxLen <= 0.22;
+}
+
+function findFuzzyNameGroupKey(name, unit, groups, keyFn){
+  unit = unit || "unit";
+  var keys = Object.keys(groups);
+  for (var i = 0; i < keys.length; i++){
+    var g = groups[keys[i]];
+    if (g.unit !== unit) continue;
+    if (ingredientNamesSimilar(g.name, name)) return keys[i];
+  }
+  return keyFn(name, unit);
+}
+
 /** Unique display names per raw-material category from all months. */
 function collectIngredientNamesByCat(ingredients){
   var byCat = {};
