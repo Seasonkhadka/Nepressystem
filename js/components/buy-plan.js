@@ -57,6 +57,7 @@ function computeBuyPlanSimple(){
     if (!monthKeys.length) return;
 
     var histKeys = monthKeys.filter(function(mk){ return mk !== curMk; });
+    var avgFromPrior = histKeys.length > 0;
     if (!histKeys.length) histKeys = monthKeys.slice();
 
     var sumP = 0, sumQ = 0, sumA = 0;
@@ -67,27 +68,29 @@ function computeBuyPlanSimple(){
       sumA += t.amt;
     });
     var n = histKeys.length;
-    var avgPacks = sumP / n;
-    var avgQty = sumQ / n;
-    var avgAmt = sumA / n;
+    var avgPacks = n ? sumP / n : 0;
+    var avgQty = n ? sumQ / n : 0;
+    var avgAmt = n ? sumA / n : 0;
 
     var cur = g.byMonth[curMk] || { packs: 0, qty: 0, amt: 0 };
     var needP = Math.max(0, avgPacks - cur.packs);
     var needQ = Math.max(0, avgQty - cur.qty);
-    if (needP <= 0.001 && needQ <= 0.001) return;
+    var done = needP <= 0.001 && needQ <= 0.001;
 
     rows.push({
       name: g.name,
       unit: g.unit,
       rowCount: g.rowCount || 1,
       monthCount: n,
+      avgFromPrior: avgFromPrior,
       avgPacks: avgPacks,
       avgQty: avgQty,
       avgAmt: avgAmt,
       curPacks: cur.packs,
       curQty: cur.qty,
       needPacks: needP,
-      needQty: needQ
+      needQty: needQ,
+      done: done
     });
   });
 
@@ -99,18 +102,25 @@ function computeBuyPlanSimple(){
 
 function buyPlanTableBody(plan){
   if (!plan.rows.length){
-    return '<tr><td colspan="4" class="note empty">Nothing left to buy this month — or log more dated purchases on Raw Materials to build an average.</td></tr>';
+    return '<tr><td colspan="4" class="note empty">No dated purchases yet — add items on Raw Materials with a <b>date</b> on each buy.</td></tr>';
   }
   var body = plan.rows.map(function(r){
     var merge = r.rowCount > 1
       ? ' <span class="buy-avg-note" title="Similar names merged">×'+r.rowCount+"</span>"
       : "";
-    return "<tr>"+
+    var avgNote = r.avgFromPrior
+      ? "("+r.monthCount+" mo avg)"
+      : "(only this month so far)";
+    var needCell = r.done
+      ? '<span class="buy-tag ok">OK</span>'
+      : esc(boughtLabel(r.needPacks, r.needQty, r.unit));
+    var trClass = r.done ? ' class="buy-row-done"' : "";
+    return "<tr"+trClass+">"+
       "<td>"+esc(r.name)+merge+"</td>"+
       '<td class="tnum">'+esc(boughtLabel(r.avgPacks, r.avgQty, r.unit))+
-        ' <span class="buy-avg-note">('+r.monthCount+" mo avg)</span></td>"+
+        ' <span class="buy-avg-note">'+avgNote+"</span></td>"+
       '<td class="tnum">'+esc(boughtLabel(r.curPacks, r.curQty, r.unit))+"</td>"+
-      '<td class="tnum buy-need">'+esc(boughtLabel(r.needPacks, r.needQty, r.unit))+"</td>"+
+      '<td class="tnum buy-need">'+needCell+"</td>"+
     "</tr>";
   }).join("");
   return body;
@@ -123,7 +133,7 @@ function renderBuyPlanTab(){
   host.innerHTML =
     '<section class="card buy-plan-simple">'+
       "<h2>Buy plan</h2>"+
-      '<p class="lede buy-plan-lede">For <b>'+esc(plan.curLabel)+'</b>. <b>Avg monthly</b> = mean of past months with buys (this month excluded). <b>Still need</b> = average minus what you already bought this month. Updates when Raw Materials change.</p>'+
+      '<p class="lede buy-plan-lede">For <b>'+esc(plan.curLabel)+'</b>. Every item with a <b>dated</b> buy is listed A–Z. <b>Avg monthly</b> uses earlier months when you have them; otherwise this month’s total. <b>Still need</b> = avg minus bought this month (OK = caught up).</p>'+
       '<div class="table-wrap"><table class="buy-table buy-simple-table">'+
         "<thead><tr>"+
           "<th>Item</th><th>Avg monthly</th><th>Bought this month</th><th>Still need</th>"+
@@ -144,7 +154,7 @@ function refreshBuyPlanCells(){
   var plan = computeBuyPlanSimple();
   var lede = host.querySelector(".buy-plan-lede");
   if (lede){
-    lede.innerHTML = 'For <b>'+esc(plan.curLabel)+'</b>. <b>Avg monthly</b> = mean of past months with buys (this month excluded). <b>Still need</b> = average minus what you already bought this month. Updates when Raw Materials change.';
+    lede.innerHTML = 'For <b>'+esc(plan.curLabel)+'</b>. Every item with a <b>dated</b> buy is listed A–Z. <b>Avg monthly</b> uses earlier months when you have them; otherwise this month’s total. <b>Still need</b> = avg minus bought this month (OK = caught up).';
   }
   tbody.innerHTML = buyPlanTableBody(plan);
 }

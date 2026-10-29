@@ -247,6 +247,8 @@
   table.buy-simple-table{ min-width:480px; font-size:13px; }
   .buy-avg-note{ font-size:11px; color:var(--muted); font-weight:400; }
   .buy-simple-table .buy-need{ font-weight:600; color:var(--accent); }
+  tr.buy-row-done td{ color:var(--muted); }
+  tr.buy-row-done .buy-need{ font-weight:500; }
   table.buy-table{ min-width:520px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:860px; }
