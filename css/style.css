@@ -244,14 +244,9 @@
   table.compare-master .compare-delta{ color:var(--ember); font-size:12px; }
   .compare-merge{ font-size:11px; font-weight:600; color:var(--muted); }
   #tab-compare .compare-compact .lede{ margin-bottom:12px; }
-  table.buy-analysis-table{ min-width:640px; font-size:13px; }
-  .buy-summary{ margin-bottom:10px; }
-  .buy-tag{ display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; white-space:nowrap; }
-  .buy-tag.ok{ background:var(--accent-soft); color:var(--accent); }
-  .buy-tag.pending{ background:rgba(0,0,0,0.06); color:var(--muted); }
-  .buy-tag.under{ background:rgba(255,180,0,0.15); color:var(--warning-dot); }
-  .buy-tag.over{ background:rgba(255,100,80,0.12); color:var(--ember); }
-  .buy-tag.new{ background:rgba(100,180,255,0.12); color:var(--chart-5); }
+  table.buy-simple-table{ min-width:480px; font-size:13px; }
+  .buy-avg-note{ font-size:11px; color:var(--muted); font-weight:400; }
+  .buy-simple-table .buy-need{ font-weight:600; color:var(--accent); }
   table.buy-table{ min-width:520px; }
   table.purchase-table{ min-width:680px; }
   table.asset-table, table.labor-table{ min-width:860px; }
