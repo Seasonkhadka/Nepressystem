@@ -2,24 +2,20 @@
  * components/buy-plan.js — avg monthly need; bought this month from live purchases.
  */
 
-function buyPlanItemKey(name, unit){
-  return ingredientNameKey(name) + "\0" + (unit || "unit");
-}
-
-function addBuyMonthTotals(bucket, p){
+function addBuyMonthTotalsPlan(bucket, p, sourceUnit, displayUnit){
   var packs = Number(p.packs) || 0;
-  var qty = purchaseQty(p);
-  var amt = lineTotal(p);
   bucket.packs += packs;
-  bucket.qty += qty;
-  bucket.amt += amt;
+  bucket.qty += purchaseWeightForPlan(p, sourceUnit, displayUnit);
+  bucket.amt += lineTotal(p);
 }
 
-function sumPurchasesInMonth(purchases, year, month){
+function sumPurchasesInMonthPlan(entries, year, month, displayUnit){
   var tot = { packs: 0, qty: 0, amt: 0 };
-  asArray(purchases).forEach(function(p){
+  asArray(entries).forEach(function(entry){
+    var p = entry.p || entry;
+    var u = entry.unit || displayUnit;
     if (!purchaseInMonth(p, year, month)) return;
-    addBuyMonthTotals(tot, p);
+    addBuyMonthTotalsPlan(tot, p, u, displayUnit);
   });
   return tot;
 }
@@ -43,12 +39,12 @@ function computeBuyPlanSimple(){
     var name = ingredientExactName(i.name);
     if (!name) return;
     var unit = i.unit || defaultUnit(i.cat);
-    var key = findFuzzyNameGroupKey(name, unit, groups, buyPlanItemKey);
+    var key = findBuyPlanGroupKey(name, unit, groups);
     var nPurch = asArray(i.purchases).length;
     if (!groups[key]){
       groups[key] = {
         name: name,
-        unit: unit,
+        unit: buyPlanDisplayUnit(unit),
         purchases: [],
         rowCount: 0,
         leaderPurchases: -1
@@ -60,23 +56,28 @@ function computeBuyPlanSimple(){
       grp.leaderPurchases = nPurch;
       grp.name = name;
     }
+    if (!unitsCompatible(grp.unit, unit)){
+      grp.unit = buyPlanDisplayUnit(unit);
+    }
     asArray(i.purchases).forEach(function(p){
-      if (p) grp.purchases.push(p);
+      if (p) grp.purchases.push({ p: p, unit: unit });
     });
   });
 
   var rows = [];
   Object.keys(groups).forEach(function(key){
     var g = groups[key];
+    var disp = g.unit;
     var byMonth = {};
-    g.purchases.forEach(function(p){
+    g.purchases.forEach(function(entry){
+      var p = entry.p;
       if (!p || !p.date) return;
       var parts = String(p.date).split("-");
       var y = Number(parts[0]), m = Number(parts[1]);
       if (!y || !m) return;
       var mk = monthKey(y, m);
       if (!byMonth[mk]) byMonth[mk] = { packs: 0, qty: 0, amt: 0 };
-      addBuyMonthTotals(byMonth[mk], p);
+      addBuyMonthTotalsPlan(byMonth[mk], p, entry.unit, disp);
     });
 
     var monthKeys = Object.keys(byMonth);
@@ -96,22 +97,20 @@ function computeBuyPlanSimple(){
     var n = histKeys.length;
     var avgPacks = n ? sumP / n : 0;
     var avgQty = n ? sumQ / n : 0;
-    var avgAmt = n ? sumA / n : 0;
 
-    var cur = sumPurchasesInMonth(g.purchases, year, month);
+    var cur = sumPurchasesInMonthPlan(g.purchases, year, month, disp);
     var needP = Math.max(0, avgPacks - cur.packs);
     var needQ = Math.max(0, avgQty - cur.qty);
     var done = needP <= 0.001 && needQ <= 0.001;
 
     rows.push({
       name: g.name,
-      unit: g.unit,
+      unit: disp,
       rowCount: g.rowCount || 1,
       monthCount: n,
       avgFromPrior: avgFromPrior,
       avgPacks: avgPacks,
       avgQty: avgQty,
-      avgAmt: avgAmt,
       cur: cur,
       needPacks: needP,
       needQty: needQ,
@@ -131,7 +130,7 @@ function buyPlanTableBody(plan){
   }
   return plan.rows.map(function(r){
     var merge = r.rowCount > 1
-      ? ' <span class="buy-avg-note" title="Similar names merged">×'+r.rowCount+"</span>"
+      ? ' <span class="buy-avg-note" title="Rows merged (similar name or kg+g)">×'+r.rowCount+"</span>"
       : "";
     var avgNote = r.avgFromPrior
       ? "("+r.monthCount+" mo avg)"
@@ -157,7 +156,7 @@ function renderBuyPlanTab(){
   host.innerHTML =
     '<section class="card buy-plan-simple">'+
       "<h2>Buy plan</h2>"+
-      '<p class="lede buy-plan-lede">For <b>'+esc(plan.curLabel)+'</b>. Every item with a <b>dated</b> buy is listed A–Z. <b>Bought this month</b> updates when you change Raw Materials. <b>Still need</b> = avg minus bought (OK = caught up).</p>'+
+      '<p class="lede buy-plan-lede">For <b>'+esc(plan.curLabel)+'</b>. Similar names and <b>kg + g</b> (or L + ml) on the same item merge to one line. Updates when Raw Materials change.</p>'+
       '<div class="table-wrap"><table class="buy-table buy-simple-table">'+
         "<thead><tr>"+
           "<th>Item</th><th>Avg monthly</th><th>Bought this month</th><th>Still need</th>"+

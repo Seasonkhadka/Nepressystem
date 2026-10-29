@@ -14,11 +14,19 @@ function fmtQty(n){
 
 function compareRowsForIngredient(i){
   var byPlace = {};
-  (i.purchases || []).forEach(function(p){
-    var packs = Number(p.packs)||0;
-    var weight = purchaseQty(p);
+  var dispUnit = i.unit || "kg";
+  var entries = i.purchaseEntries;
+  if (!entries && i.purchases){
+    entries = i.purchases.map(function(p){ return { p: p, unit: dispUnit }; });
+  }
+  asArray(entries).forEach(function(entry){
+    var p = entry.p;
+    if (!p) return;
+    var u = entry.unit || dispUnit;
+    var packs = Number(p.packs) || 0;
+    var weight = purchaseWeightForPlan(p, u, dispUnit);
     var tot = lineTotal(p);
-    var measure = purchaseMeasure(p);
+    var measure = weight > 0 ? weight : purchaseMeasure(p);
     if (measure <= 0 && tot <= 0) return;
     var key = placeKey(p.place);
     if (!byPlace[key]) byPlace[key] = { place: key, count: 0, packs: 0, weight: 0, measure: 0, spend: 0, lastPrice: 0, lastPackPrice: 0, lastDate: "" };
@@ -30,7 +38,7 @@ function compareRowsForIngredient(i){
     g.spend += tot;
     if (!g.lastDate || String(p.date) >= g.lastDate){
       g.lastDate = p.date || "";
-      g.lastPrice = measure > 0 ? tot / measure : (Number(p.unitPrice)||0);
+      g.lastPrice = measure > 0 ? tot / measure : (Number(p.unitPrice) || 0);
       g.lastPackPrice = packs > 0 ? tot / packs : 0;
     }
   });

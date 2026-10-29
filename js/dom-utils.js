@@ -81,6 +81,59 @@ function findFuzzyNameGroupKey(name, unit, groups, keyFn){
   return keyFn(name, unit);
 }
 
+function unitKind(u){
+  u = String(u || "").toLowerCase();
+  if (u === "kg" || u === "g") return "mass";
+  if (u === "l" || u === "ml") return "vol";
+  if (u === "ea" || u === "bunch" || u === "pack" || u === "box") return "count";
+  return "other";
+}
+
+function unitsCompatible(a, b){
+  var ka = unitKind(a), kb = unitKind(b);
+  if (ka === "other" || kb === "other") return String(a || "") === String(b || "");
+  return ka === kb;
+}
+
+function canonicalUnitForKind(kind){
+  if (kind === "mass") return "kg";
+  if (kind === "vol") return "L";
+  return null;
+}
+
+function convertUnitQty(qty, fromUnit, toUnit){
+  qty = Number(qty) || 0;
+  if (!fromUnit || !toUnit || fromUnit === toUnit) return qty;
+  if (fromUnit === "g" && toUnit === "kg") return qty / 1000;
+  if (fromUnit === "kg" && toUnit === "g") return qty * 1000;
+  if (fromUnit === "ml" && toUnit === "L") return qty / 1000;
+  if (fromUnit === "L" && toUnit === "ml") return qty * 1000;
+  return qty;
+}
+
+function buyPlanDisplayUnit(unit){
+  var kind = unitKind(unit);
+  return canonicalUnitForKind(kind) || unit || "kg";
+}
+
+function purchaseWeightForPlan(p, sourceUnit, displayUnit){
+  var w = purchaseQty(p);
+  return convertUnitQty(w, sourceUnit, displayUnit);
+}
+
+/** Merge buy-plan rows: same / similar name; kg+g and L+ml count as one item. */
+function findBuyPlanGroupKey(name, unit, groups){
+  unit = unit || "kg";
+  var nk = ingredientNameKey(name);
+  var keys = Object.keys(groups);
+  for (var i = 0; i < keys.length; i++){
+    var g = groups[keys[i]];
+    if (ingredientNameKey(g.name) === nk && unitsCompatible(g.unit, unit)) return keys[i];
+    if (ingredientNamesSimilar(g.name, name) && unitsCompatible(g.unit, unit)) return keys[i];
+  }
+  return nk;
+}
+
 /** Unique display names per raw-material category from all months. */
 function collectIngredientNamesByCat(ingredients){
   var byCat = {};
@@ -118,7 +171,7 @@ function ingredientExactName(name){
   return s.replace(/[\u200b-\u200d\ufeff]/g, "");
 }
 
-/** Price Compare: merge same product (normalized name + unit) across all Raw Materials rows. */
+/** Price Compare: merge similar names; kg+g / L+ml combine with qty normalized. */
 function groupIngredientsForCompare(ingredients){
   var groups = {};
   asArray(ingredients).forEach(function(i){
@@ -126,12 +179,12 @@ function groupIngredientsForCompare(ingredients){
     var display = ingredientExactName(i.name);
     if (!display) return;
     var u = i.unit || defaultUnit(i.cat);
-    var key = ingredientNameKey(display) + "\0" + u;
+    var key = findBuyPlanGroupKey(display, u, groups);
     if (!groups[key]){
       groups[key] = {
         name: display,
-        unit: u,
-        purchases: [],
+        unit: buyPlanDisplayUnit(u),
+        purchaseEntries: [],
         rowCount: 0,
         leaderPurchases: -1,
         cats: {}
@@ -145,9 +198,16 @@ function groupIngredientsForCompare(ingredients){
       g.leaderPurchases = nPurch;
       g.name = display;
     }
-    asArray(i.purchases).forEach(function(p){ g.purchases.push(p); });
+    g.unit = buyPlanDisplayUnit(g.unit || u);
+    asArray(i.purchases).forEach(function(p){
+      g.purchaseEntries.push({ p: p, unit: u });
+    });
   });
-  return Object.keys(groups).map(function(k){ return groups[k]; }).sort(function(a, b){
+  return Object.keys(groups).map(function(k){
+    var g = groups[k];
+    g.purchases = g.purchaseEntries.map(function(e){ return e.p; });
+    return g;
+  }).sort(function(a, b){
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   });
 }
