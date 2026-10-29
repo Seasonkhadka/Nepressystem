@@ -390,6 +390,9 @@ function showTab(name){
     var isOn = buttons[j].getAttribute("data-tab") === name;
     buttons[j].setAttribute("aria-selected", isOn ? "true" : "false");
   }
+  if (name === "buy" && typeof renderBuyPlanTab === "function"){
+    renderBuyPlanTab();
+  }
 }
 
 function initTabs(){
