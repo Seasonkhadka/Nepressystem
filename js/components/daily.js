@@ -42,16 +42,16 @@ function renderDailyTab(){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
-      '<p class="lede">Enter sales on each day. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
+      '<p class="lede">Enter <b>POS sales</b> (VAT included) on each day. P&amp;L uses net sales after '+pct(SALES_VAT_RATE, 1)+' VAT. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
       '<div class="legend">'+
         '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
       '</div>'+
-      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+
-      '<tfoot><tr><td colspan="3">Month total</td>'+
-        '<td class="tnum" data-foot="sales">₩0</td>'+
+      '<tfoot><tr><td colspan="3">Month total (POS)</td>'+
+        '<td class="tnum" data-foot="salesGross">₩0</td>'+
         '<td class="tnum" data-foot="cogsAmt">₩0</td>'+
         '<td class="tnum" data-foot="cogsPct">0.0%</td>'+
         '<td class="tnum" data-foot="labor">₩0</td>'+
@@ -60,7 +60,10 @@ function renderDailyTab(){
         '<td class="tnum" data-foot="overheadPct">0.0%</td>'+
         '<td class="tnum" data-foot="grossProfit">₩0</td>'+
         '<td class="tnum" data-foot="netProfit">₩0</td>'+
-        '<td class="tnum" data-foot="netMarginPct">0.0%</td></tr></tfoot>'+
+        '<td class="tnum" data-foot="netMarginPct">0.0%</td></tr>'+
+      '<tr class="vat-foot"><td colspan="3">Net after VAT ('+pct(SALES_VAT_RATE, 1)+')</td>'+
+        '<td class="tnum" data-foot="sales">₩0</td>'+
+        '<td colspan="9"></td></tr></tfoot>'+
       '</table></div>'+
     '</section>';
   refreshDailyComputedCells(computeAll());
@@ -95,6 +98,7 @@ function refreshDailyComputedCells(model){
     var e = root.querySelector('[data-foot="'+k+'"]');
     if (e) e.textContent = txt;
   };
+  foot("salesGross", won(m.salesGross));
   foot("sales", won(m.sales));
   foot("cogsPct", pct(m.cogsPct));
   foot("cogsAmt", won(m.cogsAmt));

@@ -248,6 +248,7 @@
   .buy-avg-note{ font-size:11px; color:var(--muted); font-weight:400; }
   .buy-simple-table .buy-cur,
   .buy-simple-table .buy-need{ font-weight:600; color:var(--good); }
+  tfoot tr.vat-foot td{ font-size:12px; color:var(--muted); border-top:none; padding-top:0; }
   .buy-tag.ok{
     display:inline-block;
     font-size:11px;

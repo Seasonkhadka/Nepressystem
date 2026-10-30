@@ -18,7 +18,7 @@ function renderDashboard(model){
   var cv = model.cashView || { cashAfterLoans: m.netProfit };
   var cashStatus = marginStatus(safeDiv(cv.cashAfterLoans, m.sales), hasSales);
   var kpis = [
-    kpiTile("Total Sales", won(m.sales), MONTH_NAMES[STATE.month-1]+" "+STATE.year),
+    kpiTile("Net Sales", won(m.sales), (hasSales ? "POS "+won(m.salesGross)+" · VAT "+pct(SALES_VAT_RATE, 1) : MONTH_NAMES[STATE.month-1]+" "+STATE.year)),
     kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
     kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
     kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),

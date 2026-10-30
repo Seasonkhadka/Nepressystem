@@ -30,8 +30,8 @@ function renderWeeklyTab(model){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Weekly — '+model.weekly.length+' weeks</h2>'+
-      '<p class="lede">Auto-totaled from the daily rows above. Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
-      '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<p class="lede">Auto-totaled from the daily rows above (net sales after '+pct(SALES_VAT_RATE, 1)+' VAT). Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
+      '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Net Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total</td>'+
         '<td class="tnum">'+won(m.sales)+'</td>'+

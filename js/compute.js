@@ -8,6 +8,14 @@
 
 function safeDiv(a, b){ return b ? a/b : 0; }
 
+function salesVatFromGross(gross){
+  return (Number(gross) || 0) * SALES_VAT_RATE;
+}
+function netSalesFromGross(gross){
+  var g = Number(gross) || 0;
+  return g - salesVatFromGross(g);
+}
+
 function computeProfitAllocation(netProfit, overheadMonth){
   var b = PROFIT_BUCKET;
   var profit = Number(netProfit) || 0;
@@ -51,9 +59,10 @@ function buildWeeks(dayNums){
 }
 
 function sumDays(days){
-  var t = { sales:0, cogsAmt:0, labor:0, overhead:0, grossProfit:0, netProfit:0, count:days.length };
+  var t = { salesGross:0, vat:0, sales:0, cogsAmt:0, labor:0, overhead:0, grossProfit:0, netProfit:0, count:days.length };
   days.forEach(function(d){
-    t.sales += d.sales; t.cogsAmt += d.cogsAmt; t.labor += d.labor; t.overhead += d.overhead;
+    t.salesGross += d.salesGross; t.vat += d.vat; t.sales += d.sales;
+    t.cogsAmt += d.cogsAmt; t.labor += d.labor; t.overhead += d.overhead;
     t.grossProfit += d.grossProfit; t.netProfit += d.netProfit;
   });
   t.cogsPct = safeDiv(t.cogsAmt, t.sales);
@@ -294,10 +303,10 @@ function computeAll(){
 
   var rawGrand = catTotals.reduce(function(a,c){ a.daily += c.daily; a.weekly += c.weekly; a.monthly += c.monthly; return a; }, {daily:0, weekly:0, monthly:0});
 
-  var totalSales = 0, openDays = 0;
+  var totalSalesGross = 0, openDays = 0;
   dayNums.forEach(function(day){
     var rec = STATE.days[day] || { vacation:false, sales:0, labor:0 };
-    totalSales += Number(rec.sales)||0;
+    totalSalesGross += Number(rec.sales)||0;
     if (!rec.vacation) openDays += 1;
   });
   var openDaysTrue = openDays;
@@ -353,20 +362,22 @@ function computeAll(){
     var raw = STATE.days[day] || { vacation:false, sales:0, labor:0 };
     var isWeekendAuto = [0,6].indexOf(dowOf(year, month, day)) > -1;
     var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
-    var sales = Number(raw.sales)||0;
+    var salesGross = Number(raw.sales)||0;
+    var vat = salesVatFromGross(salesGross);
+    var sales = salesGross - vat;
     var labor = laborHasLedger ? (laborByDay[day] || 0) : (Number(raw.labor)||0);
     var cogsAmt = 0;
     if (materials > 0){
-      if (totalSales > 0) cogsAmt = materials * (sales / totalSales);
+      if (totalSalesGross > 0) cogsAmt = materials * (salesGross / totalSalesGross);
       else if (!raw.vacation || openDays === daysThisMonth) cogsAmt = materials / openDays;
     }
     var cogsPct = safeDiv(cogsAmt, sales);
     var grossProfit = sales-cogsAmt;
-    var overhead = (overheadPool / daysThisMonth) + sales*((Number(STATE.overheadVariableRate)||0)/100);
+    var overhead = (overheadPool / daysThisMonth) + salesGross*((Number(STATE.overheadVariableRate)||0)/100);
     var netProfit = grossProfit-labor-overhead;
     return {
       day: day, dow: DOW_NAMES[dowOf(year,month,day)], isWeekendAuto: isWeekendAuto, vacation: !!raw.vacation, tag: tag,
-      sales: sales, cogsPct: cogsPct, cogsAmt: cogsAmt,
+      salesGross: salesGross, vat: vat, sales: sales, cogsPct: cogsPct, cogsAmt: cogsAmt,
       grossProfit: grossProfit, grossMarginPct: safeDiv(grossProfit, sales),
       labor: labor, laborPct: safeDiv(labor, sales),
       overhead: overhead, overheadPct: safeDiv(overhead, sales),

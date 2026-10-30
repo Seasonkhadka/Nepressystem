@@ -8,9 +8,12 @@
 
 var STORAGE_KEY = "restaurant-pl-calculator-v1";
 
+/** Share of VAT-inclusive (POS) sales treated as VAT — net revenue = gross × (1 − rate). */
+var SALES_VAT_RATE = 0.091;
+
 /** Net-profit set-asides (planning — not tax advice). */
 var PROFIT_BUCKET = {
-  taxRate: 0.091,
+  taxRate: 0.10,
   maintRate: 0.05,
   shareRate: 0.15,
   vacationMonths: 2.5,

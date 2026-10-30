@@ -22,9 +22,11 @@ function renderMonthlyTab(model){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Monthly — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+'</h2>'+
-      '<p class="lede">The single consolidated month, summed from the weeks above. COGS is this month\'s Raw Materials total. These figures power the Main Dashboard.</p>'+
+      '<p class="lede">Daily sales are POS totals (VAT included). Net sales subtract VAT at '+pct(SALES_VAT_RATE, 1)+' of gross. COGS is this month\'s Raw Materials total. These figures power the Main Dashboard.</p>'+
       '<div class="formula-list">'+
-        row("Total Sales", m.sales)+
+        row("Total Sales (POS, incl. VAT)", m.salesGross)+
+        row("VAT ("+pct(SALES_VAT_RATE, 1)+" of POS sales)", m.vat)+
+        row("Net Sales", m.sales)+
         row("COGS amount", m.cogsAmt)+
         row("COGS %", m.cogsPct, true)+
         row("Gross Profit", m.grossProfit)+
