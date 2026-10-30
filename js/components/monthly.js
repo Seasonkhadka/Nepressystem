@@ -16,6 +16,9 @@ function renderMonthlyTab(model){
   function row(label, val, isPct, big){
     return '<div class="formula" style="'+(big?"background:var(--accent-soft)":"")+'"><dt>'+label+'</dt><dd class="tnum" style="font-size:'+(big?"16px":"13px")+';color:var(--ink)">'+(isPct?pct(val):won(val))+'</dd></div>';
   }
+  function rowLess(label, val){
+    return '<div class="formula"><dt>'+label+'</dt><dd class="tnum" style="font-size:13px;color:var(--ember)">'+signedWon(-Math.abs(val))+'</dd></div>';
+  }
 
   var host = el("calc-monthly");
   if (!host) return;
@@ -25,8 +28,8 @@ function renderMonthlyTab(model){
       '<p class="lede">Daily sales are POS totals (VAT included). Net sales subtract VAT at '+pct(SALES_VAT_RATE, 1)+' of gross. COGS is this month\'s Raw Materials total. These figures power the Main Dashboard.</p>'+
       '<div class="formula-list">'+
         row("Total Sales (POS, incl. VAT)", m.salesGross)+
-        row("VAT ("+pct(SALES_VAT_RATE, 1)+" of POS sales)", m.vat)+
-        row("Net Sales", m.sales)+
+        rowLess("Less VAT ("+pct(SALES_VAT_RATE, 1)+" of total sales)", m.vat)+
+        row("Net Sales (after VAT)", m.sales)+
         row("COGS amount", m.cogsAmt)+
         row("COGS %", m.cogsPct, true)+
         row("Gross Profit", m.grossProfit)+

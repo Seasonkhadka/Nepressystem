@@ -90,18 +90,19 @@ function profitAllocationHtml(a){
     : "";
   return '<section class="card profit-buckets">'+
     '<h2>Profit buckets (planning)</h2>'+
-    '<p class="lede">Split <b>net profit</b> into reserves. Tax and maintenance are '+pct(b.taxRate, 0)+' and '+pct(b.maintRate, 0)+' of net profit (zero if the month is a loss). '+
+    '<p class="lede">Split <b>net profit</b> into reserves. VAT is '+pct(SALES_VAT_RATE, 1)+' of POS sales (same amount removed from revenue above). Tax and maintenance are '+pct(b.taxRate, 0)+' and '+pct(b.maintRate, 0)+' of net profit (zero if the month is a loss). '+
       'Vacation accrual is '+won(a.vacation)+' this month: overhead × ('+vacNote+') so '+b.vacationMonths+' closed months are funded while you work '+b.semesterAccrualMonths+' months.</p>'+
     '<div class="formula-list">'+
       row("Net profit (start)", a.netProfit, "", true)+
-      row("1. Tax bucket", -a.tax, pct(b.taxRate, 0)+" of net profit")+
-      row("2. Vacation bucket", -a.vacation, "overhead × "+b.vacationMonths+"/"+b.semesterAccrualMonths)+
-      row("3. Maintenance bucket", -a.maintenance, pct(b.maintRate, 0)+" of net profit")+
+      row("1. VAT reserve", -a.vat, pct(SALES_VAT_RATE, 1)+" of POS sales")+
+      row("2. Tax bucket", -a.tax, pct(b.taxRate, 0)+" of net profit")+
+      row("3. Vacation bucket", -a.vacation, "overhead × "+b.vacationMonths+"/"+b.semesterAccrualMonths)+
+      row("4. Maintenance bucket", -a.maintenance, pct(b.maintRate, 0)+" of net profit")+
       row("After buckets", a.afterBuckets, "what is left in the business", true)+
       row("15% share", a.share15, pct(b.shareRate, 0)+" of after buckets", true)+
       row("Left after 15% share", a.leftAfterShare, "keep or reinvest", false)+
     '</div>'+
     shortfall+
-    '<p class="note">The 15% is taken <b>after</b> tax, vacation, and maintenance buckets — reserves are funded first.</p>'+
+    '<p class="note">The 15% is taken <b>after</b> VAT, tax, vacation, and maintenance buckets — reserves are funded first.</p>'+
   '</section>';
 }

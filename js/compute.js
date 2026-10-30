@@ -16,20 +16,23 @@ function netSalesFromGross(gross){
   return g - salesVatFromGross(g);
 }
 
-function computeProfitAllocation(netProfit, overheadMonth){
+function computeProfitAllocation(netProfit, overheadMonth, salesGross){
   var b = PROFIT_BUCKET;
   var profit = Number(netProfit) || 0;
   var oh = Math.max(0, Number(overheadMonth) || 0);
   var profitBase = Math.max(0, profit);
+  var vat = salesVatFromGross(salesGross);
   var tax = profitBase * b.taxRate;
   var maintenance = profitBase * b.maintRate;
   var vacation = oh * (b.vacationMonths / b.semesterAccrualMonths);
-  var reserved = tax + maintenance + vacation;
+  var reserved = vat + tax + maintenance + vacation;
   var afterBuckets = profit - reserved;
   var afterPositive = Math.max(0, afterBuckets);
   return {
     netProfit: profit,
+    salesGross: Number(salesGross) || 0,
     overheadMonth: oh,
+    vat: vat,
     tax: tax,
     maintenance: maintenance,
     vacation: vacation,
@@ -364,7 +367,7 @@ function computeAll(){
     var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
     var salesGross = Number(raw.sales)||0;
     var vat = salesVatFromGross(salesGross);
-    var sales = salesGross - vat;
+    var sales = netSalesFromGross(salesGross);
     var labor = laborHasLedger ? (laborByDay[day] || 0) : (Number(raw.labor)||0);
     var cogsAmt = 0;
     if (materials > 0){
@@ -372,7 +375,7 @@ function computeAll(){
       else if (!raw.vacation || openDays === daysThisMonth) cogsAmt = materials / openDays;
     }
     var cogsPct = safeDiv(cogsAmt, sales);
-    var grossProfit = sales-cogsAmt;
+    var grossProfit = salesGross - vat - cogsAmt;
     var overhead = (overheadPool / daysThisMonth) + salesGross*((Number(STATE.overheadVariableRate)||0)/100);
     var netProfit = grossProfit-labor-overhead;
     return {
@@ -439,7 +442,7 @@ function computeAll(){
     monthly: monthly.overhead
   };
 
-  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead);
+  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross);
   var loanPay = setupAssets.loanTotals ? setupAssets.loanTotals.payment : 0;
   var ownMoney = setupAssets.funding ? setupAssets.funding.ownMoney : 0;
   var cashAfter = monthly.netProfit - loanPay;
