@@ -20,6 +20,8 @@
     --row-weekend-ink:#7a4415;
     --row-vacation:#e7ab6c;
     --row-vacation-ink:#552f08;
+    --row-closed:#d4c4e8;
+    --row-closed-ink:#3d2a55;
       --chart-1:#2a78d6;
       --chart-2:#eb6834;
       --chart-3:#1baf7a;
@@ -40,6 +42,7 @@
       --good:#0ca30c; --warning-dot:#fab219; --critical:#e66767;
       --row-weekend:#3a2c17; --row-weekend-ink:#f0c793;
       --row-vacation:#5c3c14; --row-vacation-ink:#f7d9a8;
+      --row-closed:#3a2d4a; --row-closed-ink:#e8dcf5;
       --chart-1:#3987e5; --chart-2:#d95926; --chart-3:#199e70; --chart-4:#c98500; --chart-5:#d55181; --chart-6:#7d72ee;
       --shadow: 0 1px 2px rgba(0,0,0,0.45), 0 10px 24px rgba(0,0,0,0.4);
     }
@@ -174,6 +177,10 @@
   tbody td:first-child, tbody td:nth-child(2), tbody td:nth-child(3){ text-align:left; }
   tbody tr.weekend td{ background:var(--row-weekend); color:var(--row-weekend-ink); }
   tbody tr.vacation td{ background:var(--row-vacation); color:var(--row-vacation-ink); }
+  tbody tr.closed td{ background:var(--row-closed); color:var(--row-closed-ink); }
+  .day-tag-cell{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; min-width:9rem; }
+  .day-tag-cell .vac-lbl{ font-size:11px; color:var(--ink-soft); }
+  .tag.closed{ background:rgba(0,0,0,0.08); color:var(--row-closed-ink); }
   tfoot td{ padding:10px 10px; font-weight:700; border-top:2px solid var(--hairline-strong); background:var(--surface-2); }
   tr.subtotal td{ font-weight:700; background:var(--surface-2); }
   tr.cat-head td{ padding-top:14px; font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); background:transparent; border-bottom:1px solid var(--hairline-strong); }

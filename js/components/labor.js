@@ -134,7 +134,7 @@ function renderLaborTab(){
     '</section>'+
     '<section class="card">'+
       '<h2>Fixed overhead</h2>'+
-      '<p class="lede">Rent, insurance, internet — costs that stay the same until you change them. They apply every month. Not wages, not food.</p>'+
+      '<p class="lede">Rent, gas, electricity — same amount every month until you change a row. Defaults: rent ₩500,000 · gas ₩500,000 · electricity 1st floor ₩300,000 · 2nd floor ₩1,000,000. Not wages, not food.</p>'+
       '<div class="table-wrap purchase-wrap"><table class="salary-table"><thead><tr>'+
         '<th>Bill</th><th>Amount / month</th><th></th>'+
       '</tr></thead><tbody>'+fixedItems.map(overheadFixedRowHtml).join("")+'</tbody></table></div>'+

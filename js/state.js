@@ -86,11 +86,12 @@ function normalizeDays(days, year, month){
     out[d] = rec && typeof rec === "object"
       ? {
           vacation: !!rec.vacation,
+          closed: !!rec.closed,
           sales: Number(rec.sales)||0,
           cogsPct: Number(rec.cogsPct)||0,
           labor: Number(rec.labor)||0
         }
-      : { vacation:false, sales:0, cogsPct:0, labor:0 };
+      : { vacation:false, closed:false, sales:0, cogsPct:0, labor:0 };
   }
   return out;
 }
@@ -539,9 +540,38 @@ function migrateOverheadFixed(b){
   };
 }
 
+function overheadFixedNameKey(name){
+  return String(name || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function seedDefaultOverheadFixed(){
+  return DEFAULT_OVERHEAD_FIXED.map(function(d){
+    var b = blankOverheadFixed();
+    b.name = d.name;
+    b.amount = d.amount;
+    return b;
+  });
+}
+
+function ensureDefaultOverheadFixed(list){
+  list = asArray(list).map(migrateOverheadFixed);
+  if (!list.some(overheadFixedHasData)) return seedDefaultOverheadFixed();
+  DEFAULT_OVERHEAD_FIXED.forEach(function(d){
+    var key = overheadFixedNameKey(d.name);
+    var found = list.some(function(b){ return overheadFixedNameKey(b.name) === key; });
+    if (!found){
+      var b = blankOverheadFixed();
+      b.name = d.name;
+      b.amount = d.amount;
+      list.push(b);
+    }
+  });
+  return list.filter(overheadFixedHasData);
+}
+
 function compactOverheadFixed(list){
-  var filled = asArray(list).filter(overheadFixedHasData);
-  return filled.length ? filled : [blankOverheadFixed()];
+  var filled = ensureDefaultOverheadFixed(asArray(list));
+  return filled.length ? filled : seedDefaultOverheadFixed();
 }
 
 function migrateLump(p){
@@ -632,7 +662,7 @@ function blankDaysForMonth(year, month){
   var n = daysInMonth(year, month);
   var days = {};
   for (var d=1; d<=n; d++){
-    days[d] = { vacation:false, sales:0, cogsPct:0, labor:0 };
+    days[d] = { vacation:false, closed:false, sales:0, cogsPct:0, labor:0 };
   }
   return days;
 }
@@ -654,7 +684,7 @@ function defaultState(){
     laborShifts: [blankLaborShift()],
     laborSalaries: [blankLaborSalary()],
     overheadBills: [blankOverheadBill()],
-    overheadFixedItems: [blankOverheadFixed()],
+    overheadFixedItems: seedDefaultOverheadFixed(),
     dayArchive: {},
     days: blankDaysForMonth(year, month),
     vacationSchedule: defaultVacationSchedule(),

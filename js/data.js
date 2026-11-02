@@ -63,6 +63,14 @@ var SETUP_PLAN_DEFAULT = {
   otherFixed: 300000
 };
 
+/** Fixed overhead applied every month until you change an amount or name. */
+var DEFAULT_OVERHEAD_FIXED = [
+  { name: "Rent", amount: 500000 },
+  { name: "Gas", amount: 500000 },
+  { name: "Electricity (1st floor)", amount: 300000 },
+  { name: "Electricity (2nd floor)", amount: 1000000 }
+];
+
 function defaultAssetLife(cat){
   if (cat === "gas") return 60;
   if (cat === "utensil") return 24;
@@ -77,7 +85,8 @@ var DOW_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 var TAG_META = {
   weekday:  { label: "Weekday",  color: "var(--chart-1)" },
   weekend:  { label: "Weekend",  color: "var(--chart-2)" },
-  vacation: { label: "Vacation", color: "var(--chart-3)" }
+  vacation: { label: "Vacation", color: "var(--chart-3)" },
+  closed:   { label: "Closed",   color: "var(--chart-4)" }
 };
 
 /** Default uni break shape: winter Dec → Feb (next year), summer Jun → Aug. */
@@ -94,12 +103,13 @@ function migrateVacationSchedule(s){
     mode: s.mode === "uni-kr" ? "uni-kr" : "manual",
     summerStartDay: start === 22 ? 22 : 20,
     useWinter: s.useWinter !== false,
-    useSummer: s.useSummer !== false
+    useSummer: s.useSummer !== false,
+    closesOnBreaks: s.closesOnBreaks !== false
   };
 }
 
 function defaultVacationSchedule(){
-  return migrateVacationSchedule({ mode: "uni-kr", summerStartDay: 20 });
+  return migrateVacationSchedule({ mode: "uni-kr", summerStartDay: 20, closesOnBreaks: true });
 }
 
 function clampDay(month, day){
@@ -172,6 +182,7 @@ function isSummerPeriod(calendarYear, month, day, dates){
 function isUniVacationDay(year, month, day, sch){
   sch = migrateVacationSchedule(sch);
   if (sch.mode !== "uni-kr") return false;
+  if (sch.closesOnBreaks === false) return false;
   var map = typeof STATE !== "undefined" && STATE ? STATE.vacationYearDates : null;
   if (sch.useWinter){
     var wKey = vacationWinterYearKey(year, month);
@@ -191,6 +202,13 @@ function dayVacationFlag(rec, year, month, day, sch){
   if (rec.uniVacOpen && isUniVacationDay(year, month, day, sch)) return false;
   if (isUniVacationDay(year, month, day, sch)) return true;
   return !!rec.vacation;
+}
+
+/** Closed for P&amp;L (uni break, manual vacation, or manual closed day). */
+function dayPlClosed(rec, year, month, day, sch){
+  rec = rec || {};
+  if (dayVacationFlag(rec, year, month, day, sch)) return true;
+  return !!rec.closed;
 }
 
 function daysBetweenMonthDay(m1, d1, m2, d2){

@@ -160,7 +160,7 @@ function initDailyEvents(){
     var day = Number(row.getAttribute("data-day"));
     if (!day) return;
     if (!STATE.days) STATE.days = {};
-    var rec = STATE.days[day] || { vacation:false, sales:0, labor:0 };
+    var rec = STATE.days[day] || { vacation:false, closed:false, sales:0, labor:0 };
     var field = t.getAttribute("data-field");
     if (field === "vacation"){
       var inUni = isUniVacationDay(STATE.year, STATE.month, day, STATE.vacationSchedule);
@@ -168,6 +168,7 @@ function initDailyEvents(){
       else if (inUni && t.checked){ delete rec.uniVacOpen; rec.vacation = false; }
       else rec.vacation = t.checked;
     }
+    else if (field === "closed") rec.closed = t.checked;
     else if (field === "sales") rec.sales = parseFloat(t.value) || 0;
     else if (field === "labor") rec.labor = parseFloat(t.value) || 0;
     else return;
@@ -193,7 +194,8 @@ function initDailyEvents(){
   host.addEventListener("change", function(e){
     var t = e.target;
     if (onVacationDateField(t)) return;
-    if (t.id === "input-vac-mode" || t.id === "input-vac-winter" || t.id === "input-vac-summer"){
+    if (t.id === "input-vac-mode" || t.id === "input-vac-winter" || t.id === "input-vac-summer" ||
+        t.id === "input-vac-closes"){
       if (!STATE.vacationSchedule) STATE.vacationSchedule = defaultVacationSchedule();
       var modeEl = el("input-vac-mode");
       if (modeEl) STATE.vacationSchedule.mode = modeEl.value === "uni-kr" ? "uni-kr" : "manual";
@@ -201,6 +203,8 @@ function initDailyEvents(){
       if (wEl) STATE.vacationSchedule.useWinter = wEl.checked;
       var sEl = el("input-vac-summer");
       if (sEl) STATE.vacationSchedule.useSummer = sEl.checked;
+      var cEl = el("input-vac-closes");
+      if (cEl) STATE.vacationSchedule.closesOnBreaks = cEl.checked;
       renderDailyTab();
       refreshDerived();
       return;
@@ -401,7 +405,7 @@ function initLaborEvents(){
     } else if (t.matches("[data-remove-fixed]")){
       var fid = Number(t.getAttribute("data-remove-fixed"));
       STATE.overheadFixedItems = (STATE.overheadFixedItems || []).filter(function(b){ return b.id !== fid; });
-      if (!STATE.overheadFixedItems.length) STATE.overheadFixedItems.push(blankOverheadFixed());
+      if (!STATE.overheadFixedItems.length) STATE.overheadFixedItems = seedDefaultOverheadFixed();
       renderLaborTab();
       refreshDerived();
     }
