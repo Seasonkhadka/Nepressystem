@@ -11,26 +11,38 @@ function vacationScheduleHtml(){
   var sch = migrateVacationSchedule(STATE.vacationSchedule);
   var uni = sch.mode === "uni-kr";
   var rates = uni ? uniVacationProfitRates(sch) : null;
-  var hint = uni
-    ? "Winter <b>Dec 19 – Feb 28</b> · Summer <b>Jun "+sch.summerStartDay+" – Aug 31</b>. Vacation days skip salary spread and use break COGS rules."
-    : "Check <b>Vacation</b> on each closed day yourself.";
+  var sum = uniVacationSummary(sch);
   var accrual = rates
-    ? " Profit buckets accrue "+rates.vacationMonths.toFixed(1)+" mo break ÷ "+rates.semesterAccrualMonths.toFixed(1)+" mo semester."
+    ? rates.vacationMonths.toFixed(1)+"÷"+rates.semesterAccrualMonths.toFixed(1)+" mo"
     : "";
-  return '<div class="vac-schedule">'+
-    '<div class="vac-schedule-row">'+
-      '<label for="input-vac-mode">University breaks</label>'+
-      '<select class="field-input" id="input-vac-mode">'+
-        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni (auto dates)</option>'+
-        '<option value="manual"'+(uni?"":" selected")+'>Manual only</option>'+
-      '</select>'+
-      '<label for="input-vac-summer-start">1st sem summer from</label>'+
-      '<select class="field-input" id="input-vac-summer-start"'+(uni?"":" disabled")+'>'+
-        '<option value="20"'+(sch.summerStartDay===20?" selected":"")+'>Jun 20</option>'+
-        '<option value="22"'+(sch.summerStartDay===22?" selected":"")+'>Jun 22</option>'+
+  return '<div class="vac-bar">'+
+    '<div class="vac-bar-top">'+
+      '<span class="vac-legend">'+
+        '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
+      '</span>'+
+      '<select class="field-input vac-mode" id="input-vac-mode" title="Break schedule">'+
+        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni · both semesters · every year</option>'+
+        '<option value="manual"'+(uni?"":" selected")+'>Manual vacation only</option>'+
       '</select>'+
     '</div>'+
-    '<p class="note">'+hint+accrual+' Uncheck a break day if you stay open.</p>'+
+    '<div class="vac-bar-sem"'+(uni?"":" hidden")+' id="vac-sem-panel">'+
+      '<label class="vac-sem-chip">'+
+        '<input type="checkbox" id="input-vac-winter"'+(sch.useWinter!==false?" checked":"")+'>'+
+        '<span><b>2nd sem</b> '+sum.winter+'</span>'+
+      '</label>'+
+      '<label class="vac-sem-chip">'+
+        '<input type="checkbox" id="input-vac-summer"'+(sch.useSummer!==false?" checked":"")+'>'+
+        '<span><b>1st sem</b> Jun</span>'+
+        '<select class="field-input vac-start" id="input-vac-summer-start">'+
+          '<option value="20"'+(sch.summerStartDay===20?" selected":"")+'>20</option>'+
+          '<option value="22"'+(sch.summerStartDay===22?" selected":"")+'>22</option>'+
+        '</select>'+
+        '<span>– Aug 31</span>'+
+      '</label>'+
+      '<span class="vac-bar-meta">Same dates each calendar year · accrual '+accrual+' · uncheck a day if open</span>'+
+    '</div>'+
   '</div>';
 }
 
@@ -71,11 +83,6 @@ function renderDailyTab(){
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
       '<p class="lede">Enter <b>POS sales</b> (VAT included) on each day. P&amp;L uses net sales after '+pct(SALES_VAT_RATE, 1)+' VAT. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
-      '<div class="legend">'+
-        '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
-        '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
-        '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
-      '</div>'+
       vacationScheduleHtml()+
       '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+

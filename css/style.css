@@ -335,10 +335,31 @@
   .icon-btn[data-add-pur]:hover, .icon-btn[data-add-cat]:hover{ color:var(--accent); border-color:var(--accent); }
   .add-row-btn{ appearance:none; border:1.5px dashed var(--hairline-strong); background:transparent; color:var(--accent); font-weight:600; font-size:12.5px; padding:8px 12px; border-radius:8px; cursor:pointer; width:100%; text-align:left; }
   .add-row-btn:hover{ background:var(--accent-soft); }
-  .vac-schedule{ margin:14px 0 4px; }
-  .vac-schedule-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
-  .vac-schedule-row label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:600; }
-  .vac-schedule-row .field-input{ min-width:9rem; }
+  .vac-bar{
+    margin:12px 0 10px;
+    padding:10px 12px;
+    border:1px solid var(--hairline);
+    border-radius:10px;
+    background:var(--surface-2);
+  }
+  .vac-bar-top{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 14px; }
+  .vac-legend{ display:flex; flex-wrap:wrap; gap:10px 14px; font-size:12px; color:var(--ink-soft); }
+  .vac-legend .item{ display:inline-flex; align-items:center; gap:6px; }
+  .vac-mode{ min-width:12rem; max-width:100%; font-size:12px; }
+  .vac-bar-sem{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px;
+    margin-top:10px; padding-top:10px; border-top:1px solid var(--hairline);
+  }
+  .vac-bar-sem.hidden{ display:none; }
+  .vac-sem-chip{
+    display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px 8px;
+    font-size:12px; padding:6px 10px; border-radius:999px;
+    background:var(--surface); border:1px solid var(--hairline);
+    cursor:pointer; user-select:none;
+  }
+  .vac-sem-chip input{ margin:0; }
+  .vac-sem-chip .vac-start{ width:3.2rem; min-width:0; padding:2px 6px; font-size:12px; }
+  .vac-bar-meta{ font-size:11px; color:var(--muted); flex:1 1 12rem; line-height:1.4; }
   .overhead-var-row{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 14px; margin-top:16px; }
   .overhead-var-row label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:600; width:100%; }
 

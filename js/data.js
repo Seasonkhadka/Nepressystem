@@ -105,7 +105,8 @@ function defaultVacationSchedule(){
   return migrateVacationSchedule({ mode: "uni-kr", summerStartDay: 20 });
 }
 
-function isWinterUniVacation(month, day){
+/** Same calendar pattern every year (2nd sem break spans Dec → Feb). */
+function isWinterUniVacation(year, month, day){
   if (month === 12 && day >= UNI_VACATION.winterStart.day) return true;
   if (month === 1) return true;
   if (month === 2 && day <= UNI_VACATION.winterEnd.day) return true;
@@ -122,7 +123,7 @@ function isSummerUniVacation(month, day, summerStartDay){
 function isUniVacationDay(year, month, day, sch){
   sch = migrateVacationSchedule(sch);
   if (sch.mode !== "uni-kr") return false;
-  if (sch.useWinter && isWinterUniVacation(month, day)) return true;
+  if (sch.useWinter && isWinterUniVacation(year, month, day)) return true;
   if (sch.useSummer && isSummerUniVacation(month, day, sch.summerStartDay)) return true;
   return false;
 }
@@ -152,11 +153,38 @@ function uniVacationProfitRates(sch){
   var springAccrualDays = daysBetweenMonthDay(3, 1, 6, springEndDay);
   var fallAccrualDays = daysBetweenMonthDay(9, 1, 12, 18);
   var monthLen = 365.25 / 12;
+  var vacParts = 0, vacDays = 0, accParts = 0, accDays = 0;
+  if (sch.useSummer !== false){
+    vacParts += 1; vacDays += summerDays;
+    accParts += 1; accDays += springAccrualDays;
+  }
+  if (sch.useWinter !== false){
+    vacParts += 1; vacDays += winterDays;
+    accParts += 1; accDays += fallAccrualDays;
+  }
+  if (!vacParts){
+    return {
+      summerDays: summerDays,
+      winterDays: winterDays,
+      vacationMonths: PROFIT_BUCKET.vacationMonths,
+      semesterAccrualMonths: PROFIT_BUCKET.semesterAccrualMonths
+    };
+  }
   return {
     summerDays: summerDays,
     winterDays: winterDays,
-    vacationMonths: ((summerDays + winterDays) / 2) / monthLen,
-    semesterAccrualMonths: ((springAccrualDays + fallAccrualDays) / 2) / monthLen
+    vacationMonths: (vacDays / vacParts) / monthLen,
+    semesterAccrualMonths: (accDays / accParts) / monthLen
+  };
+}
+
+function uniVacationSummary(sch){
+  sch = migrateVacationSchedule(sch);
+  var sd = sch.summerStartDay;
+  return {
+    winter: "Dec 19 – Feb 28",
+    summer: "Jun "+sd+" – Aug 31",
+    everyYear: true
   };
 }
 

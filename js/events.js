@@ -177,10 +177,17 @@ function initDailyEvents(){
   host.addEventListener("input", onDayChange);
   host.addEventListener("change", function(e){
     var t = e.target;
-    if (t.id === "input-vac-mode" || t.id === "input-vac-summer-start"){
+    if (t.id === "input-vac-mode" || t.id === "input-vac-summer-start" ||
+        t.id === "input-vac-winter" || t.id === "input-vac-summer"){
       if (!STATE.vacationSchedule) STATE.vacationSchedule = defaultVacationSchedule();
-      STATE.vacationSchedule.mode = el("input-vac-mode").value === "uni-kr" ? "uni-kr" : "manual";
-      STATE.vacationSchedule.summerStartDay = parseInt(el("input-vac-summer-start").value, 10) === 22 ? 22 : 20;
+      var modeEl = el("input-vac-mode");
+      if (modeEl) STATE.vacationSchedule.mode = modeEl.value === "uni-kr" ? "uni-kr" : "manual";
+      var startEl = el("input-vac-summer-start");
+      if (startEl) STATE.vacationSchedule.summerStartDay = parseInt(startEl.value, 10) === 22 ? 22 : 20;
+      var wEl = el("input-vac-winter");
+      if (wEl) STATE.vacationSchedule.useWinter = wEl.checked;
+      var sEl = el("input-vac-summer");
+      if (sEl) STATE.vacationSchedule.useSummer = sEl.checked;
       renderDailyTab();
       refreshDerived();
       return;
