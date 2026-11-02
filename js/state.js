@@ -652,7 +652,8 @@ function defaultState(){
     overheadBills: [blankOverheadBill()],
     overheadFixedItems: [blankOverheadFixed()],
     dayArchive: {},
-    days: blankDaysForMonth(year, month)
+    days: blankDaysForMonth(year, month),
+    vacationSchedule: defaultVacationSchedule()
   };
 }
 
@@ -736,6 +737,7 @@ function normalizeParsedState(parsed){
   parsed.overheadFixedItems.forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
   nextOverheadFixedId = maxFix + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
+  parsed.vacationSchedule = migrateVacationSchedule(parsed.vacationSchedule);
   parsed.overheadFixedMonthly = Number(parsed.overheadFixedMonthly)||0;
   parsed.overheadVariableRate = Number(parsed.overheadVariableRate)||0;
   if (!parsed.dayArchive || typeof parsed.dayArchive !== "object") parsed.dayArchive = {};

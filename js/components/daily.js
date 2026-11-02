@@ -7,14 +7,42 @@
  * TAG_META), state.js (STATE), compute.js (dowOf, computeAll).
  */
 
+function vacationScheduleHtml(){
+  var sch = migrateVacationSchedule(STATE.vacationSchedule);
+  var uni = sch.mode === "uni-kr";
+  var rates = uni ? uniVacationProfitRates(sch) : null;
+  var hint = uni
+    ? "Winter <b>Dec 19 – Feb 28</b> · Summer <b>Jun "+sch.summerStartDay+" – Aug 31</b>. Vacation days skip salary spread and use break COGS rules."
+    : "Check <b>Vacation</b> on each closed day yourself.";
+  var accrual = rates
+    ? " Profit buckets accrue "+rates.vacationMonths.toFixed(1)+" mo break ÷ "+rates.semesterAccrualMonths.toFixed(1)+" mo semester."
+    : "";
+  return '<div class="vac-schedule">'+
+    '<div class="vac-schedule-row">'+
+      '<label for="input-vac-mode">University breaks</label>'+
+      '<select class="field-input" id="input-vac-mode">'+
+        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni (auto dates)</option>'+
+        '<option value="manual"'+(uni?"":" selected")+'>Manual only</option>'+
+      '</select>'+
+      '<label for="input-vac-summer-start">1st sem summer from</label>'+
+      '<select class="field-input" id="input-vac-summer-start"'+(uni?"":" disabled")+'>'+
+        '<option value="20"'+(sch.summerStartDay===20?" selected":"")+'>Jun 20</option>'+
+        '<option value="22"'+(sch.summerStartDay===22?" selected":"")+'>Jun 22</option>'+
+      '</select>'+
+    '</div>'+
+    '<p class="note">'+hint+accrual+' Uncheck a break day if you stay open.</p>'+
+  '</div>';
+}
+
 function dayRowHtml(day, isWeekendAuto){
   var raw = STATE.days[day] || { vacation:false, sales:0, cogsPct:0, labor:0 };
-  var tag = raw.vacation ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
+  var vac = dayVacationFlag(raw, STATE.year, STATE.month, day, STATE.vacationSchedule);
+  var tag = vac ? "vacation" : (isWeekendAuto ? "weekend" : "weekday");
   var tagMeta = TAG_META[tag];
   return '<tr class="'+tag+'" data-day="'+day+'" data-weekend-auto="'+(isWeekendAuto?"1":"0")+'">'+
     '<td>'+MONTH_ABBR[STATE.month-1]+' '+day+'</td>'+
     '<td>'+DOW_NAMES[dowOf(STATE.year,STATE.month,day)]+'</td>'+
-    '<td><label class="vac-toggle"><input type="checkbox" data-field="vacation" '+(raw.vacation?"checked":"")+'><span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span></label></td>'+
+    '<td><label class="vac-toggle"><input type="checkbox" data-field="vacation" '+(vac?"checked":"")+'><span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span></label></td>'+
     '<td><input class="cell-input" type="number" min="0" step="1000" data-field="sales" placeholder="0" value="'+(raw.sales?raw.sales:"")+'"></td>'+
     '<td class="tnum calc" data-calc="cogsAmt">₩0</td>'+
     '<td class="tnum calc" data-calc="cogsPct">0.0%</td>'+
@@ -48,6 +76,7 @@ function renderDailyTab(){
         '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
       '</div>'+
+      vacationScheduleHtml()+
       '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total (POS)</td>'+
@@ -90,6 +119,8 @@ function refreshDailyComputedCells(model){
     tr.querySelector('[data-calc="netMarginPct"]').textContent = signedPct(d.netMarginPct);
     var badge = tr.querySelector('[data-tag-badge]');
     if (badge){ badge.className = "tag "+d.tag; badge.textContent = TAG_META[d.tag].label; }
+    var vacIn = tr.querySelector('[data-field="vacation"]');
+    if (vacIn) vacIn.checked = d.vacation;
   });
   var m = model.monthly;
   var foot = function(k, txt){

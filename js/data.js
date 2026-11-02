@@ -80,6 +80,103 @@ var TAG_META = {
   vacation: { label: "Vacation", color: "var(--chart-3)" }
 };
 
+/** Korean university breaks (typical): winter Dec 19 – Feb 28, summer Jun – Aug 31. */
+var UNI_VACATION = {
+  winterStart: { month: 12, day: 19 },
+  winterEnd: { month: 2, day: 28 },
+  summerEnd: { month: 8, day: 31 },
+  fallAccrualStart: { month: 9, day: 1 },
+  fallAccrualEnd: { month: 12, day: 18 },
+  springAccrualStart: { month: 3, day: 1 }
+};
+
+function migrateVacationSchedule(s){
+  if (!s || typeof s !== "object") return defaultVacationSchedule();
+  var start = Number(s.summerStartDay);
+  return {
+    mode: s.mode === "uni-kr" ? "uni-kr" : "manual",
+    summerStartDay: start === 22 ? 22 : 20,
+    useWinter: s.useWinter !== false,
+    useSummer: s.useSummer !== false
+  };
+}
+
+function defaultVacationSchedule(){
+  return migrateVacationSchedule({ mode: "uni-kr", summerStartDay: 20 });
+}
+
+function isWinterUniVacation(month, day){
+  if (month === 12 && day >= UNI_VACATION.winterStart.day) return true;
+  if (month === 1) return true;
+  if (month === 2 && day <= UNI_VACATION.winterEnd.day) return true;
+  return false;
+}
+
+function isSummerUniVacation(month, day, summerStartDay){
+  summerStartDay = summerStartDay === 22 ? 22 : 20;
+  if (month === 7 || month === 8) return true;
+  if (month === 6 && day >= summerStartDay) return true;
+  return false;
+}
+
+function isUniVacationDay(year, month, day, sch){
+  sch = migrateVacationSchedule(sch);
+  if (sch.mode !== "uni-kr") return false;
+  if (sch.useWinter && isWinterUniVacation(month, day)) return true;
+  if (sch.useSummer && isSummerUniVacation(month, day, sch.summerStartDay)) return true;
+  return false;
+}
+
+function dayVacationFlag(rec, year, month, day, sch){
+  rec = rec || {};
+  sch = migrateVacationSchedule(sch || (typeof STATE !== "undefined" && STATE ? STATE.vacationSchedule : null));
+  if (rec.uniVacOpen && isUniVacationDay(year, month, day, sch)) return false;
+  if (isUniVacationDay(year, month, day, sch)) return true;
+  return !!rec.vacation;
+}
+
+function daysBetweenMonthDay(m1, d1, m2, d2){
+  var y0 = 2021;
+  var start = new Date(y0, m1 - 1, d1);
+  var end = new Date(y0, m2 - 1, d2);
+  if (end < start) end.setFullYear(y0 + 1);
+  return Math.round((end - start) / 86400000) + 1;
+}
+
+function uniVacationProfitRates(sch){
+  sch = migrateVacationSchedule(sch);
+  var sd = sch.summerStartDay;
+  var summerDays = daysBetweenMonthDay(6, sd, 8, 31);
+  var winterDays = daysBetweenMonthDay(12, 19, 2, 28);
+  var springEndDay = sd - 1;
+  var springAccrualDays = daysBetweenMonthDay(3, 1, 6, springEndDay);
+  var fallAccrualDays = daysBetweenMonthDay(9, 1, 12, 18);
+  var monthLen = 365.25 / 12;
+  return {
+    summerDays: summerDays,
+    winterDays: winterDays,
+    vacationMonths: ((summerDays + winterDays) / 2) / monthLen,
+    semesterAccrualMonths: ((springAccrualDays + fallAccrualDays) / 2) / monthLen
+  };
+}
+
+function vacationBucketRates(sch){
+  sch = migrateVacationSchedule(sch || (typeof STATE !== "undefined" && STATE ? STATE.vacationSchedule : null));
+  if (sch.mode === "uni-kr"){
+    var u = uniVacationProfitRates(sch);
+    return {
+      vacationMonths: u.vacationMonths,
+      semesterAccrualMonths: u.semesterAccrualMonths,
+      label: "uni"
+    };
+  }
+  return {
+    vacationMonths: PROFIT_BUCKET.vacationMonths,
+    semesterAccrualMonths: PROFIT_BUCKET.semesterAccrualMonths,
+    label: "manual"
+  };
+}
+
 var UNIT_OPTIONS = ["kg", "g", "L", "ml", "ea", "bunch", "pack", "box"];
 
 function defaultUnit(cat){

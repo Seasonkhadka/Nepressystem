@@ -162,7 +162,12 @@ function initDailyEvents(){
     if (!STATE.days) STATE.days = {};
     var rec = STATE.days[day] || { vacation:false, sales:0, labor:0 };
     var field = t.getAttribute("data-field");
-    if (field === "vacation") rec.vacation = t.checked;
+    if (field === "vacation"){
+      var inUni = isUniVacationDay(STATE.year, STATE.month, day, STATE.vacationSchedule);
+      if (inUni && !t.checked){ rec.uniVacOpen = true; rec.vacation = false; }
+      else if (inUni && t.checked){ delete rec.uniVacOpen; rec.vacation = false; }
+      else rec.vacation = t.checked;
+    }
     else if (field === "sales") rec.sales = parseFloat(t.value) || 0;
     else if (field === "labor") rec.labor = parseFloat(t.value) || 0;
     else return;
@@ -170,7 +175,18 @@ function initDailyEvents(){
     refreshDerived();
   };
   host.addEventListener("input", onDayChange);
-  host.addEventListener("change", onDayChange);
+  host.addEventListener("change", function(e){
+    var t = e.target;
+    if (t.id === "input-vac-mode" || t.id === "input-vac-summer-start"){
+      if (!STATE.vacationSchedule) STATE.vacationSchedule = defaultVacationSchedule();
+      STATE.vacationSchedule.mode = el("input-vac-mode").value === "uni-kr" ? "uni-kr" : "manual";
+      STATE.vacationSchedule.summerStartDay = parseInt(el("input-vac-summer-start").value, 10) === 22 ? 22 : 20;
+      renderDailyTab();
+      refreshDerived();
+      return;
+    }
+    onDayChange(e);
+  });
 }
 
 function initAssetEvents(){

@@ -78,7 +78,10 @@ function monthlyCashAfterLoansHtml(c){
 function profitAllocationHtml(a){
   if (!a) return "";
   var b = PROFIT_BUCKET;
-  var vacNote = b.vacationMonths + " mo vacation overhead ÷ " + b.semesterAccrualMonths + " mo semester accrual";
+  var r = a.vacationRates || vacationBucketRates();
+  var vacNote = r.label === "uni"
+    ? pct(r.vacationMonths / r.semesterAccrualMonths, 1)+" of overhead (≈ "+r.vacationMonths.toFixed(1)+" mo break ÷ "+r.semesterAccrualMonths.toFixed(1)+" mo semester)"
+    : b.vacationMonths + " mo vacation overhead ÷ " + b.semesterAccrualMonths + " mo semester accrual";
   function row(label, val, note, highlight){
     var noteHtml = note ? '<span class="profit-bucket-note">'+note+'</span>' : "";
     return '<div class="formula"'+(highlight ? ' style="background:var(--accent-soft)"' : "")+'>'+
@@ -96,7 +99,7 @@ function profitAllocationHtml(a){
       row("Net profit (start)", a.netProfit, "", true)+
       row("1. VAT reserve", -a.vat, pct(SALES_VAT_RATE, 1)+" of POS sales")+
       row("2. Tax bucket", -a.tax, pct(b.taxRate, 0)+" of net profit")+
-      row("3. Vacation bucket", -a.vacation, "overhead × "+b.vacationMonths+"/"+b.semesterAccrualMonths)+
+      row("3. Vacation bucket", -a.vacation, vacNote)+
       row("4. Maintenance bucket", -a.maintenance, pct(b.maintRate, 0)+" of net profit")+
       row("After buckets", a.afterBuckets, "what is left in the business", true)+
       row("15% share", a.share15, pct(b.shareRate, 0)+" of after buckets", true)+

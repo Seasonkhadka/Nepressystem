@@ -335,6 +335,10 @@
   .icon-btn[data-add-pur]:hover, .icon-btn[data-add-cat]:hover{ color:var(--accent); border-color:var(--accent); }
   .add-row-btn{ appearance:none; border:1.5px dashed var(--hairline-strong); background:transparent; color:var(--accent); font-weight:600; font-size:12.5px; padding:8px 12px; border-radius:8px; cursor:pointer; width:100%; text-align:left; }
   .add-row-btn:hover{ background:var(--accent-soft); }
+  .vac-schedule{ margin:14px 0 4px; }
+  .vac-schedule-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+  .vac-schedule-row label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:600; }
+  .vac-schedule-row .field-input{ min-width:9rem; }
   .overhead-var-row{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 14px; margin-top:16px; }
   .overhead-var-row label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:600; width:100%; }
 
