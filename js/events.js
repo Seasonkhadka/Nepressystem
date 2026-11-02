@@ -340,6 +340,7 @@ function initLaborEvents(){
       var ffield = t.getAttribute("data-field");
       if (ffield === "name") rec.name = t.value;
       else rec.amount = parseFloat(t.value) || 0;
+      markFixedOverheadTouched();
       refreshDerived();
     }
   };
@@ -400,12 +401,14 @@ function initLaborEvents(){
     } else if (t.matches("[data-add-fixed]")){
       if (!STATE.overheadFixedItems) STATE.overheadFixedItems = [];
       STATE.overheadFixedItems.push(blankOverheadFixed());
+      markFixedOverheadTouched();
       renderLaborTab();
       refreshDerived();
     } else if (t.matches("[data-remove-fixed]")){
       var fid = Number(t.getAttribute("data-remove-fixed"));
       STATE.overheadFixedItems = (STATE.overheadFixedItems || []).filter(function(b){ return b.id !== fid; });
-      if (!STATE.overheadFixedItems.length) STATE.overheadFixedItems = seedDefaultOverheadFixed();
+      if (!STATE.overheadFixedItems.length) STATE.overheadFixedItems = [blankOverheadFixed()];
+      markFixedOverheadTouched();
       renderLaborTab();
       refreshDerived();
     }

@@ -75,6 +75,8 @@ function payloadFromState(){
   copy.laborSalaries = asArray(copy.laborSalaries);
   copy.overheadBills = asArray(copy.overheadBills);
   copy.overheadFixedItems = asArray(copy.overheadFixedItems);
+  copy.overheadFixedDefaults = asArray(copy.overheadFixedDefaults);
+  copy.overheadFixedArchive = copy.overheadFixedArchive && typeof copy.overheadFixedArchive === "object" ? copy.overheadFixedArchive : {};
   copy.dayArchive = copy.dayArchive && typeof copy.dayArchive === "object" ? copy.dayArchive : {};
   copy.days = normalizeDays(copy.days, copy.year, copy.month);
   return copy;

@@ -57,6 +57,7 @@
     --good:#0ca30c; --warning-dot:#fab219; --critical:#e66767;
     --row-weekend:#3a2c17; --row-weekend-ink:#f0c793;
     --row-vacation:#5c3c14; --row-vacation-ink:#f7d9a8;
+    --row-closed:#3a2d4a; --row-closed-ink:#e8dcf5;
     --chart-1:#3987e5; --chart-2:#d95926; --chart-3:#199e70; --chart-4:#c98500; --chart-5:#d55181; --chart-6:#7d72ee;
     --shadow: 0 1px 2px rgba(0,0,0,0.45), 0 10px 24px rgba(0,0,0,0.4);
   }

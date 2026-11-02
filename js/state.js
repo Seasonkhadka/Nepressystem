@@ -553,7 +553,7 @@ function seedDefaultOverheadFixed(){
   });
 }
 
-function ensureDefaultOverheadFixed(list){
+function ensureDefaultFixedTemplate(list){
   list = asArray(list).map(migrateOverheadFixed);
   if (!list.some(overheadFixedHasData)) return seedDefaultOverheadFixed();
   DEFAULT_OVERHEAD_FIXED.forEach(function(d){
@@ -569,9 +569,57 @@ function ensureDefaultOverheadFixed(list){
   return list.filter(overheadFixedHasData);
 }
 
+function cloneFixedOverheadList(list){
+  return asArray(list).map(function(b){
+    return migrateOverheadFixed({ id: b.id, name: b.name, amount: b.amount });
+  });
+}
+
+function fixedOverheadFromTemplate(defaults){
+  var tmpl = ensureDefaultFixedTemplate(defaults || (STATE && STATE.overheadFixedDefaults) || seedDefaultOverheadFixed());
+  return tmpl.map(function(b){
+    var row = blankOverheadFixed();
+    row.name = b.name;
+    row.amount = b.amount;
+    return row;
+  });
+}
+
+function migrateFixedOverheadArchive(arch){
+  if (!arch || typeof arch !== "object") return {};
+  var out = {};
+  Object.keys(arch).forEach(function(k){
+    out[k] = asArray(arch[k]).map(migrateOverheadFixed);
+  });
+  return out;
+}
+
+function stashFixedOverhead(year, month){
+  if (!STATE) return;
+  if (!STATE.overheadFixedArchive) STATE.overheadFixedArchive = {};
+  var filled = asArray(STATE.overheadFixedItems).filter(overheadFixedHasData);
+  STATE.overheadFixedArchive[monthKey(year, month)] = cloneFixedOverheadList(filled);
+}
+
+function loadFixedOverheadForMonth(year, month){
+  if (!STATE) return;
+  if (!STATE.overheadFixedArchive) STATE.overheadFixedArchive = {};
+  var key = monthKey(year, month);
+  if (Object.prototype.hasOwnProperty.call(STATE.overheadFixedArchive, key)){
+    var arch = cloneFixedOverheadList(STATE.overheadFixedArchive[key]);
+    STATE.overheadFixedItems = arch.length ? arch : [blankOverheadFixed()];
+    return;
+  }
+  STATE.overheadFixedItems = fixedOverheadFromTemplate();
+}
+
+function markFixedOverheadTouched(){
+  if (STATE) STATE._fixedOverheadTouched = true;
+}
+
 function compactOverheadFixed(list){
-  var filled = ensureDefaultOverheadFixed(asArray(list));
-  return filled.length ? filled : seedDefaultOverheadFixed();
+  var filled = asArray(list).filter(overheadFixedHasData);
+  return filled.length ? filled : [blankOverheadFixed()];
 }
 
 function migrateLump(p){
@@ -684,6 +732,8 @@ function defaultState(){
     laborShifts: [blankLaborShift()],
     laborSalaries: [blankLaborSalary()],
     overheadBills: [blankOverheadBill()],
+    overheadFixedDefaults: seedDefaultOverheadFixed(),
+    overheadFixedArchive: {},
     overheadFixedItems: seedDefaultOverheadFixed(),
     dayArchive: {},
     days: blankDaysForMonth(year, month),
@@ -758,17 +808,29 @@ function normalizeParsedState(parsed){
   parsed.overheadBills = compactOverheadBills(bills);
   parsed.overheadBills.forEach(function(b){ if (b && b.id > maxBill) maxBill = b.id; });
   nextOverheadBillId = maxBill + 1;
-  var maxFix = 0;
-  var fixedItems = asArray(parsed.overheadFixedItems).map(migrateOverheadFixed);
-  if (!fixedItems.some(overheadFixedHasData) && (Number(parsed.overheadFixedMonthly)||0) > 0){
-    var seeded = blankOverheadFixed();
-    seeded.name = "Fixed overhead";
-    seeded.amount = Number(parsed.overheadFixedMonthly);
-    fixedItems = [seeded];
+  if (!parsed.overheadFixedArchive || typeof parsed.overheadFixedArchive !== "object") parsed.overheadFixedArchive = {};
+  parsed.overheadFixedArchive = migrateFixedOverheadArchive(parsed.overheadFixedArchive);
+  var tmplSeed = asArray(parsed.overheadFixedDefaults).length
+    ? parsed.overheadFixedDefaults
+    : asArray(parsed.overheadFixedItems);
+  parsed.overheadFixedDefaults = ensureDefaultFixedTemplate(tmplSeed.map(migrateOverheadFixed));
+  var curFixedKey = monthKey(year, month);
+  var legacyFixed = asArray(parsed.overheadFixedItems).map(migrateOverheadFixed);
+  if (legacyFixed.some(overheadFixedHasData) && !Object.prototype.hasOwnProperty.call(parsed.overheadFixedArchive, curFixedKey)){
+    parsed.overheadFixedArchive[curFixedKey] = cloneFixedOverheadList(legacyFixed.filter(overheadFixedHasData));
   }
-  fixedItems.forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
+  var maxFix = 0;
+  parsed.overheadFixedDefaults.forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
+  Object.keys(parsed.overheadFixedArchive).forEach(function(k){
+    asArray(parsed.overheadFixedArchive[k]).forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
+  });
   nextOverheadFixedId = maxFix + 1;
-  parsed.overheadFixedItems = compactOverheadFixed(fixedItems);
+  if (Object.prototype.hasOwnProperty.call(parsed.overheadFixedArchive, curFixedKey)){
+    var arch = cloneFixedOverheadList(parsed.overheadFixedArchive[curFixedKey]);
+    parsed.overheadFixedItems = arch.length ? arch : [blankOverheadFixed()];
+  } else {
+    parsed.overheadFixedItems = fixedOverheadFromTemplate(parsed.overheadFixedDefaults);
+  }
   parsed.overheadFixedItems.forEach(function(b){ if (b && b.id > maxFix) maxFix = b.id; });
   nextOverheadFixedId = maxFix + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
@@ -870,6 +932,11 @@ function stateHasUserData(s){
   if (asArray(s.laborSalaries).some(laborSalaryHasData)) return true;
   if (asArray(s.overheadBills).some(overheadBillHasData)) return true;
   if (asArray(s.overheadFixedItems).some(overheadFixedHasData)) return true;
+  if (s.overheadFixedArchive && typeof s.overheadFixedArchive === "object"){
+    if (Object.keys(s.overheadFixedArchive).some(function(k){
+      return asArray(s.overheadFixedArchive[k]).some(overheadFixedHasData);
+    })) return true;
+  }
   if (s.days){
     var keys = Object.keys(s.days);
     for (var i = 0; i < keys.length; i++){
@@ -902,6 +969,10 @@ function statesDiffer(a, b){
 
 function saveState(){
   if (STATE && STATE.year && STATE.days) stashDays(STATE.year, STATE.month, STATE.days);
+  if (STATE && STATE._fixedOverheadTouched){
+    stashFixedOverhead(STATE.year, STATE.month);
+    STATE._fixedOverheadTouched = false;
+  }
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); } catch(e){}
   if (typeof scheduleCloudSave === "function") scheduleCloudSave();
 }

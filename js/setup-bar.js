@@ -31,8 +31,11 @@ function applyMonthYearChange(){
   var newYear = parseInt(el("input-year").value, 10) || STATE.year;
   if (newMonth === STATE.month && newYear === STATE.year) return;
   stashDays(STATE.year, STATE.month, STATE.days);
+  if (STATE._fixedOverheadTouched) stashFixedOverhead(STATE.year, STATE.month);
+  STATE._fixedOverheadTouched = false;
   STATE.month = newMonth; STATE.year = newYear;
   STATE.days = daysFromArchive(STATE.year, STATE.month);
+  loadFixedOverheadForMonth(STATE.year, STATE.month);
   populateSetupBar();
   renderCalculationsTab();
   renderRawMaterialsTab();
