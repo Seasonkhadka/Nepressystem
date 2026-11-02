@@ -403,7 +403,11 @@ function applyLaborShiftField(s, field, raw){
     s.paid = raw === "yes" || raw === true;
     return;
   }
-  if (field === "date" || field === "name" || field === "role"){
+  if (field === "date"){
+    s.date = laborDateFromMonthInput(raw) || isoForMonth();
+    return;
+  }
+  if (field === "name" || field === "role"){
     s[field] = raw;
     return;
   }

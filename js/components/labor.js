@@ -10,14 +10,18 @@ function paidSelectHtml(paid){
   '</select>';
 }
 
-function laborShiftRowHtml(s){
+function laborShiftRowHtml(s, openDays){
+  var tot = laborShiftTotal(s);
+  var daily = openDays && tot ? tot / openDays : 0;
+  var monthVal = isoMonthFromDate(s.date) || monthKey(STATE.year, STATE.month);
   return '<tr data-shift-id="'+s.id+'"'+(s.paid ? "" : ' class="labor-unpaid"')+'>'+
-    '<td><input class="cell-input" type="date" data-field="date" value="'+esc(s.date||"")+'"></td>'+
+    '<td><input class="cell-input" type="month" data-field="date" value="'+esc(monthVal)+'"></td>'+
     '<td><input class="cell-input text" type="text" data-field="name" placeholder="Name" value="'+esc(s.name)+'"></td>'+
     '<td><input class="cell-input text" type="text" data-field="role" placeholder="Cook, hall…" value="'+esc(s.role)+'"></td>'+
     '<td><input class="cell-input" type="number" min="0" step="0.5" data-field="hours" placeholder="0" value="'+numAttr(s.hours)+'"></td>'+
     '<td><input class="cell-input" type="number" min="0" step="100" data-field="rate" placeholder="0" value="'+numAttr(s.rate)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="1000" data-field="amount" placeholder="0" value="'+numAttr(laborShiftTotal(s))+'"></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="1000" data-field="amount" placeholder="0" value="'+numAttr(tot)+'"></td>'+
+    '<td class="tnum calc" data-shift-daily>'+(daily ? won(daily) : "—")+'</td>'+
     '<td>'+paidSelectHtml(!!s.paid)+'</td>'+
     '<td><button class="icon-btn" type="button" data-remove-shift="'+s.id+'" title="Remove row" aria-label="Remove row">×</button></td>'+
   '</tr>';
@@ -106,12 +110,12 @@ function renderLaborTab(){
       (L.hasLedger ? '' : '<p class="note" id="labor-empty-hint">Nothing on this page yet. If you used to type labor on each P&amp;L day, those numbers still show until you add a shift or salary here — then this page takes over.</p>')+
     '</section>'+
     '<section class="card">'+
-      '<h2>Shifts &amp; daily wages</h2>'+
-      '<p class="lede">Part-time, hourly, or a cash day wage. Put the date they worked. Mark <b>Paid</b> or <b>Unpaid</b> when you settle — P&amp;L still counts all shifts this month.</p>'+
+      '<h2>Part-time (month total)</h2>'+
+      '<p class="lede">Part-time or hourly staff: enter the <b>month</b> and total pay (hours × rate or one amount). P&amp;L spreads each row across <b>open days</b> in that month — not on one calendar date. Mark <b>Paid</b> or <b>Unpaid</b> when you settle.</p>'+
       (otherShiftCount ? '<p class="note">'+otherShiftCount+' shift'+(otherShiftCount===1?"":"s")+' saved in other months — change the month above to see them.</p>' : '')+
       '<div class="table-wrap purchase-wrap"><table class="labor-table"><thead><tr>'+
-        '<th>Date</th><th>Name</th><th>Role</th><th>Hours</th><th>₩ / hour</th><th>Pay</th><th>Status</th><th></th>'+
-      '</tr></thead><tbody>'+(shifts.length ? shifts.map(laborShiftRowHtml).join("") : "")+'</tbody></table></div>'+
+        '<th>Month</th><th>Name</th><th>Role</th><th>Hours</th><th>₩ / hour</th><th>Pay / month</th><th>₩ / open day</th><th>Status</th><th></th>'+
+      '</tr></thead><tbody>'+(shifts.length ? shifts.map(function(s){ return laborShiftRowHtml(s, openDays); }).join("") : "")+'</tbody></table></div>'+
       '<button class="add-row-btn" type="button" data-add-shift>+ Add shift</button>'+
     '</section>'+
     '<section class="card">'+
@@ -170,6 +174,9 @@ function refreshLaborComputedCells(model){
     };
     idleSet('[data-field="rate"]', niceNum(s.rate));
     idleSet('[data-field="amount"]', niceNum(laborShiftTotal(s)));
+    var tot = laborShiftTotal(s);
+    var dailyEl = tr.querySelector("[data-shift-daily]");
+    if (dailyEl) dailyEl.textContent = openDays && tot ? won(tot / openDays) : "—";
     tr.classList.toggle("labor-unpaid", !s.paid);
   });
   asArray(STATE.laborSalaries).forEach(function(s){

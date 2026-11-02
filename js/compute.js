@@ -329,8 +329,6 @@ function computeAll(){
     shiftMonth += tot;
     if (s.paid) shiftPaid += tot;
     else shiftUnpaid += tot;
-    var day = Number(String(s.date).split("-")[2]) || 0;
-    if (laborByDay[day] != null) laborByDay[day] += tot;
   });
   asArray(STATE.laborSalaries).forEach(function(s){
     if (laborSalaryHasData(s)) laborHasLedger = true;
@@ -344,10 +342,11 @@ function computeAll(){
   });
   var salaryOpenDays = openDaysTrue || daysThisMonth;
   var salaryPerOpen = salaryOpenDays ? salaryMonth / salaryOpenDays : 0;
+  var shiftPerOpen = salaryOpenDays ? shiftMonth / salaryOpenDays : 0;
   dayNums.forEach(function(day){
     var rec = STATE.days[day] || { vacation:false };
     var vac = dayVacationFlag(rec, year, month, day, STATE.vacationSchedule);
-    if (!vac || !openDaysTrue) laborByDay[day] += salaryPerOpen;
+    if (!vac || !openDaysTrue) laborByDay[day] += salaryPerOpen + shiftPerOpen;
   });
 
   var billMonth = 0, anyVarBill = false;
@@ -431,6 +430,7 @@ function computeAll(){
     monthly: laborHasLedger ? (shiftMonth + salaryMonth) : monthly.labor,
     openDays: openDaysTrue || daysThisMonth,
     salaryDaily: salaryPerOpen,
+    shiftDaily: shiftPerOpen,
     shiftPaid: shiftPaid,
     shiftUnpaid: shiftUnpaid,
     salaryPartPaid: salaryPartPaid,

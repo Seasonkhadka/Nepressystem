@@ -20,6 +20,20 @@ function isoToday(){
   return t.getFullYear() + "-" + pad2(t.getMonth()+1) + "-" + pad2(t.getDate());
 }
 
+function isoMonthFromDate(dateStr){
+  if (!dateStr) return "";
+  var parts = String(dateStr).split("-");
+  if (parts.length < 2) return "";
+  return parts[0] + "-" + parts[1];
+}
+
+function laborDateFromMonthInput(raw){
+  if (!raw) return "";
+  var s = String(raw).trim();
+  if (/^\d{4}-\d{2}$/.test(s)) return s + "-01";
+  return s;
+}
+
 function purchaseInMonth(p, year, month){
   if (!p || !p.date) return false;
   var parts = String(p.date).split("-");
