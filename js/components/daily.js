@@ -11,7 +11,7 @@ function vacationScheduleHtml(){
   var sch = migrateVacationSchedule(STATE.vacationSchedule);
   var sel = "manual";
   if (sch.mode === "uni-kr") sel = sch.summerStartDay === 22 ? "uni-22" : "uni-20";
-  return '<div class="legend">'+
+  return '<div class="legend" data-daily-ui="simple">'+
       '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
       '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
       '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
