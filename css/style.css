@@ -359,7 +359,16 @@
   }
   .vac-sem-chip input{ margin:0; }
   .vac-sem-chip .vac-start{ width:3.2rem; min-width:0; padding:2px 6px; font-size:12px; }
-  .vac-bar-meta{ font-size:11px; color:var(--muted); flex:1 1 12rem; line-height:1.4; }
+  .vac-bar-meta{ font-size:11px; color:var(--muted); flex:1 1 100%; line-height:1.4; margin-top:4px; }
+  .vac-date-grid{ display:flex; flex-wrap:wrap; gap:10px 16px; width:100%; margin-top:6px; }
+  .vac-date-block{
+    display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px;
+    font-size:12px; padding:8px 10px; border-radius:10px;
+    background:var(--surface); border:1px solid var(--hairline);
+  }
+  .vac-date-block .eyebrow{ width:100%; margin:0 0 2px; font-size:10px; }
+  .vac-date-block .vac-day{ width:3.4rem; min-width:0; padding:4px 6px; font-size:12px; }
+  .vac-yr-note{ font-size:11px; color:var(--muted); }
   .overhead-var-row{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:8px 14px; margin-top:16px; }
   .overhead-var-row label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); font-weight:600; width:100%; }
 

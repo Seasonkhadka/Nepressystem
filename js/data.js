@@ -80,11 +80,8 @@ var TAG_META = {
   vacation: { label: "Vacation", color: "var(--chart-3)" }
 };
 
-/** Korean university breaks (typical): winter Dec 19 – Feb 28, summer Jun – Aug 31. */
+/** Default uni break shape: winter Dec → Feb (next year), summer Jun → Aug. */
 var UNI_VACATION = {
-  winterStart: { month: 12, day: 19 },
-  winterEnd: { month: 2, day: 28 },
-  summerEnd: { month: 8, day: 31 },
   fallAccrualStart: { month: 9, day: 1 },
   fallAccrualEnd: { month: 12, day: 18 },
   springAccrualStart: { month: 3, day: 1 }
@@ -105,26 +102,86 @@ function defaultVacationSchedule(){
   return migrateVacationSchedule({ mode: "uni-kr", summerStartDay: 20 });
 }
 
-/** Same calendar pattern every year (2nd sem break spans Dec → Feb). */
-function isWinterUniVacation(year, month, day){
-  if (month === 12 && day >= UNI_VACATION.winterStart.day) return true;
-  if (month === 1) return true;
-  if (month === 2 && day <= UNI_VACATION.winterEnd.day) return true;
-  return false;
+function clampDay(month, day){
+  var d = Math.max(1, Math.min(31, Math.round(Number(day) || 1)));
+  var max = new Date(2024, month, 0).getDate();
+  return Math.min(d, max);
 }
 
-function isSummerUniVacation(month, day, summerStartDay){
-  summerStartDay = summerStartDay === 22 ? 22 : 20;
-  if (month === 7 || month === 8) return true;
-  if (month === 6 && day >= summerStartDay) return true;
-  return false;
+function defaultVacationDatesForYear(year, sch){
+  sch = migrateVacationSchedule(sch);
+  return {
+    winterStartM: 12,
+    winterStartD: 19,
+    winterEndM: 2,
+    winterEndD: 28,
+    summerStartM: 6,
+    summerStartD: sch.summerStartDay === 22 ? 22 : 20,
+    summerEndM: 8,
+    summerEndD: 31
+  };
+}
+
+function migrateVacationDatesEntry(raw, year, sch){
+  var d = defaultVacationDatesForYear(year, sch);
+  if (!raw || typeof raw !== "object") return d;
+  return {
+    winterStartM: 12,
+    winterStartD: clampDay(12, raw.winterStartD != null ? raw.winterStartD : d.winterStartD),
+    winterEndM: 2,
+    winterEndD: clampDay(2, raw.winterEndD != null ? raw.winterEndD : d.winterEndD),
+    summerStartM: 6,
+    summerStartD: clampDay(6, raw.summerStartD != null ? raw.summerStartD : d.summerStartD),
+    summerEndM: 8,
+    summerEndD: clampDay(8, raw.summerEndD != null ? raw.summerEndD : d.summerEndD)
+  };
+}
+
+/** Winter Dec Y – Feb Y+1 uses stored dates under key Y. Jan/Feb use key Y−1. */
+function vacationWinterYearKey(calendarYear, month){
+  if (month === 1 || month === 2) return calendarYear - 1;
+  return calendarYear;
+}
+
+function getVacationYearDates(yearKey, sch, map){
+  map = map || (typeof STATE !== "undefined" && STATE ? STATE.vacationYearDates : null);
+  var raw = map && map[String(yearKey)];
+  return migrateVacationDatesEntry(raw, yearKey, sch);
+}
+
+function calendarDate(year, month, day){
+  return new Date(year, month - 1, day).getTime();
+}
+
+function isWinterPeriod(calendarYear, month, day, dates){
+  var yKey = vacationWinterYearKey(calendarYear, month);
+  var start = calendarDate(yKey, dates.winterStartM, dates.winterStartD);
+  var endY = dates.winterEndM < dates.winterStartM ? yKey + 1 : yKey;
+  var end = calendarDate(endY, dates.winterEndM, dates.winterEndD);
+  var cur = calendarDate(calendarYear, month, day);
+  return cur >= start && cur <= end;
+}
+
+function isSummerPeriod(calendarYear, month, day, dates){
+  if (month < dates.summerStartM || month > dates.summerEndM) return false;
+  if (month === dates.summerStartM && day < dates.summerStartD) return false;
+  if (month === dates.summerEndM && day > dates.summerEndD) return false;
+  return true;
 }
 
 function isUniVacationDay(year, month, day, sch){
   sch = migrateVacationSchedule(sch);
   if (sch.mode !== "uni-kr") return false;
-  if (sch.useWinter && isWinterUniVacation(year, month, day)) return true;
-  if (sch.useSummer && isSummerUniVacation(month, day, sch.summerStartDay)) return true;
+  var map = typeof STATE !== "undefined" && STATE ? STATE.vacationYearDates : null;
+  if (sch.useWinter){
+    var wKey = vacationWinterYearKey(year, month);
+    var wDates = getVacationYearDates(wKey, sch, map);
+    if (isWinterPeriod(year, month, day, wDates)) return true;
+  }
+  if (sch.useSummer){
+    var sDates = getVacationYearDates(year, sch, map);
+    if (isSummerPeriod(year, month, day, sDates)) return true;
+  }
   return false;
 }
 
@@ -144,14 +201,17 @@ function daysBetweenMonthDay(m1, d1, m2, d2){
   return Math.round((end - start) / 86400000) + 1;
 }
 
-function uniVacationProfitRates(sch){
+function uniVacationProfitRates(sch, viewYear, map){
   sch = migrateVacationSchedule(sch);
-  var sd = sch.summerStartDay;
-  var summerDays = daysBetweenMonthDay(6, sd, 8, 31);
-  var winterDays = daysBetweenMonthDay(12, 19, 2, 28);
-  var springEndDay = sd - 1;
+  viewYear = Number(viewYear) || new Date().getFullYear();
+  var wDates = getVacationYearDates(viewYear, sch, map);
+  var sDates = getVacationYearDates(viewYear, sch, map);
+  var summerDays = daysBetweenMonthDay(6, sDates.summerStartD, 8, sDates.summerEndD);
+  var winterDays = daysBetweenMonthDay(12, wDates.winterStartD, 2, wDates.winterEndD);
+  var springEndDay = Math.max(1, sDates.summerStartD - 1);
   var springAccrualDays = daysBetweenMonthDay(3, 1, 6, springEndDay);
-  var fallAccrualDays = daysBetweenMonthDay(9, 1, 12, 18);
+  var fallEndDay = Math.max(1, wDates.winterStartD - 1);
+  var fallAccrualDays = daysBetweenMonthDay(9, 1, 12, fallEndDay);
   var monthLen = 365.25 / 12;
   var vacParts = 0, vacDays = 0, accParts = 0, accDays = 0;
   if (sch.useSummer !== false){
@@ -178,20 +238,39 @@ function uniVacationProfitRates(sch){
   };
 }
 
-function uniVacationSummary(sch){
-  sch = migrateVacationSchedule(sch);
-  var sd = sch.summerStartDay;
+function uniVacationSummaryForView(viewYear, viewMonth, sch, map){
+  var wKey = vacationWinterYearKey(viewYear, viewMonth);
+  var w = getVacationYearDates(wKey, sch, map);
+  var s = getVacationYearDates(viewYear, sch, map);
   return {
-    winter: "Dec 19 – Feb 28",
-    summer: "Jun "+sd+" – Aug 31",
-    everyYear: true
+    winterKey: wKey,
+    summerKey: viewYear,
+    winter: "Dec "+w.winterStartD+" – Feb "+w.winterEndD+" ("+wKey+"–"+(wKey+1)+")",
+    summer: "Jun "+s.summerStartD+" – Aug "+s.summerEndD+" ("+viewYear+")",
+    w: w,
+    s: s
+  };
+}
+
+function saveVacationYearDates(yearKey, patch, sch){
+  if (typeof STATE === "undefined" || !STATE) return;
+  if (!STATE.vacationYearDates) STATE.vacationYearDates = {};
+  var cur = getVacationYearDates(yearKey, sch, STATE.vacationYearDates);
+  var next = migrateVacationDatesEntry(Object.assign({}, cur, patch), yearKey, sch);
+  STATE.vacationYearDates[String(yearKey)] = {
+    winterStartD: next.winterStartD,
+    winterEndD: next.winterEndD,
+    summerStartD: next.summerStartD,
+    summerEndD: next.summerEndD
   };
 }
 
 function vacationBucketRates(sch){
   sch = migrateVacationSchedule(sch || (typeof STATE !== "undefined" && STATE ? STATE.vacationSchedule : null));
   if (sch.mode === "uni-kr"){
-    var u = uniVacationProfitRates(sch);
+    var vy = typeof STATE !== "undefined" && STATE ? STATE.year : new Date().getFullYear();
+    var vm = typeof STATE !== "undefined" && STATE ? STATE.vacationYearDates : null;
+    var u = uniVacationProfitRates(sch, vy, vm);
     return {
       vacationMonths: u.vacationMonths,
       semesterAccrualMonths: u.semesterAccrualMonths,

@@ -174,16 +174,29 @@ function initDailyEvents(){
     STATE.days[day] = rec;
     refreshDerived();
   };
-  host.addEventListener("input", onDayChange);
+  function onVacationDateField(t){
+    if (!t.getAttribute || !t.getAttribute("data-vac-field")) return false;
+    var yKey = parseInt(t.getAttribute("data-vac-year"), 10);
+    var fld = t.getAttribute("data-vac-field");
+    if (!yKey || !fld) return false;
+    var patch = {};
+    patch[fld] = parseInt(t.value, 10);
+    saveVacationYearDates(yKey, patch, STATE.vacationSchedule);
+    renderDailyTab();
+    refreshDerived();
+    return true;
+  }
+  host.addEventListener("input", function(e){
+    if (onVacationDateField(e.target)) return;
+    onDayChange(e);
+  });
   host.addEventListener("change", function(e){
     var t = e.target;
-    if (t.id === "input-vac-mode" || t.id === "input-vac-summer-start" ||
-        t.id === "input-vac-winter" || t.id === "input-vac-summer"){
+    if (onVacationDateField(t)) return;
+    if (t.id === "input-vac-mode" || t.id === "input-vac-winter" || t.id === "input-vac-summer"){
       if (!STATE.vacationSchedule) STATE.vacationSchedule = defaultVacationSchedule();
       var modeEl = el("input-vac-mode");
       if (modeEl) STATE.vacationSchedule.mode = modeEl.value === "uni-kr" ? "uni-kr" : "manual";
-      var startEl = el("input-vac-summer-start");
-      if (startEl) STATE.vacationSchedule.summerStartDay = parseInt(startEl.value, 10) === 22 ? 22 : 20;
       var wEl = el("input-vac-winter");
       if (wEl) STATE.vacationSchedule.useWinter = wEl.checked;
       var sEl = el("input-vac-summer");

@@ -10,11 +10,14 @@
 function vacationScheduleHtml(){
   var sch = migrateVacationSchedule(STATE.vacationSchedule);
   var uni = sch.mode === "uni-kr";
-  var rates = uni ? uniVacationProfitRates(sch) : null;
-  var sum = uniVacationSummary(sch);
+  var map = STATE.vacationYearDates || {};
+  var vy = STATE.year, vm = STATE.month;
+  var sum = uniVacationSummaryForView(vy, vm, sch, map);
+  var rates = uni ? uniVacationProfitRates(sch, vy, map) : null;
   var accrual = rates
     ? rates.vacationMonths.toFixed(1)+"÷"+rates.semesterAccrualMonths.toFixed(1)+" mo"
     : "";
+  var w = sum.w, s = sum.s;
   return '<div class="vac-bar">'+
     '<div class="vac-bar-top">'+
       '<span class="vac-legend">'+
@@ -23,7 +26,7 @@ function vacationScheduleHtml(){
         '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
       '</span>'+
       '<select class="field-input vac-mode" id="input-vac-mode" title="Break schedule">'+
-        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni · both semesters · every year</option>'+
+        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni · dates per year</option>'+
         '<option value="manual"'+(uni?"":" selected")+'>Manual vacation only</option>'+
       '</select>'+
     '</div>'+
@@ -34,14 +37,26 @@ function vacationScheduleHtml(){
       '</label>'+
       '<label class="vac-sem-chip">'+
         '<input type="checkbox" id="input-vac-summer"'+(sch.useSummer!==false?" checked":"")+'>'+
-        '<span><b>1st sem</b> Jun</span>'+
-        '<select class="field-input vac-start" id="input-vac-summer-start">'+
-          '<option value="20"'+(sch.summerStartDay===20?" selected":"")+'>20</option>'+
-          '<option value="22"'+(sch.summerStartDay===22?" selected":"")+'>22</option>'+
-        '</select>'+
-        '<span>– Aug 31</span>'+
+        '<span><b>1st sem</b> '+sum.summer+'</span>'+
       '</label>'+
-      '<span class="vac-bar-meta">Same dates each calendar year · accrual '+accrual+' · uncheck a day if open</span>'+
+      '<div class="vac-date-grid">'+
+        '<div class="vac-date-block">'+
+          '<span class="eyebrow">Winter · '+sum.winterKey+'</span>'+
+          '<span>Dec</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="31" step="1" id="vac-w-start-d" data-vac-year="'+sum.winterKey+'" data-vac-field="winterStartD" value="'+w.winterStartD+'">'+
+          '<span>– Feb</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="29" step="1" id="vac-w-end-d" data-vac-year="'+sum.winterKey+'" data-vac-field="winterEndD" value="'+w.winterEndD+'">'+
+          '<span class="vac-yr-note">'+(sum.winterKey+1)+'</span>'+
+        '</div>'+
+        '<div class="vac-date-block">'+
+          '<span class="eyebrow">Summer · '+sum.summerKey+'</span>'+
+          '<span>Jun</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="30" step="1" id="vac-s-start-d" data-vac-year="'+sum.summerKey+'" data-vac-field="summerStartD" value="'+s.summerStartD+'">'+
+          '<span>– Aug</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="31" step="1" id="vac-s-end-d" data-vac-year="'+sum.summerKey+'" data-vac-field="summerEndD" value="'+s.summerEndD+'">'+
+        '</div>'+
+      '</div>'+
+      '<span class="vac-bar-meta">Dates are saved per year (change month/year above to edit another year). Accrual '+accrual+'. Open on break? Uncheck that day.</span>'+
     '</div>'+
   '</div>';
 }

@@ -653,7 +653,8 @@ function defaultState(){
     overheadFixedItems: [blankOverheadFixed()],
     dayArchive: {},
     days: blankDaysForMonth(year, month),
-    vacationSchedule: defaultVacationSchedule()
+    vacationSchedule: defaultVacationSchedule(),
+    vacationYearDates: {}
   };
 }
 
@@ -738,6 +739,7 @@ function normalizeParsedState(parsed){
   nextOverheadFixedId = maxFix + 1;
   if (!parsed.meta) parsed.meta = { name:"", subtitle:"" };
   parsed.vacationSchedule = migrateVacationSchedule(parsed.vacationSchedule);
+  if (!parsed.vacationYearDates || typeof parsed.vacationYearDates !== "object") parsed.vacationYearDates = {};
   parsed.overheadFixedMonthly = Number(parsed.overheadFixedMonthly)||0;
   parsed.overheadVariableRate = Number(parsed.overheadVariableRate)||0;
   if (!parsed.dayArchive || typeof parsed.dayArchive !== "object") parsed.dayArchive = {};
