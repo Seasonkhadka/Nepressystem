@@ -9,77 +9,33 @@
 
 function vacationScheduleHtml(){
   var sch = migrateVacationSchedule(STATE.vacationSchedule);
-  var uni = sch.mode === "uni-kr";
-  var map = STATE.vacationYearDates || {};
-  var vy = STATE.year, vm = STATE.month;
-  var sum = uniVacationSummaryForView(vy, vm, sch, map);
-  var rates = uni ? uniVacationProfitRates(sch, vy, map) : null;
-  var accrual = rates
-    ? rates.vacationMonths.toFixed(1)+"÷"+rates.semesterAccrualMonths.toFixed(1)+" mo"
-    : "";
-  var w = sum.w, s = sum.s;
-  return '<div class="vac-bar">'+
-    '<div class="vac-bar-top">'+
-      '<span class="vac-legend">'+
-        '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
-        '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
-        '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Break</span>'+
-        '<span class="item"><span class="dot" style="background:var(--row-closed)"></span>Closed</span>'+
+  var sel = "manual";
+  if (sch.mode === "uni-kr") sel = sch.summerStartDay === 22 ? "uni-22" : "uni-20";
+  return '<div class="legend">'+
+      '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
+      '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
+      '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
+      '<span class="item vac-dd">'+
+        '<label for="input-vac-schedule">University breaks</label>'+
+        '<select class="field-input" id="input-vac-schedule">'+
+          '<option value="manual"'+(sel==="manual"?" selected":"")+'>Off (manual only)</option>'+
+          '<option value="uni-20"'+(sel==="uni-20"?" selected":"")+'>Korean uni — summer from Jun 20</option>'+
+          '<option value="uni-22"'+(sel==="uni-22"?" selected":"")+'>Korean uni — summer from Jun 22</option>'+
+        '</select>'+
       '</span>'+
-      '<select class="field-input vac-mode" id="input-vac-mode" title="Break schedule">'+
-        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni · dates per year</option>'+
-        '<option value="manual"'+(uni?"":" selected")+'>Manual vacation only</option>'+
-      '</select>'+
-    '</div>'+
-    '<div class="vac-bar-sem"'+(uni?"":" hidden")+' id="vac-sem-panel">'+
-      '<label class="vac-sem-chip">'+
-        '<input type="checkbox" id="input-vac-winter"'+(sch.useWinter!==false?" checked":"")+'>'+
-        '<span><b>2nd sem</b> '+sum.winter+'</span>'+
-      '</label>'+
-      '<label class="vac-sem-chip">'+
-        '<input type="checkbox" id="input-vac-summer"'+(sch.useSummer!==false?" checked":"")+'>'+
-        '<span><b>1st sem</b> '+sum.summer+'</span>'+
-      '</label>'+
-      '<label class="vac-sem-chip">'+
-        '<input type="checkbox" id="input-vac-closes"'+(sch.closesOnBreaks!==false?" checked":"")+'>'+
-        '<span><b>Close shop</b> on these breaks</span>'+
-      '</label>'+
-      '<div class="vac-date-grid">'+
-        '<div class="vac-date-block">'+
-          '<span class="eyebrow">Winter · '+sum.winterKey+'</span>'+
-          '<span>Dec</span>'+
-          '<input class="field-input vac-day" type="number" min="1" max="31" step="1" id="vac-w-start-d" data-vac-year="'+sum.winterKey+'" data-vac-field="winterStartD" value="'+w.winterStartD+'">'+
-          '<span>– Feb</span>'+
-          '<input class="field-input vac-day" type="number" min="1" max="29" step="1" id="vac-w-end-d" data-vac-year="'+sum.winterKey+'" data-vac-field="winterEndD" value="'+w.winterEndD+'">'+
-          '<span class="vac-yr-note">'+(sum.winterKey+1)+'</span>'+
-        '</div>'+
-        '<div class="vac-date-block">'+
-          '<span class="eyebrow">Summer · '+sum.summerKey+'</span>'+
-          '<span>Jun</span>'+
-          '<input class="field-input vac-day" type="number" min="1" max="30" step="1" id="vac-s-start-d" data-vac-year="'+sum.summerKey+'" data-vac-field="summerStartD" value="'+s.summerStartD+'">'+
-          '<span>– Aug</span>'+
-          '<input class="field-input vac-day" type="number" min="1" max="31" step="1" id="vac-s-end-d" data-vac-year="'+sum.summerKey+'" data-vac-field="summerEndD" value="'+s.summerEndD+'">'+
-        '</div>'+
-      '</div>'+
-      '<span class="vac-bar-meta">Dates are saved per year (change month/year above to edit another year). Accrual '+accrual+'. Open on break? Uncheck that day.</span>'+
-    '</div>'+
-  '</div>';
+    '</div>';
 }
 
 function dayRowHtml(day, isWeekendAuto){
   var raw = STATE.days[day] || { vacation:false, closed:false, sales:0, cogsPct:0, labor:0 };
   var onBreak = dayVacationFlag(raw, STATE.year, STATE.month, day, STATE.vacationSchedule);
-  var closed = !!raw.closed;
-  var tag = onBreak ? "vacation" : (closed ? "closed" : (isWeekendAuto ? "weekend" : "weekday"));
-  var tagMeta = TAG_META[tag];
+  var plClosed = dayPlClosed(raw, STATE.year, STATE.month, day, STATE.vacationSchedule);
+  var tag = onBreak ? "vacation" : (raw.closed ? "closed" : (isWeekendAuto ? "weekend" : "weekday"));
+  var tagMeta = TAG_META[tag] || TAG_META.vacation;
   return '<tr class="'+tag+'" data-day="'+day+'" data-weekend-auto="'+(isWeekendAuto?"1":"0")+'">'+
     '<td>'+MONTH_ABBR[STATE.month-1]+' '+day+'</td>'+
     '<td>'+DOW_NAMES[dowOf(STATE.year,STATE.month,day)]+'</td>'+
-    '<td class="day-tag-cell">'+
-      '<label class="vac-toggle" title="Uni break or manual break"><input type="checkbox" data-field="vacation" '+(onBreak?"checked":"")+'><span class="vac-lbl">Break</span></label>'+
-      '<label class="vac-toggle" title="Closed (not open this day)"><input type="checkbox" data-field="closed" '+(closed?"checked":"")+'><span class="vac-lbl">Closed</span></label>'+
-      '<span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span>'+
-    '</td>'+
+    '<td><label class="vac-toggle"><input type="checkbox" data-field="vacation" '+(plClosed?"checked":"")+'><span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span></label></td>'+
     '<td><input class="cell-input" type="number" min="0" step="1000" data-field="sales" placeholder="0" value="'+(raw.sales?raw.sales:"")+'"></td>'+
     '<td class="tnum calc" data-calc="cogsAmt">₩0</td>'+
     '<td class="tnum calc" data-calc="cogsPct">0.0%</td>'+
@@ -151,11 +107,8 @@ function refreshDailyComputedCells(model){
     tr.querySelector('[data-calc="netMarginPct"]').textContent = signedPct(d.netMarginPct);
     var badge = tr.querySelector('[data-tag-badge]');
     if (badge){ badge.className = "tag "+d.tag; badge.textContent = TAG_META[d.tag].label; }
-    var onBreak = dayVacationFlag(STATE.days[d.day] || {}, STATE.year, STATE.month, d.day, STATE.vacationSchedule);
     var vacIn = tr.querySelector('[data-field="vacation"]');
-    if (vacIn) vacIn.checked = onBreak;
-    var closedIn = tr.querySelector('[data-field="closed"]');
-    if (closedIn) closedIn.checked = !!(STATE.days[d.day] && STATE.days[d.day].closed);
+    if (vacIn) vacIn.checked = d.vacation;
   });
   var m = model.monthly;
   var foot = function(k, txt){

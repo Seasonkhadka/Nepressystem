@@ -168,43 +168,23 @@ function initDailyEvents(){
       else if (inUni && t.checked){ delete rec.uniVacOpen; rec.vacation = false; }
       else rec.vacation = t.checked;
     }
-    else if (field === "closed") rec.closed = t.checked;
     else if (field === "sales") rec.sales = parseFloat(t.value) || 0;
     else if (field === "labor") rec.labor = parseFloat(t.value) || 0;
     else return;
     STATE.days[day] = rec;
     refreshDerived();
   };
-  function onVacationDateField(t){
-    if (!t.getAttribute || !t.getAttribute("data-vac-field")) return false;
-    var yKey = parseInt(t.getAttribute("data-vac-year"), 10);
-    var fld = t.getAttribute("data-vac-field");
-    if (!yKey || !fld) return false;
-    var patch = {};
-    patch[fld] = parseInt(t.value, 10);
-    saveVacationYearDates(yKey, patch, STATE.vacationSchedule);
-    renderDailyTab();
-    refreshDerived();
-    return true;
-  }
-  host.addEventListener("input", function(e){
-    if (onVacationDateField(e.target)) return;
-    onDayChange(e);
-  });
+  host.addEventListener("input", onDayChange);
   host.addEventListener("change", function(e){
     var t = e.target;
-    if (onVacationDateField(t)) return;
-    if (t.id === "input-vac-mode" || t.id === "input-vac-winter" || t.id === "input-vac-summer" ||
-        t.id === "input-vac-closes"){
+    if (t.id === "input-vac-schedule"){
       if (!STATE.vacationSchedule) STATE.vacationSchedule = defaultVacationSchedule();
-      var modeEl = el("input-vac-mode");
-      if (modeEl) STATE.vacationSchedule.mode = modeEl.value === "uni-kr" ? "uni-kr" : "manual";
-      var wEl = el("input-vac-winter");
-      if (wEl) STATE.vacationSchedule.useWinter = wEl.checked;
-      var sEl = el("input-vac-summer");
-      if (sEl) STATE.vacationSchedule.useSummer = sEl.checked;
-      var cEl = el("input-vac-closes");
-      if (cEl) STATE.vacationSchedule.closesOnBreaks = cEl.checked;
+      var v = t.value;
+      STATE.vacationSchedule.mode = v === "manual" ? "manual" : "uni-kr";
+      STATE.vacationSchedule.summerStartDay = v === "uni-22" ? 22 : 20;
+      STATE.vacationSchedule.useWinter = true;
+      STATE.vacationSchedule.useSummer = true;
+      STATE.vacationSchedule.closesOnBreaks = true;
       renderDailyTab();
       refreshDerived();
       return;
