@@ -362,6 +362,9 @@ function computeAll(){
   });
   if (!anyFixed) fixedMonth = Number(STATE.overheadFixedMonthly)||0;
   var overheadPool = fixedMonth + billMonth;
+  var overheadSpreadDays = openDaysTrue || daysThisMonth;
+  var overheadPerOpenDay = overheadSpreadDays ? overheadPool / overheadSpreadDays : 0;
+  var overheadVarRate = (Number(STATE.overheadVariableRate) || 0) / 100;
 
   var daily = dayNums.map(function(day){
     var raw = STATE.days[day] || { vacation:false, sales:0, labor:0 };
@@ -380,8 +383,8 @@ function computeAll(){
     }
     var cogsPct = safeDiv(cogsAmt, sales);
     var grossProfit = salesGross - vat - cogsAmt;
-    var overhead = (overheadPool / daysThisMonth) + salesGross*((Number(STATE.overheadVariableRate)||0)/100);
-    var netProfit = grossProfit-labor-overhead;
+    var overhead = plClosed ? 0 : (overheadPerOpenDay + salesGross * overheadVarRate);
+    var netProfit = grossProfit - labor - overhead;
     return {
       day: day, dow: DOW_NAMES[dowOf(year,month,day)], isWeekendAuto: isWeekendAuto, vacation: plClosed, tag: tag,
       salesGross: salesGross, vat: vat, sales: sales, cogsPct: cogsPct, cogsAmt: cogsAmt,
