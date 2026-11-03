@@ -7,14 +7,72 @@
  * TAG_META), state.js (STATE), compute.js (dowOf, computeAll).
  */
 
-function dayTagSelectHtml(raw, day, isWeekendAuto){
+/** Auto Korean uni breaks: edit dates per year here; daily rows follow unless overridden. */
+function vacationScheduleHtml(){
+  var sch = migrateVacationSchedule(STATE.vacationSchedule);
+  var uni = sch.mode === "uni-kr";
+  var map = STATE.vacationYearDates || {};
+  var vy = STATE.year, vm = STATE.month;
+  var sum = uniVacationSummaryForView(vy, vm, sch, map);
+  var rates = uni ? uniVacationProfitRates(sch, vy, vm, map) : null;
+  var accrual = rates
+    ? rates.vacationMonths.toFixed(1)+"÷"+rates.semesterAccrualMonths.toFixed(1)+" mo"
+    : "";
+  var w = sum.w, s = sum.s;
+  return '<div class="vac-bar">'+
+    '<div class="vac-bar-top">'+
+      '<span class="eyebrow" style="margin:0">Auto vacation (university breaks)</span>'+
+      '<select class="field-input vac-mode" id="input-vac-mode" title="Break schedule">'+
+        '<option value="uni-kr"'+(uni?" selected":"")+'>Korean uni · dates per year</option>'+
+        '<option value="manual"'+(uni?"":" selected")+'>Off · manual tags only</option>'+
+      '</select>'+
+    '</div>'+
+    '<div class="vac-bar-sem"'+(uni?"":" hidden")+' id="vac-sem-panel">'+
+      '<label class="vac-sem-chip">'+
+        '<input type="checkbox" id="input-vac-winter"'+(sch.useWinter!==false?" checked":"")+'>'+
+        '<span><b>2nd sem</b> '+sum.winter+'</span>'+
+      '</label>'+
+      '<label class="vac-sem-chip">'+
+        '<input type="checkbox" id="input-vac-summer"'+(sch.useSummer!==false?" checked":"")+'>'+
+        '<span><b>1st sem</b> '+sum.summer+'</span>'+
+      '</label>'+
+      '<label class="vac-sem-chip">'+
+        '<input type="checkbox" id="input-vac-closes"'+(sch.closesOnBreaks!==false?" checked":"")+'>'+
+        '<span><b>Close shop</b> on these breaks</span>'+
+      '</label>'+
+      '<div class="vac-date-grid">'+
+        '<div class="vac-date-block">'+
+          '<span class="eyebrow">Winter · year '+sum.winterKey+'</span>'+
+          '<span>Dec</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="31" step="1" data-vac-year="'+sum.winterKey+'" data-vac-field="winterStartD" value="'+w.winterStartD+'" aria-label="Winter break start day in December">'+
+          '<span>– Feb</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="29" step="1" data-vac-year="'+sum.winterKey+'" data-vac-field="winterEndD" value="'+w.winterEndD+'" aria-label="Winter break end day in February">'+
+          '<span class="vac-yr-note">'+(sum.winterKey+1)+'</span>'+
+        '</div>'+
+        '<div class="vac-date-block">'+
+          '<span class="eyebrow">Summer · year '+sum.summerKey+'</span>'+
+          '<span>Jun</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="30" step="1" data-vac-year="'+sum.summerKey+'" data-vac-field="summerStartD" value="'+s.summerStartD+'" aria-label="Summer break start day in June">'+
+          '<span>– Aug</span>'+
+          '<input class="field-input vac-day" type="number" min="1" max="31" step="1" data-vac-year="'+sum.summerKey+'" data-vac-field="summerEndD" value="'+s.summerEndD+'" aria-label="Summer break end day in August">'+
+        '</div>'+
+      '</div>'+
+      '<span class="vac-bar-meta">Change <b>Month / Year</b> at the top to edit another year’s dates. Rows turn vacation automatically; use row <b>—</b> to open on a break day. Accrual this month: '+accrual+'.</span>'+
+    '</div>'+
+  '</div>';
+}
+
+function dayTagCellHtml(raw, day, isWeekendAuto){
   var y = STATE.year, m = STATE.month;
   var val = dayTagDropdownValue(raw, y, m, day, STATE.vacationSchedule);
-  return '<select class="cell-input day-tag-select" data-field="dayTag" aria-label="Day status">'+
-    '<option value="auto"'+(val==="auto"?" selected":"")+'>Auto</option>'+
-    '<option value="vacation"'+(val==="vacation"?" selected":"")+'>Vacation</option>'+
-    '<option value="closed"'+(val==="closed"?" selected":"")+'>Closed</option>'+
-  '</select>';
+  var calLabel = isWeekendAuto ? "Weekend" : "Weekday";
+  return '<div class="day-tag-cell">'+
+    '<span class="day-cal-tag">'+calLabel+'</span>'+
+    '<select class="cell-input day-tag-select" data-field="dayTag" aria-label="Vacation or closed override">'+
+      '<option value=""'+(!val?" selected":"")+'>—</option>'+
+      '<option value="vacation"'+(val==="vacation"?" selected":"")+'>Vacation</option>'+
+      '<option value="closed"'+(val==="closed"?" selected":"")+'>Closed</option>'+
+    '</select></div>';
 }
 
 function dayRowHtml(day, isWeekendAuto){
@@ -25,7 +83,7 @@ function dayRowHtml(day, isWeekendAuto){
   return '<tr class="'+tag+'" data-day="'+day+'" data-weekend-auto="'+(isWeekendAuto?"1":"0")+'">'+
     '<td>'+MONTH_ABBR[STATE.month-1]+' '+day+'</td>'+
     '<td>'+DOW_NAMES[dowOf(STATE.year,STATE.month,day)]+'</td>'+
-    '<td>'+dayTagSelectHtml(raw, day, isWeekendAuto)+'</td>'+
+    '<td>'+dayTagCellHtml(raw, day, isWeekendAuto)+'</td>'+
     '<td><input class="cell-input" type="number" min="0" step="1000" data-field="sales" placeholder="0" value="'+(raw.sales?raw.sales:"")+'"></td>'+
     '<td class="tnum calc" data-calc="cogsAmt">₩0</td>'+
     '<td class="tnum calc" data-calc="cogsPct">0.0%</td>'+
@@ -54,6 +112,7 @@ function renderDailyTab(){
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
       '<p class="lede">Enter <b>POS sales</b> (VAT included) on each day. P&amp;L uses net sales after '+pct(SALES_VAT_RATE, 1)+' VAT. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
+      vacationScheduleHtml()+
       '<div class="legend">'+
         '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
@@ -77,7 +136,7 @@ function renderDailyTab(){
         '<td class="tnum" data-foot="sales">₩0</td>'+
         '<td colspan="9"></td></tr></tfoot>'+
       '</table></div>'+
-      '<p class="note">Tag <b>Auto</b> = weekday/weekend (Korean uni breaks apply in the background when enabled). Pick <b>Vacation</b> or <b>Closed</b> to override a day.</p>'+
+      '<p class="note"><b>Weekday</b> / <b>Weekend</b> come from the calendar. Row menu: <b>Vacation</b>, <b>Closed</b>, or <b>—</b> (calendar + auto breaks from the panel above).</p>'+
     '</section>';
   refreshDailyComputedCells(computeAll());
 }

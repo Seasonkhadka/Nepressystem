@@ -179,7 +179,9 @@
   tbody tr.weekend td{ background:var(--row-weekend); color:var(--row-weekend-ink); }
   tbody tr.vacation td{ background:var(--row-vacation); color:var(--row-vacation-ink); }
   tbody tr.closed td{ background:var(--row-closed); color:var(--row-closed-ink); }
-  .day-tag-select{ min-width:6.5rem; max-width:100%; font-size:12px; padding:4px 6px; }
+  .day-tag-cell{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .day-cal-tag{ font-size:12px; font-weight:600; white-space:nowrap; }
+  .day-tag-select{ min-width:5.5rem; max-width:100%; font-size:12px; padding:4px 6px; }
   .tag.closed{ background:rgba(0,0,0,0.08); color:var(--row-closed-ink); }
   tfoot td{ padding:10px 10px; font-weight:700; border-top:2px solid var(--hairline-strong); background:var(--surface-2); }
   tr.subtotal td{ font-weight:700; background:var(--surface-2); }

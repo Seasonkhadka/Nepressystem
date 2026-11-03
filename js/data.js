@@ -211,14 +211,12 @@ function dayPlClosed(rec, year, month, day, sch){
   return !!rec.closed;
 }
 
+/** Dropdown override only: "" (calendar), "vacation", or "closed". */
 function dayTagDropdownValue(rec, year, month, day, sch){
   rec = rec || {};
-  sch = migrateVacationSchedule(sch);
-  var inUni = isUniVacationDay(year, month, day, sch);
   if (rec.closed) return "closed";
-  if (inUni && rec.uniVacOpen) return "auto";
   if (dayVacationFlag(rec, year, month, day, sch)) return "vacation";
-  return "auto";
+  return "";
 }
 
 function applyDayTagSelect(rec, day, val, year, month, sch){
@@ -232,8 +230,8 @@ function applyDayTagSelect(rec, day, val, year, month, sch){
     rec.closed = true;
   } else if (val === "vacation"){
     if (!inUni) rec.vacation = true;
-  } else if (inUni){
-    rec.uniVacOpen = true;
+  } else if (!val || val === "auto" || val === "weekday" || val === "weekend"){
+    if (inUni) rec.uniVacOpen = true;
   }
   return rec;
 }
@@ -246,10 +244,12 @@ function daysBetweenMonthDay(m1, d1, m2, d2){
   return Math.round((end - start) / 86400000) + 1;
 }
 
-function uniVacationProfitRates(sch, viewYear, map){
+function uniVacationProfitRates(sch, viewYear, viewMonth, map){
   sch = migrateVacationSchedule(sch);
   viewYear = Number(viewYear) || new Date().getFullYear();
-  var wDates = getVacationYearDates(viewYear, sch, map);
+  viewMonth = Number(viewMonth) || 6;
+  var wKey = vacationWinterYearKey(viewYear, viewMonth);
+  var wDates = getVacationYearDates(wKey, sch, map);
   var sDates = getVacationYearDates(viewYear, sch, map);
   var summerDays = daysBetweenMonthDay(6, sDates.summerStartD, 8, sDates.summerEndD);
   var winterDays = daysBetweenMonthDay(12, wDates.winterStartD, 2, wDates.winterEndD);
@@ -314,8 +314,9 @@ function vacationBucketRates(sch){
   sch = migrateVacationSchedule(sch || (typeof STATE !== "undefined" && STATE ? STATE.vacationSchedule : null));
   if (sch.mode === "uni-kr"){
     var vy = typeof STATE !== "undefined" && STATE ? STATE.year : new Date().getFullYear();
+    var vmo = typeof STATE !== "undefined" && STATE ? STATE.month : new Date().getMonth() + 1;
     var vm = typeof STATE !== "undefined" && STATE ? STATE.vacationYearDates : null;
-    var u = uniVacationProfitRates(sch, vy, vm);
+    var u = uniVacationProfitRates(sch, vy, vmo, vm);
     return {
       vacationMonths: u.vacationMonths,
       semesterAccrualMonths: u.semesterAccrualMonths,
