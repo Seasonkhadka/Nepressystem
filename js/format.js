@@ -75,6 +75,33 @@ function monthlyCashAfterLoansHtml(c){
     '</div>';
 }
 
+function breakEvenHtml(be){
+  if (!be) return "";
+  if (be.monthGross == null){
+    return '<div class="break-even-callout">'+
+      '<p class="lede" style="margin:0">Break-even sales need a positive margin after VAT and variable overhead. Lower variable overhead or review costs.</p></div>';
+  }
+  var od = be.openDays;
+  var lines =
+    'Covers this month\'s <b>COGS</b> ('+won(be.cogs)+' from Raw Materials) + <b>labor</b> '+won(be.labor)+' + <b>overhead</b> '+won(be.overhead)+', after '+pct(SALES_VAT_RATE, 1)+' VAT';
+  if (be.marginOnGross < 1) lines += ' and variable overhead on sales';
+  lines += '.';
+  var status = "";
+  if (be.gapGross > 0){
+    status = 'You are <b>'+won(be.gapGross)+'</b> below that on POS sales so far.';
+  } else if (be.surplusGross > 0 && be.currentGross > 0){
+    status = 'You are <b>'+won(be.surplusGross)+'</b> above break-even on POS sales so far.';
+  } else if (be.fixedCosts <= 0){
+    status = 'No material, labor, or overhead entered yet — target updates when those tabs have data.';
+  }
+  return '<div class="break-even-callout">'+
+    '<div class="eyebrow">Break-even (net profit ≥ 0)</div>'+
+    '<p class="break-even-target tnum"><b>'+won(be.monthGross)+'</b> POS sales this month</p>'+
+    '<p class="lede" style="margin:8px 0 0">≈ <b class="tnum">'+won(be.perOpenDayGross)+'</b> POS per open day ('+od+' days). '+lines+'</p>'+
+    (status ? '<p class="note" style="margin:8px 0 0">'+status+'</p>' : '')+
+  '</div>';
+}
+
 function profitAllocationHtml(a){
   if (!a) return "";
   var b = PROFIT_BUCKET;

@@ -8,6 +8,36 @@
 
 function safeDiv(a, b){ return b ? a/b : 0; }
 
+/** Min POS gross sales this month so net profit ≥ 0 (COGS = full Raw Materials month). */
+function computeBreakEvenSales(materials, labor, overheadPool, overheadVarPct, openDays, currentGross){
+  var vatRate = SALES_VAT_RATE;
+  var varRate = (Number(overheadVarPct) || 0) / 100;
+  var margin = 1 - vatRate - varRate;
+  var fixed = Math.max(0, Number(materials) || 0) + Math.max(0, Number(labor) || 0) + Math.max(0, Number(overheadPool) || 0);
+  var od = Math.max(1, Number(openDays) || 1);
+  if (margin <= 0.001){
+    return {
+      monthGross: null,
+      fixedCosts: fixed,
+      openDays: od,
+      marginOnGross: margin,
+      currentGross: Number(currentGross) || 0
+    };
+  }
+  var monthGross = fixed / margin;
+  var cur = Number(currentGross) || 0;
+  return {
+    monthGross: monthGross,
+    perOpenDayGross: monthGross / od,
+    fixedCosts: fixed,
+    openDays: od,
+    marginOnGross: margin,
+    currentGross: cur,
+    gapGross: Math.max(0, monthGross - cur),
+    surplusGross: Math.max(0, cur - monthGross)
+  };
+}
+
 function salesVatFromGross(gross){
   return (Number(gross) || 0) * SALES_VAT_RATE;
 }
@@ -463,5 +493,17 @@ function computeAll(){
     monthsToRecover: monthsRecover
   };
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation, cashView:cashView };
+  var breakEven = computeBreakEvenSales(
+    rawGrand.monthly,
+    laborInfo.monthly,
+    overheadPool,
+    STATE.overheadVariableRate,
+    openDaysTrue || daysThisMonth,
+    monthly.salesGross
+  );
+  breakEven.cogs = rawGrand.monthly;
+  breakEven.labor = laborInfo.monthly;
+  breakEven.overhead = overheadPool;
+
+  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation, cashView:cashView, breakEven:breakEven };
 }

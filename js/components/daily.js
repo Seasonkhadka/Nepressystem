@@ -124,6 +124,7 @@ function renderDailyTab(){
         '<td class="tnum" data-foot="sales">₩0</td>'+
         '<td colspan="9"></td></tr></tfoot>'+
       '</table></div>'+
+      '<div id="daily-break-even"></div>'+
       '<p class="note">Each row lists <b>Weekday</b> or <b>Weekend</b> (from the date), plus <b>Vacation</b> and <b>Closed</b>. Uni breaks auto-select Vacation unless you pick Weekday/Weekend (panel above).</p>'+
     '</section>';
   refreshDailyComputedCells(computeAll());
@@ -173,6 +174,8 @@ function refreshDailyComputedCells(model){
   foot("grossProfit", won(m.grossProfit));
   foot("netProfit", won(m.netProfit));
   foot("netMarginPct", pct(m.netMarginPct));
+  var beHost = root.querySelector("#daily-break-even");
+  if (beHost) beHost.innerHTML = breakEvenHtml(model.breakEven);
 }
 
 function renderCalculationsTab(){
