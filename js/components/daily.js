@@ -28,18 +28,6 @@ function vacationScheduleHtml(){
       '</select>'+
     '</div>'+
     '<div class="vac-bar-sem"'+(uni?"":" hidden")+' id="vac-sem-panel">'+
-      '<label class="vac-sem-chip">'+
-        '<input type="checkbox" id="input-vac-winter"'+(sch.useWinter!==false?" checked":"")+'>'+
-        '<span><b>2nd sem</b> '+sum.winter+'</span>'+
-      '</label>'+
-      '<label class="vac-sem-chip">'+
-        '<input type="checkbox" id="input-vac-summer"'+(sch.useSummer!==false?" checked":"")+'>'+
-        '<span><b>1st sem</b> '+sum.summer+'</span>'+
-      '</label>'+
-      '<label class="vac-sem-chip">'+
-        '<input type="checkbox" id="input-vac-closes"'+(sch.closesOnBreaks!==false?" checked":"")+'>'+
-        '<span><b>Close shop</b> on these breaks</span>'+
-      '</label>'+
       '<div class="vac-date-grid">'+
         '<div class="vac-date-block">'+
           '<span class="eyebrow">Winter · year '+sum.winterKey+'</span>'+
