@@ -211,6 +211,33 @@ function dayPlClosed(rec, year, month, day, sch){
   return !!rec.closed;
 }
 
+function dayTagDropdownValue(rec, year, month, day, sch){
+  rec = rec || {};
+  sch = migrateVacationSchedule(sch);
+  var inUni = isUniVacationDay(year, month, day, sch);
+  if (rec.closed) return "closed";
+  if (inUni && rec.uniVacOpen) return "auto";
+  if (dayVacationFlag(rec, year, month, day, sch)) return "vacation";
+  return "auto";
+}
+
+function applyDayTagSelect(rec, day, val, year, month, sch){
+  rec = rec || {};
+  sch = migrateVacationSchedule(sch);
+  var inUni = isUniVacationDay(year, month, day, sch);
+  rec.closed = false;
+  rec.vacation = false;
+  delete rec.uniVacOpen;
+  if (val === "closed"){
+    rec.closed = true;
+  } else if (val === "vacation"){
+    if (!inUni) rec.vacation = true;
+  } else if (inUni){
+    rec.uniVacOpen = true;
+  }
+  return rec;
+}
+
 function daysBetweenMonthDay(m1, d1, m2, d2){
   var y0 = 2021;
   var start = new Date(y0, m1 - 1, d1);

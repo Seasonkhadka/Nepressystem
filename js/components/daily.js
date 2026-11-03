@@ -7,35 +7,25 @@
  * TAG_META), state.js (STATE), compute.js (dowOf, computeAll).
  */
 
-function vacationScheduleHtml(){
-  var sch = migrateVacationSchedule(STATE.vacationSchedule);
-  var sel = "manual";
-  if (sch.mode === "uni-kr") sel = sch.summerStartDay === 22 ? "uni-22" : "uni-20";
-  return '<div class="legend" data-daily-ui="simple">'+
-      '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
-      '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
-      '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
-      '<span class="item vac-dd">'+
-        '<label for="input-vac-schedule">University breaks</label>'+
-        '<select class="field-input" id="input-vac-schedule">'+
-          '<option value="manual"'+(sel==="manual"?" selected":"")+'>Off (manual only)</option>'+
-          '<option value="uni-20"'+(sel==="uni-20"?" selected":"")+'>Korean uni — summer from Jun 20</option>'+
-          '<option value="uni-22"'+(sel==="uni-22"?" selected":"")+'>Korean uni — summer from Jun 22</option>'+
-        '</select>'+
-      '</span>'+
-    '</div>';
+function dayTagSelectHtml(raw, day, isWeekendAuto){
+  var y = STATE.year, m = STATE.month;
+  var val = dayTagDropdownValue(raw, y, m, day, STATE.vacationSchedule);
+  return '<select class="cell-input day-tag-select" data-field="dayTag" aria-label="Day status">'+
+    '<option value="auto"'+(val==="auto"?" selected":"")+'>Auto</option>'+
+    '<option value="vacation"'+(val==="vacation"?" selected":"")+'>Vacation</option>'+
+    '<option value="closed"'+(val==="closed"?" selected":"")+'>Closed</option>'+
+  '</select>';
 }
 
 function dayRowHtml(day, isWeekendAuto){
   var raw = STATE.days[day] || { vacation:false, closed:false, sales:0, cogsPct:0, labor:0 };
   var onBreak = dayVacationFlag(raw, STATE.year, STATE.month, day, STATE.vacationSchedule);
-  var plClosed = dayPlClosed(raw, STATE.year, STATE.month, day, STATE.vacationSchedule);
-  var tag = onBreak ? "vacation" : (raw.closed ? "closed" : (isWeekendAuto ? "weekend" : "weekday"));
-  var tagMeta = TAG_META[tag] || TAG_META.vacation;
+  var closed = !!raw.closed;
+  var tag = onBreak ? "vacation" : (closed ? "closed" : (isWeekendAuto ? "weekend" : "weekday"));
   return '<tr class="'+tag+'" data-day="'+day+'" data-weekend-auto="'+(isWeekendAuto?"1":"0")+'">'+
     '<td>'+MONTH_ABBR[STATE.month-1]+' '+day+'</td>'+
     '<td>'+DOW_NAMES[dowOf(STATE.year,STATE.month,day)]+'</td>'+
-    '<td><label class="vac-toggle"><input type="checkbox" data-field="vacation" '+(plClosed?"checked":"")+'><span class="tag '+tag+'" data-tag-badge>'+tagMeta.label+'</span></label></td>'+
+    '<td>'+dayTagSelectHtml(raw, day, isWeekendAuto)+'</td>'+
     '<td><input class="cell-input" type="number" min="0" step="1000" data-field="sales" placeholder="0" value="'+(raw.sales?raw.sales:"")+'"></td>'+
     '<td class="tnum calc" data-calc="cogsAmt">₩0</td>'+
     '<td class="tnum calc" data-calc="cogsPct">0.0%</td>'+
@@ -64,7 +54,12 @@ function renderDailyTab(){
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
       '<p class="lede">Enter <b>POS sales</b> (VAT included) on each day. P&amp;L uses net sales after '+pct(SALES_VAT_RATE, 1)+' VAT. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
-      vacationScheduleHtml()+
+      '<div class="legend">'+
+        '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-weekend)"></span>Weekend</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
+        '<span class="item"><span class="dot" style="background:var(--row-closed)"></span>Closed</span>'+
+      '</div>'+
       '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total (POS)</td>'+
@@ -82,6 +77,7 @@ function renderDailyTab(){
         '<td class="tnum" data-foot="sales">₩0</td>'+
         '<td colspan="9"></td></tr></tfoot>'+
       '</table></div>'+
+      '<p class="note">Tag <b>Auto</b> = weekday/weekend (Korean uni breaks apply in the background when enabled). Pick <b>Vacation</b> or <b>Closed</b> to override a day.</p>'+
     '</section>';
   refreshDailyComputedCells(computeAll());
 }
@@ -105,10 +101,12 @@ function refreshDailyComputedCells(model){
     np.style.color = d.netProfit<0 ? "var(--critical)" : "inherit";
     np.style.fontWeight = "700";
     tr.querySelector('[data-calc="netMarginPct"]').textContent = signedPct(d.netMarginPct);
-    var badge = tr.querySelector('[data-tag-badge]');
-    if (badge){ badge.className = "tag "+d.tag; badge.textContent = TAG_META[d.tag].label; }
-    var vacIn = tr.querySelector('[data-field="vacation"]');
-    if (vacIn) vacIn.checked = d.vacation;
+    var raw = STATE.days[d.day] || {};
+    var sel = tr.querySelector('[data-field="dayTag"]');
+    if (sel && document.activeElement !== sel){
+      var v = dayTagDropdownValue(raw, STATE.year, STATE.month, d.day, STATE.vacationSchedule);
+      if (sel.value !== v) sel.value = v;
+    }
   });
   var m = model.monthly;
   var foot = function(k, txt){
