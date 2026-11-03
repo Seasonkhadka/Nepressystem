@@ -211,12 +211,17 @@ function dayPlClosed(rec, year, month, day, sch){
   return !!rec.closed;
 }
 
-/** Dropdown override only: "" (calendar), "vacation", or "closed". */
+function dayCalendarTag(year, month, day){
+  var dow = new Date(year, month - 1, day).getDay();
+  return dow === 0 || dow === 6 ? "weekend" : "weekday";
+}
+
+/** Tag dropdown: "weekday" | "weekend" (calendar default), "vacation", or "closed". */
 function dayTagDropdownValue(rec, year, month, day, sch){
   rec = rec || {};
   if (rec.closed) return "closed";
   if (dayVacationFlag(rec, year, month, day, sch)) return "vacation";
-  return "";
+  return dayCalendarTag(year, month, day);
 }
 
 function applyDayTagSelect(rec, day, val, year, month, sch){
@@ -230,7 +235,7 @@ function applyDayTagSelect(rec, day, val, year, month, sch){
     rec.closed = true;
   } else if (val === "vacation"){
     if (!inUni) rec.vacation = true;
-  } else if (!val || val === "auto" || val === "weekday" || val === "weekend"){
+  } else if (!val || val === "auto" || val === "weekday" || val === "weekend") {
     if (inUni) rec.uniVacOpen = true;
   }
   return rec;

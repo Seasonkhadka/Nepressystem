@@ -57,7 +57,7 @@ function vacationScheduleHtml(){
           '<input class="field-input vac-day" type="number" min="1" max="31" step="1" data-vac-year="'+sum.summerKey+'" data-vac-field="summerEndD" value="'+s.summerEndD+'" aria-label="Summer break end day in August">'+
         '</div>'+
       '</div>'+
-      '<span class="vac-bar-meta">Change <b>Month / Year</b> at the top to edit another year’s dates. Rows turn vacation automatically; use row <b>—</b> to open on a break day. Accrual this month: '+accrual+'.</span>'+
+      '<span class="vac-bar-meta">Change <b>Month / Year</b> at the top to edit another year’s dates. Rows turn vacation automatically; pick <b>Weekday</b> or <b>Weekend</b> on a break day to open. Accrual this month: '+accrual+'.</span>'+
     '</div>'+
   '</div>';
 }
@@ -65,14 +65,14 @@ function vacationScheduleHtml(){
 function dayTagCellHtml(raw, day, isWeekendAuto){
   var y = STATE.year, m = STATE.month;
   var val = dayTagDropdownValue(raw, y, m, day, STATE.vacationSchedule);
-  var calLabel = isWeekendAuto ? "Weekend" : "Weekday";
-  return '<div class="day-tag-cell">'+
-    '<span class="day-cal-tag">'+calLabel+'</span>'+
-    '<select class="cell-input day-tag-select" data-field="dayTag" aria-label="Vacation or closed override">'+
-      '<option value=""'+(!val?" selected":"")+'>—</option>'+
-      '<option value="vacation"'+(val==="vacation"?" selected":"")+'>Vacation</option>'+
-      '<option value="closed"'+(val==="closed"?" selected":"")+'>Closed</option>'+
-    '</select></div>';
+  var normVal = isWeekendAuto ? "weekend" : "weekday";
+  var normLabel = isWeekendAuto ? "Weekend" : "Weekday";
+  var calSel = val === "weekday" || val === "weekend";
+  return '<select class="cell-input day-tag-select" data-field="dayTag" aria-label="Day tag">'+
+    '<option value="'+normVal+'"'+(calSel?" selected":"")+'>'+normLabel+'</option>'+
+    '<option value="vacation"'+(val==="vacation"?" selected":"")+'>Vacation</option>'+
+    '<option value="closed"'+(val==="closed"?" selected":"")+'>Closed</option>'+
+  '</select>';
 }
 
 function dayRowHtml(day, isWeekendAuto){
@@ -136,7 +136,7 @@ function renderDailyTab(){
         '<td class="tnum" data-foot="sales">₩0</td>'+
         '<td colspan="9"></td></tr></tfoot>'+
       '</table></div>'+
-      '<p class="note"><b>Weekday</b> / <b>Weekend</b> come from the calendar. Row menu: <b>Vacation</b>, <b>Closed</b>, or <b>—</b> (calendar + auto breaks from the panel above).</p>'+
+      '<p class="note">Each row lists <b>Weekday</b> or <b>Weekend</b> (from the date), plus <b>Vacation</b> and <b>Closed</b>. Uni breaks auto-select Vacation unless you pick Weekday/Weekend (panel above).</p>'+
     '</section>';
   refreshDailyComputedCells(computeAll());
 }
