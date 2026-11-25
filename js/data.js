@@ -15,8 +15,10 @@ var SALES_VAT_RATE = 0.091;
 var PROFIT_BUCKET = {
   taxRate: 0.10,
   maintRate: 0.05,
+  /** Monsoon share taken from cash after loans (and loss carry). */
   shareRate: 0.15,
   vacationMonths: 2.5,
+  /** Working months used to spread prior losses (skip vacation months). */
   semesterAccrualMonths: 3.5
 };
 

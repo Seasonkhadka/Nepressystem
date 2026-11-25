@@ -46,7 +46,7 @@ function netSalesFromGross(gross){
   return g - salesVatFromGross(g);
 }
 
-function computeProfitAllocation(netProfit, overheadMonth, salesGross){
+function computeProfitAllocation(netProfit, overheadMonth, salesGross, cashAfterCarry){
   var b = PROFIT_BUCKET;
   var rates = vacationBucketRates();
   var profit = Number(netProfit) || 0;
@@ -58,7 +58,9 @@ function computeProfitAllocation(netProfit, overheadMonth, salesGross){
   var vacation = oh * (rates.vacationMonths / rates.semesterAccrualMonths);
   var reserved = vat + tax + maintenance + vacation;
   var afterBuckets = profit - reserved;
-  var afterPositive = Math.max(0, afterBuckets);
+  var cashBase = cashAfterCarry != null ? Number(cashAfterCarry) || 0 : afterBuckets;
+  var monsoonBase = Math.max(0, cashBase);
+  var monsoonShare = monsoonBase * b.shareRate;
   return {
     netProfit: profit,
     salesGross: Number(salesGross) || 0,
@@ -70,9 +72,185 @@ function computeProfitAllocation(netProfit, overheadMonth, salesGross){
     vacationRates: rates,
     reserved: reserved,
     afterBuckets: afterBuckets,
-    share15: afterPositive * b.shareRate,
-    leftAfterShare: afterPositive * (1 - b.shareRate),
+    cashAfterCarry: cashBase,
+    share15: monsoonShare,
+    monsoonShare: monsoonShare,
+    leftAfterShare: cashBase - monsoonShare,
     shortfall: afterBuckets < 0 ? -afterBuckets : 0
+  };
+}
+
+function daysForMonthCompute(year, month){
+  if (STATE && STATE.year === year && STATE.month === month) return STATE.days || {};
+  return daysFromArchive(year, month);
+}
+
+function fixedOverheadAmountForMonth(year, month){
+  var key = monthKey(year, month);
+  var arch = STATE && STATE.overheadFixedArchive;
+  if (arch && Object.prototype.hasOwnProperty.call(arch, key)){
+    var sum = 0, any = false;
+    asArray(arch[key]).forEach(function(b){
+      if (overheadFixedHasData(b)){ any = true; sum += Number(b.amount) || 0; }
+    });
+    if (any) return sum;
+  }
+  if (STATE && STATE.year === year && STATE.month === month){
+    var cur = 0, anyCur = false;
+    asArray(STATE.overheadFixedItems).forEach(function(b){
+      if (overheadFixedHasData(b)){ anyCur = true; cur += Number(b.amount) || 0; }
+    });
+    if (anyCur) return cur;
+    return Number(STATE.overheadFixedMonthly) || 0;
+  }
+  var tmpl = 0;
+  asArray(STATE && STATE.overheadFixedDefaults).forEach(function(b){
+    tmpl += Number(b && b.amount) || 0;
+  });
+  if (tmpl > 0) return tmpl;
+  return DEFAULT_OVERHEAD_FIXED.reduce(function(s, b){ return s + (Number(b.amount) || 0); }, 0);
+}
+
+/** Majority of days are university / vacation break → skip loss carry onto this month. */
+function isVacationMonth(year, month, sch){
+  sch = migrateVacationSchedule(sch || (STATE && STATE.vacationSchedule));
+  var n = daysInMonth(year, month);
+  if (!n) return false;
+  var vac = 0;
+  var days = daysForMonthCompute(year, month);
+  for (var d = 1; d <= n; d++){
+    if (dayVacationFlag(days[d] || {}, year, month, d, sch)) vac += 1;
+  }
+  return vac >= Math.ceil(n * 0.5);
+}
+
+function materialsCostForMonth(year, month){
+  var total = 0;
+  asArray(STATE.ingredients).forEach(function(i){
+    asArray(i.purchases).forEach(function(p){
+      if (purchaseInMonth(p, year, month)) total += lineTotal(p);
+    });
+  });
+  asArray(STATE.lumps).forEach(function(p){
+    if (purchaseInMonth(p, year, month)) total += Number(p.amount) || 0;
+  });
+  return total;
+}
+
+function laborCostForMonth(year, month){
+  var shift = 0, salary = 0;
+  asArray(STATE.laborShifts).forEach(function(s){
+    if (purchaseInMonth(s, year, month)) shift += laborShiftTotal(s);
+  });
+  asArray(STATE.laborSalaries).forEach(function(s){
+    salary += Number(s.amount) || 0;
+  });
+  return shift + salary;
+}
+
+function overheadBillsForMonth(year, month){
+  var bill = 0;
+  asArray(STATE.overheadBills).forEach(function(b){
+    if (purchaseInMonth(b, year, month)) bill += Number(b.amount) || 0;
+  });
+  return bill;
+}
+
+/** Lightweight month P&amp;L for prior-month loss carry (same rules as computeAll). */
+function computeMonthNetProfit(year, month){
+  var sch = STATE && STATE.vacationSchedule;
+  var days = daysForMonthCompute(year, month);
+  var n = daysInMonth(year, month);
+  var salesGross = 0, openDays = 0;
+  for (var d = 1; d <= n; d++){
+    var rec = days[d] || { sales: 0 };
+    salesGross += Number(rec.sales) || 0;
+    if (!dayPlClosed(rec, year, month, d, sch)) openDays += 1;
+  }
+  var materials = materialsCostForMonth(year, month);
+  var labor = laborCostForMonth(year, month);
+  var overheadPool = fixedOverheadAmountForMonth(year, month) + overheadBillsForMonth(year, month);
+  var varRate = (Number(STATE.overheadVariableRate) || 0) / 100;
+  var overhead = openDays > 0 ? (overheadPool + salesGross * varRate) : 0;
+  var netSales = netSalesFromGross(salesGross);
+  var netProfit = netSales - materials - labor - overhead;
+  return {
+    year: year,
+    month: month,
+    key: monthKey(year, month),
+    salesGross: salesGross,
+    netSales: netSales,
+    materials: materials,
+    labor: labor,
+    overhead: overhead,
+    openDays: openDays,
+    vacationMonth: isVacationMonth(year, month, sch),
+    netProfit: netProfit
+  };
+}
+
+function listMonthKeysThrough(viewYear, viewMonth, includeCurrent){
+  var set = {};
+  function addMap(map){
+    if (!map || typeof map !== "object") return;
+    Object.keys(map).forEach(function(k){ if (/^\d{4}-\d{2}$/.test(k)) set[k] = 1; });
+  }
+  addMap(STATE && STATE.dayArchive);
+  addMap(STATE && STATE.overheadFixedArchive);
+  asArray(STATE && STATE.ingredients).forEach(function(i){
+    asArray(i.purchases).forEach(function(p){
+      if (!p || !p.date) return;
+      var parts = String(p.date).split("-");
+      if (parts.length >= 2) set[parts[0] + "-" + pad2(Number(parts[1]))] = 1;
+    });
+  });
+  asArray(STATE && STATE.laborShifts).forEach(function(s){
+    if (!s || !s.date) return;
+    var parts = String(s.date).split("-");
+    if (parts.length >= 2) set[parts[0] + "-" + pad2(Number(parts[1]))] = 1;
+  });
+  asArray(STATE && STATE.overheadBills).forEach(function(b){
+    if (!b || !b.date) return;
+    var parts = String(b.date).split("-");
+    if (parts.length >= 2) set[parts[0] + "-" + pad2(Number(parts[1]))] = 1;
+  });
+  if (STATE && STATE.year && STATE.month) set[monthKey(STATE.year, STATE.month)] = 1;
+  var cutoff = viewYear * 12 + viewMonth;
+  return Object.keys(set).filter(function(k){
+    var p = k.split("-");
+    var y = Number(p[0]), m = Number(p[1]);
+    var idx = y * 12 + m;
+    if (includeCurrent) return idx <= cutoff;
+    return idx < cutoff;
+  }).sort();
+}
+
+/**
+ * Prior months' cumulative deficit, spread across semester working months.
+ * Vacation months (majority break days) do not receive a carry charge.
+ */
+function computeLossCarryForward(viewYear, viewMonth){
+  var rates = vacationBucketRates();
+  var divisor = Math.max(1, Number(rates.semesterAccrualMonths) || PROFIT_BUCKET.semesterAccrualMonths);
+  var keys = listMonthKeysThrough(viewYear, viewMonth, false);
+  var running = 0;
+  var lossMonths = 0;
+  keys.forEach(function(k){
+    var p = k.split("-");
+    var snap = computeMonthNetProfit(Number(p[0]), Number(p[1]));
+    running += snap.netProfit;
+    if (snap.netProfit < 0) lossMonths += 1;
+  });
+  var priorDeficit = Math.max(0, -running);
+  var vac = isVacationMonth(viewYear, viewMonth);
+  var charge = (!vac && priorDeficit > 0) ? priorDeficit / divisor : 0;
+  return {
+    priorDeficit: priorDeficit,
+    runningPrior: running,
+    lossMonths: lossMonths,
+    charge: charge,
+    skippedVacation: vac,
+    divisor: divisor
   };
 }
 
@@ -480,18 +658,27 @@ function computeAll(){
     monthly: monthly.overhead
   };
 
-  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross);
   var loanPay = setupAssets.loanTotals ? setupAssets.loanTotals.payment : 0;
   var ownMoney = setupAssets.funding ? setupAssets.funding.ownMoney : 0;
-  var cashAfter = monthly.netProfit - loanPay;
-  var monthsRecover = cashAfter > 0 && ownMoney > 0 ? ownMoney / cashAfter : null;
+  var lossCarry = computeLossCarryForward(year, month);
+  var cashAfterLoans = monthly.netProfit - loanPay;
+  var cashAfterCarry = cashAfterLoans - lossCarry.charge;
+  var monsoonShare = Math.max(0, cashAfterCarry) * PROFIT_BUCKET.shareRate;
+  var leftAfterMonsoon = cashAfterCarry - monsoonShare;
+  var monthsRecover = leftAfterMonsoon > 0 && ownMoney > 0 ? ownMoney / leftAfterMonsoon : null;
   var cashView = {
     netProfit: monthly.netProfit,
     loanPayment: loanPay,
-    cashAfterLoans: cashAfter,
+    cashAfterLoans: cashAfterLoans,
+    lossCarry: lossCarry,
+    lossCarryCharge: lossCarry.charge,
+    cashAfterCarry: cashAfterCarry,
+    monsoonShare: monsoonShare,
+    leftAfterMonsoon: leftAfterMonsoon,
     ownMoney: ownMoney,
     monthsToRecover: monthsRecover
   };
+  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross, cashAfterCarry);
 
   var breakEven = computeBreakEvenSales(
     rawGrand.monthly,

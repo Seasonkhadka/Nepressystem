@@ -15,8 +15,9 @@ function renderDashboard(model){
   var m = model.monthly;
   var hasSales = m.sales > 0;
   var netStatus = marginStatus(m.netMarginPct, hasSales);
-  var cv = model.cashView || { cashAfterLoans: m.netProfit };
-  var cashStatus = marginStatus(safeDiv(cv.cashAfterLoans, m.sales), hasSales);
+  var cv = model.cashView || { cashAfterLoans: m.netProfit, leftAfterMonsoon: m.netProfit, monsoonShare: 0 };
+  var leftCash = cv.leftAfterMonsoon != null ? cv.leftAfterMonsoon : cv.cashAfterLoans;
+  var cashStatus = marginStatus(safeDiv(leftCash, m.sales), hasSales);
   var kpis = [
     kpiTile("Total Sales", won(m.salesGross), (hasSales ? "Less VAT "+signedWon(-m.vat)+" → net "+won(m.sales) : MONTH_NAMES[STATE.month-1]+" "+STATE.year)),
     kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
@@ -24,7 +25,9 @@ function renderDashboard(model){
     kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
     kpiTile("Overhead %", pct(m.overheadPct), "fixed + not-fixed bills"),
     kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
-    kpiTile("Cash after loans", signedWon(cv.cashAfterLoans), "net profit − loan payment", cashStatus)
+    kpiTile("Cash after loans", signedWon(cv.cashAfterLoans), (cv.lossCarryCharge ? "− loss carry "+won(cv.lossCarryCharge) : "net − loan")),
+    kpiTile("Monsoon share 15%", signedWon(cv.monsoonShare || 0), "of cash after carry"),
+    kpiTile("Left after monsoon", signedWon(leftCash), "keep or reinvest", cashStatus)
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});
