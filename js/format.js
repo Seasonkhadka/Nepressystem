@@ -86,29 +86,43 @@ function formulaRow(label, val, opts){
     '<dd class="tnum" style="font-size:'+(opts.big ? "16px" : "13px")+';color:'+color+'">'+txt+'</dd></div>';
 }
 
-/** Cash steps (Dashboard cash card + Monthly). Values come straight from computeAll().cashView. */
+/**
+ * The money path (Dashboard "Month at a glance" + Monthly), top to bottom:
+ * net profit → cash after loans → − prior-loss recovery → − monsoon → − profit buckets → final money left.
+ * Values come straight from computeAll().cashView.
+ */
 function cashStepsHtml(c){
   if (!c) return "";
   var lc = c.lossCarry || {};
+  var b = PROFIT_BUCKET;
+  var a = c.buckets || {};
+  var r = a.vacationRates || vacationBucketRates();
   var rec = c.monthsToRecover;
   var recText = rec == null || rec <= 0
-    ? "Not yet — needs positive cash left after monsoon"
+    ? "Not yet — needs positive final money left"
     : (Math.ceil(rec * 10) / 10) + " months at this month’s pace";
-  var carryNote = c.beforeOpening || (lc.beforeOpening) ? "Before opening ("+OPENING_DATE+") — not counted."
-    : (c.openingMonth || lc.openingMonth) ? "Opening month ("+OPENING_DATE.slice(0, 7)+") — prior-loss recovery is ₩0."
+  var carryNote = c.beforeOpening || lc.beforeOpening ? "Before opening ("+OPENING_DATE+") — not counted."
+    : (c.openingMonth || lc.openingMonth) ? "Opening month — ₩0."
     : ((lc.priorDeficit || 0) > 0
-      ? "Carried loss "+won(lc.priorDeficit)+" from months after opening with real activity"+(c.isVacationMonth ? " waits (vacation month)." : " ÷ "+RECOVERY_MONTHS+" = "+won(c.recovery)+" this month.")+
-        " Still to recover after this month: "+won(c.carryAfterThisMonth)+"."
-      : "No carried loss from months after opening."+((c.carryAfterThisMonth || 0) > 0 ? " This month adds "+won(c.carryAfterThisMonth)+" to recover later." : ""));
+      ? "Carried loss "+won(lc.priorDeficit)+(c.isVacationMonth ? " waits (vacation month)." : (lc.fullRecovery ? " — net profit this month, so all of it." : " ÷ "+RECOVERY_MONTHS+" (no net profit this month)."))+
+        " Still to recover after: "+won(c.carryAfterThisMonth)+"."
+      : "No carried loss."+((c.carryAfterThisMonth || 0) > 0 ? " This month adds "+won(c.carryAfterThisMonth)+" to recover later." : ""));
+  var profitNote = (c.netProfit > 0 ? "" : " (₩0 — no net profit)");
+  var vacNote = pct(r.vacationMonths / r.semesterAccrualMonths, 1)+" of overhead";
   return '<div class="formula-list">'+
-      formulaRow(LABEL.netProfit, c.netProfit, { signed: true })+
-      formulaRow("+ "+labelTip("depreciation"), c.depreciation)+
+      formulaRow(LABEL.netProfit, c.netProfit, { signed: true, big: true })+
+      formulaRow("+ "+labelTip("depreciation"), c.depreciation, { note: "not real cash out" })+
       formulaRow("− "+labelTip("loanPrincipal"), c.loanPrincipal, { less: true })+
-      formulaRow(labelTip("cashAfterLoans"), c.cashAfterLoans, { signed: true, big: true })+
-      formulaRow("− "+labelTip("monsoon"), c.monsoonShare, { less: true })+
-      formulaRow(LABEL.leftAfterMonsoon, c.leftAfterMonsoon, { signed: true, big: true })+
+      formulaRow("= "+labelTip("cashAfterLoans"), c.cashAfterLoans, { signed: true, big: true })+
       formulaRow("− "+labelTip("recovery"), c.recovery, { less: true, note: carryNote })+
-      formulaRow(labelTip("afterRecoveryPlan"), c.afterRecoveryPlan, { signed: true })+
+      formulaRow("= "+LABEL.afterRecovery, c.afterRecovery, { signed: true, big: true })+
+      formulaRow("− "+labelTip("monsoon"), c.monsoonShare, { less: true, note: pct(MONSOON_RATE, 0)+" of the line above"+(c.afterRecovery > 0 ? "" : " (₩0 — nothing left)") })+
+      formulaRow("= "+LABEL.afterMonsoon, c.afterMonsoon, { signed: true, big: true })+
+      formulaRow("− Tax bucket", a.tax, { less: true, note: pct(b.taxRate, 0)+" of net profit"+profitNote })+
+      formulaRow("− Vacation bucket", a.vacation, { less: true, note: vacNote })+
+      formulaRow("− Maintenance bucket", a.maintenance, { less: true, note: pct(b.maintRate, 0)+" of net profit"+profitNote })+
+      formulaRow("= "+labelTip("finalLeft"), c.finalLeft, { signed: true, big: true })+
+      formulaRow(labelTip("vatSetAside"), a.vatSetAside, { note: "info only — not subtracted" })+
       formulaRow("My own money (Setup funding)", c.ownMoney)+
       formulaRow("Months to get own money back", 0, { raw: recText })+
     '</div>';
@@ -137,43 +151,4 @@ function breakEvenHtml(be){
     '<p class="lede" style="margin:8px 0 0">≈ <b class="tnum">'+won(be.perOpenDayGross)+'</b> POS per open day ('+be.openDays+' days). Covers '+parts.join(' + ')+'.</p>'+
     (status ? '<p class="note" style="margin:8px 0 0">'+status+'</p>' : '')+
   '</div>';
-}
-
-/** Profit buckets as one short text block (Dashboard, under Month at a glance). */
-function profitBucketsTextHtml(a){
-  if (!a) return "";
-  var b = PROFIT_BUCKET;
-  var line = a.netProfit > 0
-    ? 'Tax ('+pct(b.taxRate, 0)+') <b class="tnum">'+won(a.tax)+'</b> · Vacation <b class="tnum">'+won(a.vacation)+'</b>'+
-      ' · Maintenance ('+pct(b.maintRate, 0)+') <b class="tnum">'+won(a.maintenance)+'</b>'+
-      ' → after buckets <b class="tnum">'+signedWon(a.afterBuckets)+'</b>.'
-    : 'Vacation <b class="tnum">'+won(a.vacation)+'</b>. Tax and maintenance are ₩0 while net profit is not positive'+
-      ' → after buckets <b class="tnum">'+signedWon(a.afterBuckets)+'</b>.';
-  return '<p class="note" style="margin-top:14px"><b>Profit buckets (planning):</b> '+line+
-    ' '+LABEL.vatSetAside+': <b class="tnum">'+won(a.vatSetAside)+'</b>.'+
-    (a.shortfall > 0 ? ' <span style="color:var(--warning-dot)">Buckets exceed net profit by '+won(a.shortfall)+'.</span>' : '')+
-    '</p>';
-}
-
-function profitAllocationHtml(a){
-  if (!a) return "";
-  var b = PROFIT_BUCKET;
-  var r = a.vacationRates || vacationBucketRates();
-  var vacNote = pct(r.vacationMonths / r.semesterAccrualMonths, 1)+" of overhead (≈ "+r.vacationMonths.toFixed(1)+" mo break ÷ "+r.semesterAccrualMonths.toFixed(1)+" mo semester)";
-  var shortfall = a.shortfall > 0
-    ? '<p class="note" style="color:var(--warning-dot)">Buckets total more than this month\'s net profit by '+won(a.shortfall)+'.</p>'
-    : "";
-  return '<section class="card profit-buckets">'+
-    '<h2>Profit buckets (planning)</h2>'+
-    '<p class="lede">Reserves set aside from <b>net profit</b>. Tax and maintenance are ₩0 in a loss month. '+LABEL.monsoon+' and '+LABEL.recovery.toLowerCase()+' are in the cash card.</p>'+
-    '<div class="formula-list">'+
-      formulaRow(LABEL.netProfit, a.netProfit, { signed: true, big: true })+
-      formulaRow("1. Tax bucket", a.tax, { less: true, note: pct(b.taxRate, 0)+" of net profit" })+
-      formulaRow("2. Vacation bucket", a.vacation, { less: true, note: vacNote })+
-      formulaRow("3. Maintenance bucket", a.maintenance, { less: true, note: pct(b.maintRate, 0)+" of net profit" })+
-      formulaRow("After buckets", a.afterBuckets, { signed: true, big: true })+
-      formulaRow(labelTip("vatSetAside"), a.vatSetAside, { note: "info only — not subtracted" })+
-    '</div>'+
-    shortfall+
-  '</section>';
 }

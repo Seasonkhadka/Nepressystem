@@ -28,10 +28,9 @@ function renderMonthlyTab(model){
         formulaRow(LABEL.netProfit, m.netProfit, { signed: true, big: true, note: pct(m.netMarginPct)+" margin" })+
       '</div>'+
       breakEvenHtml(model.breakEven)+
-      '<h3 class="labor-subhead">Cash after loans &amp; monsoon</h3>'+
+      '<h3 class="labor-subhead">Where the money goes (top to bottom)</h3>'+
       cashStepsHtml(model.cashView)+
       '<div class="tie-out"><span class="check">'+(t.daysOk?"✓":"!")+'</span> Matches sum of daily rows ('+won(t.sumOfDays)+').</div>'+
       '<div class="tie-out"><span class="check">'+(t.weeksOk?"✓":"!")+'</span> Matches sum of weekly rows ('+won(t.sumOfWeeks)+').</div>'+
-    '</section>'+
-    profitAllocationHtml(model.profitAllocation);
+    '</section>';
 }

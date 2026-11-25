@@ -19,8 +19,9 @@ function renderDashboard(model){
     kpiTile(LABEL.overhead, won(m.overhead + m.interest), pct(safeDiv(m.overhead + m.interest, m.sales))+" of net sales · incl. "+LABEL.loanInterest.toLowerCase()+" "+won(m.interest)),
     kpiTile(labelTip("depreciation"), won(m.depreciation), pct(m.depreciationPct)+" of net sales"),
     kpiTile(LABEL.netProfit, signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
-    kpiTile(labelTip("monsoon"), won(cv.monsoonShare), pct(MONSOON_RATE, 0)+" of "+LABEL.cashAfterLoans.toLowerCase()+" "+signedWon(cv.cashAfterLoans)),
-    kpiTile(labelTip("recovery"), won(cv.recovery), recoverySub(cv))
+    kpiTile(labelTip("recovery"), cv.recovery > 0 ? signedWon(-cv.recovery) : won(0), recoverySub(cv)),
+    kpiTile(labelTip("monsoon"), cv.monsoonShare > 0 ? signedWon(-cv.monsoonShare) : won(0), pct(MONSOON_RATE, 0)+" of "+signedWon(cv.afterRecovery)+" left after recovery"),
+    kpiTile(labelTip("finalLeft"), signedWon(cv.finalLeft), "after recovery, monsoon &amp; buckets", marginStatus(safeDiv(cv.finalLeft, m.sales), hasSales))
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});
@@ -78,8 +79,10 @@ function renderDashboard(model){
   }
 
   el("tab-dashboard").innerHTML =
-    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div>'+profitBucketsTextHtml(model.profitAllocation)+'</section>'+
-    '<section class="card"><h2>Cash after loans &amp; monsoon</h2>'+cashGuideHtml(cv)+cashStepsHtml(cv)+'</section>'+
+    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div>'+
+      '<h3 class="labor-subhead">Where the money goes (top to bottom)</h3>'+cashStepsHtml(cv)+
+      '<details style="margin-top:12px"><summary>How to read this</summary>'+cashGuideHtml(cv)+'</details>'+
+    '</section>'+
     '<section class="card grid-2">'+
       '<div><h2 style="font-size:16px">Average daily sales by traffic type</h2>'+salesChart+'</div>'+
       '<div><h2 style="font-size:16px">Cost ratios &amp; net margin by traffic type</h2>'+pctChart+'</div>'+
@@ -107,5 +110,6 @@ function recoverySub(cv){
   if (cv.beforeOpening) return "before opening";
   if (!(lc.priorDeficit > 0)) return "no carried loss";
   if (cv.isVacationMonth) return "vacation month — "+won(lc.priorDeficit)+" waits";
-  return "carried "+won(lc.priorDeficit)+" ÷ "+RECOVERY_MONTHS;
+  if (lc.fullRecovery) return "net profit → whole carried loss subtracted";
+  return "no net profit → carried "+won(lc.priorDeficit)+" ÷ "+RECOVERY_MONTHS;
 }

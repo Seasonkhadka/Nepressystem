@@ -4,7 +4,7 @@ Static web app for a Korea-based restaurant: track daily POS sales, raw material
 
 **Live:** [https://seasonkhadka.github.io/Nepressystem/](https://seasonkhadka.github.io/Nepressystem/)
 
-After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=71`) if the UI looks stale.
+After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=73`) if the UI looks stale.
 
 ---
 
@@ -34,7 +34,7 @@ All numbers below live in **`js/data.js`** (single source). All math lives in **
 | `SETUP_LIFE_MONTHS` | 36 | Setup / equipment depreciation life |
 | `UTENSIL_DEFAULT_LIFE` | 24 | Utensil life when a row has none |
 | `MONSOON_RATE` | 10% | Monsoon reserve |
-| `RECOVERY_MONTHS` | 3.5 | Prior-loss recovery divisor |
+| `RECOVERY_MONTHS` | 3.5 | Prior-loss recovery divisor (only in months without net profit) |
 
 ### Sales &amp; VAT
 - Enter **POS sales (VAT included)** on daily rows.
@@ -69,19 +69,30 @@ Net sales − COGS − Labor − Overhead − Depreciation − Loan interest = N
 
 - **Loan interest** = interest part of each loan's payment for this month, from the loan's own schedule (month 1 = its **first payment month**, default 2026-09).
 
-### Cash after loans, monsoon, recovery
-1. **Cash after loans** = net profit **+ depreciation** (non-cash) **− loan principal**  
-2. **Monsoon reserve** = 10% of cash after loans, only if positive (else ₩0)  
-3. **Left after monsoon** = cash after loans − monsoon reserve  
-4. **Prior-loss recovery** = carried loss ÷ 3.5 in **working months after opening**  
-   - **₩0 in Sep 2026 (opening month)**, before opening, and in vacation months  
-   - Empty months (no sales/costs) do **not** invent a carried loss  
-5. **After recovery plan** = left after monsoon − prior-loss recovery  
+### Where the money goes (top to bottom)
+Shown under **Month at a glance** on the Dashboard and on P&L → Monthly.
 
-**Carried loss** (cash basis): only months **from opening onward** that had real activity. Each month’s recovery share is paid from "left after monsoon"; any shortfall stays in the carry.
+```
+  Net profit
++ Depreciation (not real cash out)
+− Loan principal
+= Cash after loans
+− Prior-loss recovery
+= After prior-loss recovery
+− Monsoon reserve (10% of the line above, ₩0 if not positive)
+= After monsoon
+− Tax bucket (10% of net profit) − Vacation bucket − Maintenance bucket (5% of net profit)
+= Final money left
+```
 
-### Profit buckets (planning)
-Tax 10% and maintenance 5% of positive net profit, plus a vacation bucket (overhead × break months ÷ semester months). **VAT is not subtracted again.** It is shown as "VAT to set aside (already excluded from profit)".
+- **Prior-loss recovery** (working months after opening only):
+  - month has **net profit** → the **whole** carried loss is subtracted this month
+  - no net profit → carried loss ÷ 3.5
+  - **₩0 in Sep 2026 (opening month)**, before opening, and in vacation months
+  - Empty months (no sales/costs) do **not** invent a carried loss
+- **Carried loss** (cash basis): a minus in cash after loans, or recovery that cash after loans could not cover, carries to the next month.
+- Net profit is **before** prior-loss recovery, monsoon and buckets; they never change net profit.
+- **VAT is not subtracted again.** It is shown as "VAT to set aside (already excluded from profit)". Vacation bucket = overhead × break months ÷ semester months.
 
 ---
 

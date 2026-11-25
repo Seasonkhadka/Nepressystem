@@ -4,7 +4,7 @@
  *
  * Long explanations are shown once:
  *   - depreciationExplainHtml()  → Setup & Assets tab
- *   - cashGuideHtml()            → Dashboard cash card ("How to read the minus")
+ *   - cashGuideHtml()            → Dashboard, under the money path ("How to read the minus")
  * Everywhere else: short label + infoTip(key).
  *
  * Depends on: data.js (constants), format.js (pct).
@@ -23,9 +23,10 @@ var LABEL = {
   netProfit: "Net profit",
   cashAfterLoans: "Cash after loans",
   monsoon: "Monsoon reserve",
-  leftAfterMonsoon: "Left after monsoon",
+  afterRecovery: "After prior-loss recovery",
+  afterMonsoon: "After monsoon",
+  finalLeft: "Final money left",
   recovery: "Prior-loss recovery",
-  afterRecoveryPlan: "After recovery plan",
   vatSetAside: "VAT to set aside (already excluded from profit)",
   breakEven: "Break-even"
 };
@@ -40,9 +41,9 @@ var TIP = {
   loanInterest: function(){ return "Interest part of this month's loan payments (each loan's schedule from its start month). A P&L expense."; },
   loanPrincipal: function(){ return "Principal part of this month's loan payments. Cash out, not an expense."; },
   cashAfterLoans: function(){ return "Net profit + depreciation (non-cash) − loan principal."; },
-  monsoon: function(){ return pct(MONSOON_RATE, 0) + " of cash after loans when it is positive; ₩0 otherwise."; },
-  recovery: function(){ return "Carried cash loss from months after opening (" + OPENING_DATE.slice(0, 7) + ") ÷ " + monthsText(RECOVERY_MONTHS) + ". ₩0 in the opening month, before opening, and in vacation months. Empty months with no sales/costs do not create a loss."; },
-  afterRecoveryPlan: function(){ return "Left after monsoon − prior-loss recovery."; },
+  monsoon: function(){ return pct(MONSOON_RATE, 0) + " of what is left after prior-loss recovery, when positive; ₩0 otherwise."; },
+  recovery: function(){ return "Carried cash loss from months after opening (" + OPENING_DATE.slice(0, 7) + "). Net profit this month → the whole carried loss is subtracted now; no net profit → ÷ " + monthsText(RECOVERY_MONTHS) + ". ₩0 in the opening month, before opening, and in vacation months. Empty months with no sales/costs do not create a loss."; },
+  finalLeft: function(){ return "After monsoon − tax, vacation and maintenance buckets. The money that is really free this month."; },
   vatSetAside: function(){ return "Already removed from net sales — shown so you keep the cash aside, not subtracted again."; },
   breakEven: function(){ return "POS sales needed so net profit ≥ 0 after COGS, labor, overhead, depreciation and loan interest."; }
 };
@@ -76,16 +77,16 @@ function cashGuideHtml(c){
     : (c.openingMonth || (c.lossCarry && c.lossCarry.openingMonth)
       ? "Opening month ("+esc(OPENING_DATE.slice(0, 7))+") — <b>prior-loss recovery is ₩0</b> (no prior month yet)."
       : (vac ? "Vacation month — " + LABEL.recovery.toLowerCase() + " is <b>₩0</b>; old losses wait for working months."
-             : "Working month after opening — carried loss from months with real sales/costs is recovered ÷ " + monthsText(RECOVERY_MONTHS) + "."));
+             : (c.lossCarry && c.lossCarry.fullRecovery ? "Working month with net profit — the <b>whole</b> carried loss is subtracted this month." : "Working month with no net profit — carried loss is recovered ÷ " + monthsText(RECOVERY_MONTHS) + ".")));
   return '<div class="cash-guide">'+
     '<div class="eyebrow">How to read the minus (−)</div>'+
     '<p class="lede" style="margin:6px 0 0"><b>This month:</b> '+mode+'</p>'+
     '<ul class="cash-guide-list">'+
-      '<li><b>Opening</b> = '+esc(OPENING_DATE)+'. Months before that are ignored. The opening month itself never shows prior-loss recovery.</li>'+
-      '<li><b>'+LABEL.cashAfterLoans+'</b> = net profit + depreciation (non-cash) − loan principal. Loan interest is already inside net profit.</li>'+
-      '<li><b>'+LABEL.monsoon+'</b> = '+pct(MONSOON_RATE, 0)+' of cash after loans, only when it is positive. A minus month takes ₩0 — it never adds a minus.</li>'+
-      '<li><b>'+LABEL.leftAfterMonsoon+'</b> = cash after loans − monsoon reserve. A minus here becomes a carried loss.</li>'+
-      '<li><b>'+LABEL.recovery+'</b> = carried loss ÷ '+monthsText(RECOVERY_MONTHS)+' in working months after opening (₩0 in opening month / vacation). Empty months do not invent a loss.</li>'+
-      '<li><b>'+LABEL.afterRecoveryPlan+'</b> = left after monsoon − prior-loss recovery.</li>'+
+      '<li><b>'+LABEL.netProfit+'</b> = sales − all costs (loan interest is inside overhead). Recovery and buckets never change net profit.</li>'+
+      '<li><b>'+LABEL.cashAfterLoans+'</b> = net profit + depreciation (not real cash out) − loan principal.</li>'+
+      '<li><b>'+LABEL.recovery+'</b> = old losses since opening ('+esc(OPENING_DATE)+'). Net profit this month → <b>all</b> of it now; no net profit → ÷ '+monthsText(RECOVERY_MONTHS)+'. ₩0 in vacation months and the opening month.</li>'+
+      '<li><b>'+LABEL.monsoon+'</b> = '+pct(MONSOON_RATE, 0)+' of what is left <b>after</b> prior-loss recovery (₩0 if nothing is left).</li>'+
+      '<li><b>Profit buckets</b> = tax '+pct(PROFIT_BUCKET.taxRate, 0)+' + maintenance '+pct(PROFIT_BUCKET.maintRate, 0)+' of net profit, plus the vacation bucket.</li>'+
+      '<li><b>'+LABEL.finalLeft+'</b> = what is left after all of that. A minus in cash after loans is carried to the next working month.</li>'+
     '</ul></div>';
 }
