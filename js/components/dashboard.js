@@ -15,9 +15,18 @@ function renderDashboard(model){
   var m = model.monthly;
   var hasSales = m.sales > 0;
   var netStatus = marginStatus(m.netMarginPct, hasSales);
-  var cv = model.cashView || { cashAfterLoans: m.netProfit, leftAfterMonsoon: m.netProfit, monsoonShare: 0 };
+  var cv = model.cashView || { cashAfterLoans: m.netProfit, leftAfterMonsoon: m.netProfit, monsoonShare: 0, lossCarryCharge: 0 };
   var leftCash = cv.leftAfterMonsoon != null ? cv.leftAfterMonsoon : cv.cashAfterLoans;
   var cashStatus = marginStatus(safeDiv(leftCash, m.sales), hasSales);
+  var monsoonSub = (cv.monsoonShare || 0) > 0
+    ? "15% of cash after loans"
+    : "₩0 while cash after loans ≤ 0";
+  var leftSub = (cv.monsoonShare || 0) > 0
+    ? "cash after loans − monsoon"
+    : "same as cash after loans (no monsoon taken)";
+  var lossSub = (cv.isVacationMonth || (cv.lossCarry && cv.lossCarry.skippedVacation))
+    ? "vacation month — recovery ₩0"
+    : (cv.lossCarryCharge ? "semester catch-up — not monsoon" : "no prior deficit");
   var kpis = [
     kpiTile("Total Sales", won(m.salesGross), (hasSales ? "Less VAT "+signedWon(-m.vat)+" → net "+won(m.sales) : MONTH_NAMES[STATE.month-1]+" "+STATE.year)),
     kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
@@ -25,9 +34,10 @@ function renderDashboard(model){
     kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
     kpiTile("Overhead %", pct(m.overheadPct), "fixed + not-fixed bills"),
     kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
-    kpiTile("Cash after loans", signedWon(cv.cashAfterLoans), (cv.lossCarryCharge ? "− loss carry "+won(cv.lossCarryCharge) : "net − loan")),
-    kpiTile("Monsoon share 15%", signedWon(cv.monsoonShare || 0), "of cash after carry"),
-    kpiTile("Left after monsoon", signedWon(leftCash), "keep or reinvest", cashStatus)
+    kpiTile("Cash after loans", signedWon(cv.cashAfterLoans), "net profit − loan payment"),
+    kpiTile("Monsoon share 15%", won(cv.monsoonShare || 0), monsoonSub),
+    kpiTile("Left after monsoon", signedWon(leftCash), leftSub, cashStatus),
+    kpiTile("Prior-loss recovery", won(cv.lossCarryCharge || 0), lossSub)
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});
@@ -85,7 +95,7 @@ function renderDashboard(model){
   }
 
   el("tab-dashboard").innerHTML =
-    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div></section>'+
+    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div>'+cashRulesGuideHtml(cv)+'</section>'+
     '<section class="card grid-2">'+
       '<div><h2 style="font-size:16px">Average daily sales by traffic type</h2>'+salesChart+'</div>'+
       '<div><h2 style="font-size:16px">Cost ratios &amp; net margin by traffic type</h2>'+pctChart+'</div>'+

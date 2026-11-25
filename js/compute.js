@@ -662,23 +662,27 @@ function computeAll(){
   var ownMoney = setupAssets.funding ? setupAssets.funding.ownMoney : 0;
   var lossCarry = computeLossCarryForward(year, month);
   var cashAfterLoans = monthly.netProfit - loanPay;
-  var cashAfterCarry = cashAfterLoans - lossCarry.charge;
-  var monsoonShare = Math.max(0, cashAfterCarry) * PROFIT_BUCKET.shareRate;
-  var leftAfterMonsoon = cashAfterCarry - monsoonShare;
+  /** Monsoon = 15% of cash after loans only (₩0 if that cash ≤ 0). */
+  var monsoonShare = Math.max(0, cashAfterLoans) * PROFIT_BUCKET.shareRate;
+  var leftAfterMonsoon = cashAfterLoans - monsoonShare;
+  /** Prior-loss recovery is planning only — shown separately, not inside “left after monsoon”. */
+  var afterRecoveryPlan = leftAfterMonsoon - lossCarry.charge;
   var monthsRecover = leftAfterMonsoon > 0 && ownMoney > 0 ? ownMoney / leftAfterMonsoon : null;
   var cashView = {
     netProfit: monthly.netProfit,
     loanPayment: loanPay,
     cashAfterLoans: cashAfterLoans,
-    lossCarry: lossCarry,
-    lossCarryCharge: lossCarry.charge,
-    cashAfterCarry: cashAfterCarry,
     monsoonShare: monsoonShare,
     leftAfterMonsoon: leftAfterMonsoon,
+    lossCarry: lossCarry,
+    lossCarryCharge: lossCarry.charge,
+    cashAfterCarry: afterRecoveryPlan,
+    afterRecoveryPlan: afterRecoveryPlan,
+    isVacationMonth: !!lossCarry.skippedVacation,
     ownMoney: ownMoney,
     monthsToRecover: monthsRecover
   };
-  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross, cashAfterCarry);
+  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross, leftAfterMonsoon);
 
   var breakEven = computeBreakEvenSales(
     rawGrand.monthly,
