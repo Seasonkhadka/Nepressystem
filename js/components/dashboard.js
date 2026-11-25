@@ -19,7 +19,8 @@ function renderDashboard(model){
     kpiTile(LABEL.overhead, won(m.overhead + m.interest), pct(safeDiv(m.overhead + m.interest, m.sales))+" of net sales · incl. "+LABEL.loanInterest.toLowerCase()+" "+won(m.interest)),
     kpiTile(labelTip("depreciation"), won(m.depreciation), pct(m.depreciationPct)+" of net sales"),
     kpiTile(LABEL.netProfit, signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
-    kpiTile(labelTip("monsoon"), won(cv.monsoonShare), pct(MONSOON_RATE, 0)+" of "+LABEL.cashAfterLoans.toLowerCase()+" "+signedWon(cv.cashAfterLoans))
+    kpiTile(labelTip("monsoon"), won(cv.monsoonShare), pct(MONSOON_RATE, 0)+" of "+LABEL.cashAfterLoans.toLowerCase()+" "+signedWon(cv.cashAfterLoans)),
+    kpiTile(labelTip("recovery"), won(cv.recovery), recoverySub(cv))
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});
@@ -77,7 +78,7 @@ function renderDashboard(model){
   }
 
   el("tab-dashboard").innerHTML =
-    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div></section>'+
+    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div>'+profitBucketsTextHtml(model.profitAllocation)+'</section>'+
     '<section class="card"><h2>Cash after loans &amp; monsoon</h2>'+cashGuideHtml(cv)+cashStepsHtml(cv)+'</section>'+
     '<section class="card grid-2">'+
       '<div><h2 style="font-size:16px">Average daily sales by traffic type</h2>'+salesChart+'</div>'+
@@ -97,6 +98,14 @@ function renderDashboard(model){
       trend+
     '</section>'+
     '<section class="card"><h2>COGS from raw materials</h2><p class="lede">Purchases you log this month are the cost of goods sold. You no longer type a COGS % on each day.</p>'+crossCheckHtml+'</section>'+
-    profitAllocationHtml(model.profitAllocation)+
     capitalHtml;
+}
+
+/** Small text under the Prior-loss recovery tile. */
+function recoverySub(cv){
+  var lc = cv.lossCarry || {};
+  if (cv.beforeOpening) return "before opening";
+  if (!(lc.priorDeficit > 0)) return "no carried loss";
+  if (cv.isVacationMonth) return "vacation month — "+won(lc.priorDeficit)+" waits";
+  return "carried "+won(lc.priorDeficit)+" ÷ "+RECOVERY_MONTHS;
 }

@@ -139,6 +139,22 @@ function breakEvenHtml(be){
   '</div>';
 }
 
+/** Profit buckets as one short text block (Dashboard, under Month at a glance). */
+function profitBucketsTextHtml(a){
+  if (!a) return "";
+  var b = PROFIT_BUCKET;
+  var line = a.netProfit > 0
+    ? 'Tax ('+pct(b.taxRate, 0)+') <b class="tnum">'+won(a.tax)+'</b> · Vacation <b class="tnum">'+won(a.vacation)+'</b>'+
+      ' · Maintenance ('+pct(b.maintRate, 0)+') <b class="tnum">'+won(a.maintenance)+'</b>'+
+      ' → after buckets <b class="tnum">'+signedWon(a.afterBuckets)+'</b>.'
+    : 'Vacation <b class="tnum">'+won(a.vacation)+'</b>. Tax and maintenance are ₩0 while net profit is not positive'+
+      ' → after buckets <b class="tnum">'+signedWon(a.afterBuckets)+'</b>.';
+  return '<p class="note" style="margin-top:14px"><b>Profit buckets (planning):</b> '+line+
+    ' '+LABEL.vatSetAside+': <b class="tnum">'+won(a.vatSetAside)+'</b>.'+
+    (a.shortfall > 0 ? ' <span style="color:var(--warning-dot)">Buckets exceed net profit by '+won(a.shortfall)+'.</span>' : '')+
+    '</p>';
+}
+
 function profitAllocationHtml(a){
   if (!a) return "";
   var b = PROFIT_BUCKET;

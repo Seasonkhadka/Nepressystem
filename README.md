@@ -4,7 +4,7 @@ Static web app for a Korea-based restaurant: track daily POS sales, raw material
 
 **Live:** [https://seasonkhadka.github.io/Nepressystem/](https://seasonkhadka.github.io/Nepressystem/)
 
-After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=70`) if the UI looks stale.
+After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=71`) if the UI looks stale.
 
 ---
 
