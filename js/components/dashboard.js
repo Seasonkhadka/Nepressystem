@@ -33,6 +33,7 @@ function renderDashboard(model){
     kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
     kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
     kpiTile("Overhead %", pct(m.overheadPct), "fixed + not-fixed bills"),
+    kpiTile("Depreciation", won(m.depreciation || 0), "setup ÷ 36 + utensils (not inventory)"),
     kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
     kpiTile("Cash after loans", signedWon(cv.cashAfterLoans), "net profit − loan payment"),
     kpiTile("Monsoon share 15%", won(cv.monsoonShare || 0), monsoonSub),
@@ -75,22 +76,26 @@ function renderDashboard(model){
       : "Add purchases in Raw Materials — that total becomes P&amp;L COGS for the month.")+'</p>';
 
   var g = model.assetGrand || { invested:0, monthly:0 };
+  var dep = model.depreciation || { monthly:0, setup:0, utensil:0, setupLifeMonths:36 };
   var capitalHtml = "";
   if (g.invested > 0){
     var capRows = (model.assetCats || []).map(function(c){
-      return '<tr><td><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</td>'+
+      var plNote = c.cat === "inventory" ? " — not in P&amp;L" : (c.cat === "setup" || c.cat === "utensil" ? " — in P&amp;L dep." : "");
+      return '<tr><td><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+plNote+'</td>'+
         '<td class="tnum">'+won(c.invested)+'</td>'+
         '<td class="tnum">'+won(c.monthly)+'</td></tr>';
     }).join("");
     capitalHtml =
       '<section class="card">'+
         '<h2>Setup &amp; assets</h2>'+
-        '<p class="lede">Long-term money already spent. Suggested ₩/month is the cost spread over each item\'s life — it is not added to P&amp;L automatically.</p>'+
+        '<p class="lede">Long-term money already spent. <b>P&amp;L depreciation</b> uses setup/equipment ÷ '+(dep.setupLifeMonths||36)+
+          ' months + utensils ÷ life. <b>Inventory is not depreciated</b> in P&amp;L (capital only).</p>'+
         '<div class="kpi-grid">'+
-          kpiTile("Total invested", won(g.invested), "inventory, setup, utensils, gas")+
-          kpiTile("Setup spread / month", won(g.monthly), "equipment + contractor only — see Setup &amp; assets")+
+          kpiTile("Total invested", won(g.invested), "inventory, setup, utensils")+
+          kpiTile("P&amp;L depreciation / mo", won(dep.monthly||0), "setup "+won(dep.setup||0)+" + utensils "+won(dep.utensil||0))+
+          kpiTile("Memo spread (item lives)", won(g.monthly), "reference only — may differ from P&amp;L")+
         '</div>'+
-        '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Invested</th><th>₩ / month</th></tr></thead><tbody>'+capRows+'</tbody></table></div>'+
+        '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Invested</th><th>Memo ₩ / month</th></tr></thead><tbody>'+capRows+'</tbody></table></div>'+
       '</section>';
   }
 

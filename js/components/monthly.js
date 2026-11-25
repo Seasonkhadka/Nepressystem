@@ -38,9 +38,18 @@ function renderMonthlyTab(model){
         row("Labor Cost %", m.laborPct, true)+
         row("Overhead", m.overhead)+
         row("Overhead %", m.overheadPct, true)+
+        rowLess("Depreciation (setup ÷ 36 + utensils)", m.depreciation || 0)+
+        row("Depreciation %", m.depreciationPct || 0, true)+
         row("Net Profit", m.netProfit, false, true)+
         row("Net Margin %", m.netMarginPct, true, true)+
       '</div>'+
+      (function(){
+        var d = model.depreciation || {};
+        if (!(d.monthly > 0)) return '';
+        return '<p class="note">Depreciation in P&amp;L: setup/equipment '+won(d.setup||0)+
+          ' (invested '+won(d.setupInvested||0)+' ÷ '+(d.setupLifeMonths||36)+' mo) + utensils '+won(d.utensil||0)+
+          '. <b>Inventory is not depreciated</b> in P&amp;L.</p>';
+      })()+
       breakEvenHtml(model.breakEven)+
       monthlyCashAfterLoansHtml(model.cashView)+
       '<div class="tie-out"><span class="check">'+(tie1?"✓":"!")+'</span> Matches sum of daily rows ('+won(sumOfDays)+').</div>'+

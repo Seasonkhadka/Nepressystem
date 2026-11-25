@@ -120,8 +120,11 @@ function breakEvenHtml(be){
       '<p class="lede" style="margin:0">Break-even sales need a positive margin after VAT and variable overhead. Lower variable overhead or review costs.</p></div>';
   }
   var od = be.openDays;
+  var dep = Number(be.depreciation) || 0;
   var lines =
-    'Covers this month\'s <b>COGS</b> ('+won(be.cogs)+' from Raw Materials) + <b>labor</b> '+won(be.labor)+' + <b>overhead</b> '+won(be.overhead)+', after '+pct(SALES_VAT_RATE, 1)+' VAT';
+    'Covers this month\'s <b>COGS</b> ('+won(be.cogs)+' from Raw Materials) + <b>labor</b> '+won(be.labor)+' + <b>overhead</b> '+won(be.overhead)+
+    (dep ? ' + <b>depreciation</b> '+won(dep)+' (setup ÷ 36 + utensils; not inventory)' : '')+
+    ', after '+pct(SALES_VAT_RATE, 1)+' VAT';
   if (be.marginOnGross < 1) lines += ' and variable overhead on sales';
   lines += '.';
   var status = "";
@@ -130,7 +133,7 @@ function breakEvenHtml(be){
   } else if (be.surplusGross > 0 && be.currentGross > 0){
     status = 'You are <b>'+won(be.surplusGross)+'</b> above break-even on POS sales so far.';
   } else if (be.fixedCosts <= 0){
-    status = 'No material, labor, or overhead entered yet — target updates when those tabs have data.';
+    status = 'No material, labor, overhead, or depreciation entered yet — target updates when those tabs have data.';
   }
   return '<div class="break-even-callout">'+
     '<div class="eyebrow">Break-even (net profit ≥ 0)</div>'+

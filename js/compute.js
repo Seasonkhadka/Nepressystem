@@ -9,11 +9,11 @@
 function safeDiv(a, b){ return b ? a/b : 0; }
 
 /** Min POS gross sales this month so net profit ≥ 0 (COGS = full Raw Materials month). */
-function computeBreakEvenSales(materials, labor, overheadPool, overheadVarPct, openDays, currentGross){
+function computeBreakEvenSales(materials, labor, overheadPool, overheadVarPct, openDays, currentGross, depreciation){
   var vatRate = SALES_VAT_RATE;
   var varRate = (Number(overheadVarPct) || 0) / 100;
   var margin = 1 - vatRate - varRate;
-  var fixed = Math.max(0, Number(materials) || 0) + Math.max(0, Number(labor) || 0) + Math.max(0, Number(overheadPool) || 0);
+  var fixed = Math.max(0, Number(materials) || 0) + Math.max(0, Number(labor) || 0) + Math.max(0, Number(overheadPool) || 0) + Math.max(0, Number(depreciation) || 0);
   var od = Math.max(1, Number(openDays) || 1);
   if (margin <= 0.001){
     return {
@@ -172,8 +172,10 @@ function computeMonthNetProfit(year, month){
   var overheadPool = fixedOverheadAmountForMonth(year, month) + overheadBillsForMonth(year, month);
   var varRate = (Number(STATE.overheadVariableRate) || 0) / 100;
   var overhead = openDays > 0 ? (overheadPool + salesGross * varRate) : 0;
+  var dep = computePlDepreciation().monthly;
+  var depreciation = openDays > 0 ? dep : 0;
   var netSales = netSalesFromGross(salesGross);
-  var netProfit = netSales - materials - labor - overhead;
+  var netProfit = netSales - materials - labor - overhead - depreciation;
   return {
     year: year,
     month: month,
@@ -183,6 +185,7 @@ function computeMonthNetProfit(year, month){
     materials: materials,
     labor: labor,
     overhead: overhead,
+    depreciation: depreciation,
     openDays: openDays,
     vacationMonth: isVacationMonth(year, month, sch),
     netProfit: netProfit
@@ -272,16 +275,18 @@ function buildWeeks(dayNums){
 }
 
 function sumDays(days){
-  var t = { salesGross:0, vat:0, sales:0, cogsAmt:0, labor:0, overhead:0, grossProfit:0, netProfit:0, count:days.length };
+  var t = { salesGross:0, vat:0, sales:0, cogsAmt:0, labor:0, overhead:0, depreciation:0, grossProfit:0, netProfit:0, count:days.length };
   days.forEach(function(d){
     t.salesGross += d.salesGross; t.vat += d.vat; t.sales += d.sales;
     t.cogsAmt += d.cogsAmt; t.labor += d.labor; t.overhead += d.overhead;
+    t.depreciation += Number(d.depreciation) || 0;
     t.grossProfit += d.grossProfit; t.netProfit += d.netProfit;
   });
   t.cogsPct = safeDiv(t.cogsAmt, t.sales);
   t.grossMarginPct = safeDiv(t.grossProfit, t.sales);
   t.laborPct = safeDiv(t.labor, t.sales);
   t.overheadPct = safeDiv(t.overhead, t.sales);
+  t.depreciationPct = safeDiv(t.depreciation, t.sales);
   t.netMarginPct = safeDiv(t.netProfit, t.sales);
   t.avgSales = t.count ? t.sales/t.count : 0;
   return t;
@@ -304,6 +309,42 @@ function assetSpreadMonthly(a){
 
 function assetMonthly(a){
   return assetSpreadMonthly(a);
+}
+
+/**
+ * P&amp;L depreciation (true profit): setup+equipment ÷ 36 months + utensils ÷ life.
+ * Inventory / opening stock / deposit / cash float are excluded.
+ */
+function computePlDepreciation(){
+  var setup = 0, utensil = 0, setupInvested = 0, utensilInvested = 0;
+  var lifeSetup = PL_SETUP_DEPRECIATION_MONTHS || 36;
+  asArray(STATE && STATE.assets).forEach(function(a){
+    if (!a || a.included === false) return;
+    if (typeof assetHasData === "function" && !assetHasData(a)) return;
+    var amt = lineTotal(a);
+    if (amt <= 0) return;
+    var cat = a.cat === "gas" ? "setup" : a.cat;
+    var rowCat = a.rowCat || (cat === "inventory" ? "opening" : "equipment");
+    if (cat === "inventory" || rowCat === "opening" || rowCat === "deposit" || rowCat === "cashfloat") return;
+    if (cat === "utensil"){
+      utensilInvested += amt;
+      var uLife = Number(a.lifeMonths) || 24;
+      if (uLife > 0) utensil += amt / uLife;
+      return;
+    }
+    if (cat === "setup"){
+      setupInvested += amt;
+      setup += amt / lifeSetup;
+    }
+  });
+  return {
+    setup: setup,
+    utensil: utensil,
+    monthly: setup + utensil,
+    setupInvested: setupInvested,
+    utensilInvested: utensilInvested,
+    setupLifeMonths: lifeSetup
+  };
 }
 
 function loanMonthlyPayment(principal, annualRatePct, termMonths){
@@ -573,6 +614,9 @@ function computeAll(){
   var overheadSpreadDays = openDaysTrue || daysThisMonth;
   var overheadPerOpenDay = overheadSpreadDays ? overheadPool / overheadSpreadDays : 0;
   var overheadVarRate = (Number(STATE.overheadVariableRate) || 0) / 100;
+  var plDep = computePlDepreciation();
+  var depreciationMonth = plDep.monthly;
+  var depreciationPerOpenDay = overheadSpreadDays ? depreciationMonth / overheadSpreadDays : 0;
 
   var daily = dayNums.map(function(day){
     var raw = STATE.days[day] || { vacation:false, sales:0, labor:0 };
@@ -592,13 +636,15 @@ function computeAll(){
     var cogsPct = safeDiv(cogsAmt, sales);
     var grossProfit = salesGross - vat - cogsAmt;
     var overhead = plClosed ? 0 : (overheadPerOpenDay + salesGross * overheadVarRate);
-    var netProfit = grossProfit - labor - overhead;
+    var depreciation = plClosed ? 0 : depreciationPerOpenDay;
+    var netProfit = grossProfit - labor - overhead - depreciation;
     return {
       day: day, dow: DOW_NAMES[dowOf(year,month,day)], isWeekendAuto: isWeekendAuto, vacation: plClosed, tag: tag,
       salesGross: salesGross, vat: vat, sales: sales, cogsPct: cogsPct, cogsAmt: cogsAmt,
       grossProfit: grossProfit, grossMarginPct: safeDiv(grossProfit, sales),
       labor: labor, laborPct: safeDiv(labor, sales),
       overhead: overhead, overheadPct: safeDiv(overhead, sales),
+      depreciation: depreciation, depreciationPct: safeDiv(depreciation, sales),
       netProfit: netProfit, netMarginPct: safeDiv(netProfit, sales)
     };
   });
@@ -690,11 +736,19 @@ function computeAll(){
     overheadPool,
     STATE.overheadVariableRate,
     openDaysTrue || daysThisMonth,
-    monthly.salesGross
+    monthly.salesGross,
+    depreciationMonth
   );
   breakEven.cogs = rawGrand.monthly;
   breakEven.labor = laborInfo.monthly;
   breakEven.overhead = overheadPool;
+  breakEven.depreciation = depreciationMonth;
 
-  return { daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups, ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand, assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets, labor:laborInfo, overhead:overheadInfo, crosscheck:crosscheck, profitAllocation:profitAllocation, cashView:cashView, breakEven:breakEven };
+  return {
+    daily:daily, monthly:monthly, weekly:weekly, tagGroups:tagGroups,
+    ingredients:ingredients, catTotals:catTotals, rawGrand:rawGrand,
+    assetCats:assetCats, assetGrand:assetGrand, setupAssets:setupAssets,
+    labor:laborInfo, overhead:overheadInfo, depreciation: plDep,
+    crosscheck:crosscheck, profitAllocation:profitAllocation, cashView:cashView, breakEven:breakEven
+  };
 }

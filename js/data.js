@@ -73,6 +73,9 @@ var DEFAULT_OVERHEAD_FIXED = [
   { name: "Electricity (2nd floor)", amount: 1000000 }
 ];
 
+/** P&amp;L depreciation for setup / equipment — always 3 years (not inventory). */
+var PL_SETUP_DEPRECIATION_MONTHS = 36;
+
 function defaultAssetLife(cat){
   if (cat === "gas") return 60;
   if (cat === "utensil") return 24;
