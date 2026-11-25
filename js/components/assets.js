@@ -1,5 +1,6 @@
 /**
  * components/assets.js — setup & assets with row categories, loans, summary, plan.
+ * The only screen that shows the full depreciation explanation (copy.js).
  */
 
 function assetNumAttr(v){
@@ -21,7 +22,7 @@ function assetWarningsHtml(msgs){
 function assetRowHtml(a){
   var life = Number(a.lifeMonths) || 0;
   var spreads = a.spreads;
-  var lifeDisabled = spreads ? "" : ' disabled class="asset-life-off"';
+  var lifeDisabled = a.lifeEditable ? "" : ' disabled class="asset-life-off"';
   return '<tr data-asset-id="'+a.id+'"'+(a.included ? "" : ' class="asset-excluded"')+'>'+
     '<td class="asset-inc"><input type="checkbox" data-field="included"'+(a.included ? " checked" : "")+' title="Include in totals"></td>'+
     '<td><input class="cell-input" type="date" data-field="date" value="'+esc(a.date || "")+'"></td>'+
@@ -30,7 +31,7 @@ function assetRowHtml(a){
     '<td><input class="cell-input" type="number" min="0" step="1" data-field="qty" placeholder="0" value="'+assetNumAttr(a.qty)+'"></td>'+
     '<td><input class="cell-input" type="number" min="0" step="100" data-field="unitPrice" placeholder="0" value="'+assetNumAttr(a.unitPrice)+'"></td>'+
     '<td><input class="cell-input" type="number" min="0" step="100" data-field="amount" placeholder="0" value="'+assetNumAttr(a.amount)+'"></td>'+
-    '<td><input class="cell-input" type="number" min="0" step="1" data-field="lifeMonths" placeholder="0" value="'+(spreads && life ? life : "")+'"'+lifeDisabled+'></td>'+
+    '<td><input class="cell-input" type="number" min="0" step="1" data-field="lifeMonths" placeholder="0" value="'+(spreads && life ? life : "")+'"'+lifeDisabled+(a.lifeEditable ? "" : ' title="Fixed: '+SETUP_LIFE_MONTHS+' months for setup"')+'></td>'+
     '<td class="tnum calc" data-asset-monthly">'+(a.monthly ? won(a.monthly) : "—")+'</td>'+
     '<td><input class="cell-input text" type="text" data-field="note" placeholder="Flag / note" value="'+esc(a.note)+'"></td>'+
     '<td class="asset-warn-cell">'+assetWarningsHtml(a.warnings)+'</td>'+
@@ -44,11 +45,11 @@ function assetSectionHtml(c){
     '<h2><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</h2>'+
     '<p class="lede">'+c.lede+'</p>'+
     '<div class="table-wrap purchase-wrap"><table class="asset-table asset-table-wide"><thead><tr>'+
-      '<th>Incl.</th><th>Date</th><th>Category</th><th>Item</th><th>Qty</th><th>₩ each</th><th>Line total</th><th>Life (mo)</th><th>₩ / mo</th><th>Note</th><th></th><th></th>'+
+      '<th>Incl.</th><th>Date</th><th>Category</th><th>Item</th><th>Qty</th><th>₩ each</th><th>Line total</th><th>Life (mo)</th><th>'+LABEL.depreciation+' / mo</th><th>Note</th><th></th><th></th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<button class="add-row-btn" type="button" data-add-asset="'+c.cat+'">+ Add item</button>'+
     '<p class="note">Invested (included) <b class="tnum" data-asset-invested="'+c.cat+'">'+won(c.invested)+'</b>'+
-      ' · Monthly spread <b class="tnum" data-asset-cat-monthly="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
+      ' · '+LABEL.depreciation+' / mo <b class="tnum" data-asset-cat-monthly="'+c.cat+'">'+won(c.monthly)+'</b></p>'+
   '</section>';
 }
 
@@ -59,12 +60,20 @@ function loanCardHtml(l){
       '<label>Amount<input class="cell-input" type="number" min="0" step="1000" data-loan-field="principal" value="'+assetNumAttr(l.principal)+'"></label>'+
       '<label>Rate % / yr<input class="cell-input" type="number" min="0" step="0.1" data-loan-field="annualRate" value="'+assetNumAttr(l.annualRate)+'"></label>'+
       '<label>Term (mo) <span class="setup-term-note">'+esc(l.termNote)+'</span><input class="cell-input" type="number" min="1" step="1" data-loan-field="termMonths" value="'+assetNumAttr(l.termMonths)+'"></label>'+
+      '<label>First payment month<input class="cell-input" type="month" data-loan-field="startMonth" value="'+esc(l.startMonth)+'"></label>'+
     '</div>'+
     '<p class="note">Monthly payment <b class="tnum" data-loan-payment="'+l.id+'">'+won(l.payment)+'</b>'+
       ' · Total interest <b class="tnum" data-loan-interest="'+l.id+'">'+won(l.totalInterest)+'</b>'+
-      ' · Month 1: interest <b class="tnum" data-loan-m1-int="'+l.id+'">'+won(l.month1Interest)+'</b>'+
-      ', principal <b class="tnum" data-loan-m1-prin="'+l.id+'">'+won(l.month1Principal)+'</b></p>'+
+      '<br>'+loanNowText(l)+'</p>'+
   '</div>';
+}
+
+/** "This month (n of term): loan interest ₩X, loan principal ₩Y" — values from compute.js. */
+function loanNowText(l){
+  var n = l.monthNumber;
+  var when = n < 1 ? "Not started yet this month" : (n > l.termMonths ? "Paid off" : "This month ("+n+" of "+l.termMonths+")");
+  return '<span data-loan-now="'+l.id+'">'+when+': '+LABEL.loanInterest.toLowerCase()+' <b class="tnum">'+won(l.interestNow)+'</b>, '+
+    LABEL.loanPrincipal.toLowerCase()+' <b class="tnum">'+won(l.principalNow)+'</b></span>';
 }
 
 function loanScheduleTableHtml(loans){
@@ -106,7 +115,7 @@ function setupSummaryHtml(s){
   return '<section class="card" id="setup-summary">'+
     '<h2><span class="cat-chip" style="background:var(--chart-4)"></span>Summary</h2>'+
     '<h3 class="labor-subhead">By category</h3>'+
-    '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Total</th><th>Monthly cost</th></tr></thead><tbody>'+
+    '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Total</th><th>'+LABEL.depreciation+' / mo</th></tr></thead><tbody>'+
       catRows+
       '<tr style="font-weight:700"><td>Grand total (included)</td><td class="tnum" id="setup-cat-total">'+won(s.rowCatGrand.total)+'</td><td class="tnum" id="setup-cat-monthly">'+won(s.rowCatGrand.monthly)+'</td></tr>'+
     '</tbody></table></div>'+
@@ -117,18 +126,17 @@ function setupSummaryHtml(s){
     '</div>'+
     '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Source</th><th>Amount</th><th>Share</th></tr></thead><tbody>'+shareRows+'</tbody></table></div>'+
     '<p class="note '+reconClass+'" id="setup-recon">Check: included rows − records = <b class="tnum">'+wonParen(fund.reconDiff)+'</b> — '+reconText+'</p>'+
-    '<h3 class="labor-subhead">Monthly costs (do not add together)</h3>'+
-    '<p class="note">Setup &amp; equipment spread (non-cash): <b class="tnum" id="setup-spread-monthly">'+won(s.rowCatGrand.monthly)+'</b></p>'+
-    '<p class="note">Loan payments (cash, principal + interest): <b class="tnum" id="setup-loan-payment">'+won(lt.payment)+'</b>'+
-      ' · of which interest month 1: <b class="tnum" id="setup-loan-int-m1">'+won(lt.interestM1)+'</b></p>'+
-    '<p class="setup-hint">Spread is accounting allocation; loan payment is cash out — do not sum them as one “monthly cost”.</p>'+
+    '<h3 class="labor-subhead">This month in the P&amp;L and cash</h3>'+
+    '<p class="note">'+labelTip("depreciation")+' (P&amp;L, non-cash): <b class="tnum" id="setup-dep-now">'+won(s.depreciationNow)+'</b></p>'+
+    '<p class="note">'+labelTip("loanInterest")+' (P&amp;L): <b class="tnum" id="setup-loan-int-now">'+won(lt.interestNow)+'</b>'+
+      ' · '+labelTip("loanPrincipal")+' (cash only): <b class="tnum" id="setup-loan-prin-now">'+won(lt.principalNow)+'</b></p>'+
   '</section>';
 }
 
 function downloadAssetsCsv(){
   var model = computeAll();
   var s = model.setupAssets;
-  var lines = ["section,date,category,item,qty,unit_price,line_total,life_months,monthly_spread,included,note,warnings"];
+  var lines = ["section,date,category,item,qty,unit_price,line_total,life_months,depreciation_monthly,included,note,warnings"];
   (s.items || []).forEach(function(a){
     if (!assetHasData({ name: a.name, qty: a.qty, unitPrice: a.unitPrice, amount: a.amount })) return;
     var row = [
@@ -166,7 +174,7 @@ function renderAssetsTab(){
   el("tab-assets").innerHTML =
     '<section class="card">'+
       '<h2>Setup &amp; assets</h2>'+
-      '<p class="lede">Category, line total, and ₩/month <b>auto-detect</b> from the item name (unless you change the category dropdown). Opening stock &amp; deposit have no monthly spread. Equipment &amp; contractor spread = line total ÷ life months (life filled in automatically if blank).</p>'+
+      depreciationExplainHtml()+
       '<button class="add-row-btn" type="button" id="setup-download-csv">Download CSV</button>'+
     '</section>'+
     body+
@@ -175,8 +183,9 @@ function renderAssetsTab(){
       '<p class="lede">Equal monthly installments. Terms shown as assumed — change when you have final numbers.</p>'+
       loansHtml+
       '<p class="note">Combined payment <b class="tnum" id="setup-loans-combined">'+won(s.loanTotals.payment)+'</b>'+
-        ' · Combined month-1 interest <b class="tnum" id="setup-loans-int-m1">'+won(s.loanTotals.interestM1)+'</b></p>'+
-      '<details class="setup-sched-details"><summary>Month-by-month schedules (up to 60 months)</summary>'+
+        ' · this month: '+LABEL.loanInterest.toLowerCase()+' <b class="tnum" id="setup-loans-int-now">'+won(s.loanTotals.interestNow)+'</b>, '+
+        LABEL.loanPrincipal.toLowerCase()+' <b class="tnum" id="setup-loans-prin-now">'+won(s.loanTotals.principalNow)+'</b></p>'+
+      '<details class="setup-sched-details"><summary>Month-by-month schedules (month 1 = each loan&rsquo;s first payment month)</summary>'+
         loanScheduleTableHtml(s.loans || [])+
       '</details>'+
     '</section>'+
@@ -201,7 +210,7 @@ function refreshAssetComputedCells(model){
       idleSet('[data-field="amount"]', niceNum(a.amount));
       var lifeIn = tr.querySelector('[data-field="lifeMonths"]');
       if (lifeIn && document.activeElement !== lifeIn){
-        if (a.spreads){
+        if (a.lifeEditable){
           lifeIn.disabled = false;
           lifeIn.classList.remove("asset-life-off");
           var lifeVal = a.lifeMonths ? String(a.lifeMonths) : "";
@@ -209,7 +218,8 @@ function refreshAssetComputedCells(model){
         } else {
           lifeIn.disabled = true;
           lifeIn.classList.add("asset-life-off");
-          if (lifeIn.value !== "") lifeIn.value = "";
+          var fixedVal = a.spreads && a.lifeMonths ? String(a.lifeMonths) : "";
+          if (lifeIn.value !== fixedVal) lifeIn.value = fixedVal;
         }
       }
       var sel = tr.querySelector('[data-field="rowCat"]');
@@ -229,22 +239,21 @@ function refreshAssetComputedCells(model){
   (s.loans || []).forEach(function(l){
     var pay = host.querySelector('[data-loan-payment="'+l.id+'"]');
     var ti = host.querySelector('[data-loan-interest="'+l.id+'"]');
-    var i1 = host.querySelector('[data-loan-m1-int="'+l.id+'"]');
-    var p1 = host.querySelector('[data-loan-m1-prin="'+l.id+'"]');
+    var now = host.querySelector('[data-loan-now="'+l.id+'"]');
     if (pay) pay.textContent = won(l.payment);
     if (ti) ti.textContent = won(l.totalInterest);
-    if (i1) i1.textContent = won(l.month1Interest);
-    if (p1) p1.textContent = won(l.month1Principal);
+    if (now) now.outerHTML = loanNowText(l);
   });
 
   var set = function(id, text){ var n = el(id); if (n) n.textContent = text; };
   set("setup-loans-combined", won(s.loanTotals.payment));
-  set("setup-loans-int-m1", won(s.loanTotals.interestM1));
+  set("setup-loans-int-now", won(s.loanTotals.interestNow));
+  set("setup-loans-prin-now", won(s.loanTotals.principalNow));
   set("setup-cat-total", won(s.rowCatGrand.total));
   set("setup-cat-monthly", won(s.rowCatGrand.monthly));
-  set("setup-spread-monthly", won(s.rowCatGrand.monthly));
-  set("setup-loan-payment", won(s.loanTotals.payment));
-  set("setup-loan-int-m1", won(s.loanTotals.interestM1));
+  set("setup-dep-now", won(s.depreciationNow));
+  set("setup-loan-int-now", won(s.loanTotals.interestNow));
+  set("setup-loan-prin-now", won(s.loanTotals.principalNow));
   set("setup-own-money", won(s.funding.ownMoney));
   set("setup-own-pct", pct(s.funding.ownPct, 1));
   var recon = el("setup-recon");

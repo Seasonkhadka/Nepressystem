@@ -8,17 +8,41 @@
 
 var STORAGE_KEY = "restaurant-pl-calculator-v1";
 
-/** Share of VAT-inclusive (POS) sales treated as VAT — net revenue = gross × (1 − rate). */
-var SALES_VAT_RATE = 0.091;
+/* ── Business constants: the ONLY place these numbers live ─────────────── */
 
-/** Net-profit set-asides (planning — not tax advice). */
+/** Restaurant opened on this date. Months before it are ignored everywhere. */
+var OPENING_DATE = "2026-09-01";
+
+/** VAT share of VAT-inclusive (POS) sales: 10% VAT on top → 10/110 of gross. */
+var VAT_RATE = 10 / 110;
+
+/** Setup / equipment depreciation life (months), counted from OPENING_DATE. */
+var SETUP_LIFE_MONTHS = 36;
+/** Utensil life (months) when a row has none typed. */
+var UTENSIL_DEFAULT_LIFE = 24;
+
+/** Monsoon reserve = this share of positive cash after loans. */
+var MONSOON_RATE = 0.15;
+
+/** Prior-loss recovery: carried cash loss ÷ this many months, working months only. */
+var RECOVERY_MONTHS = 3.5;
+
+/** A month is a vacation month when at least this share of its days are break days. */
+var VACATION_MONTH_THRESHOLD = 0.5;
+
+/** Default loan term (months). */
+var DEFAULT_LOAN_TERM = 36;
+
+/** Net-margin status bands for KPI tiles. */
+var MARGIN_HEALTHY = 0.12;
+var MARGIN_WATCH = 0.05;
+
+/** Profit buckets (planning — not tax advice). */
 var PROFIT_BUCKET = {
   taxRate: 0.10,
   maintRate: 0.05,
-  /** Monsoon share taken from cash after loans (and loss carry). */
-  shareRate: 0.15,
+  /** Vacation bucket: overhead × vacationMonths ÷ semesterAccrualMonths. */
   vacationMonths: 2.5,
-  /** Working months used to spread prior losses (skip vacation months). */
   semesterAccrualMonths: 3.5
 };
 
@@ -52,8 +76,8 @@ var ASSET_ROW_CAT = {
 var ASSET_ROW_CAT_ORDER = ["opening", "equipment", "contractor", "deposit", "cashfloat"];
 
 var SETUP_LOAN_DEFAULTS = [
-  { name: "Loan A", principal: 15421430, annualRate: 3, termMonths: 36, termNote: "assumed term" },
-  { name: "Loan B", principal: 20000000, annualRate: 15, termMonths: 36, termNote: "assumed term" }
+  { name: "Loan A", principal: 15421430, annualRate: 3, termMonths: DEFAULT_LOAN_TERM, startMonth: OPENING_DATE.slice(0, 7), termNote: "assumed term" },
+  { name: "Loan B", principal: 20000000, annualRate: 15, termMonths: DEFAULT_LOAN_TERM, startMonth: OPENING_DATE.slice(0, 7), termNote: "assumed term" }
 ];
 var SETUP_FUNDING_DEFAULT = { totalInvestedRecord: 53718450 };
 var SETUP_PLAN_DEFAULT = {
@@ -73,13 +97,10 @@ var DEFAULT_OVERHEAD_FIXED = [
   { name: "Electricity (2nd floor)", amount: 1000000 }
 ];
 
-/** P&amp;L depreciation for setup / equipment — always 3 years (not inventory). */
-var PL_SETUP_DEPRECIATION_MONTHS = 36;
 
 function defaultAssetLife(cat){
-  if (cat === "gas") return 60;
-  if (cat === "utensil") return 24;
-  if (cat === "setup") return 36;
+  if (cat === "utensil") return UTENSIL_DEFAULT_LIFE;
+  if (cat === "setup" || cat === "gas") return SETUP_LIFE_MONTHS;
   return 0;
 }
 

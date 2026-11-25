@@ -79,6 +79,7 @@ function dayRowHtml(day, isWeekendAuto){
     '<td class="tnum calc" data-calc="laborPct">0.0%</td>'+
     '<td class="tnum calc" data-calc="overhead">₩0</td>'+
     '<td class="tnum calc" data-calc="overheadPct">0.0%</td>'+
+    '<td class="tnum calc" data-calc="depInt">₩0</td>'+
     '<td class="tnum calc" data-calc="grossProfit">₩0</td>'+
     '<td class="tnum calc" data-calc="netProfit">₩0</td>'+
     '<td class="tnum calc" data-calc="netMarginPct">0.0%</td>'+
@@ -99,7 +100,7 @@ function renderDailyTab(){
   host.innerHTML =
     '<section class="card">'+
       '<h2>Daily — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' ('+dayNums.length+' days)</h2>'+
-      '<p class="lede">Enter <b>POS sales</b> (VAT included) on each day. P&amp;L uses net sales after '+pct(SALES_VAT_RATE, 1)+' VAT. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
+      '<p class="lede">Enter <b>POS sales</b> (VAT included) on each day. P&amp;L uses net sales after VAT'+infoTip("vat")+'. <b>COGS</b> comes from Raw Materials. <b>Labor</b> and <b>overhead bills</b> come from the Labor tab.</p>'+
       vacationScheduleHtml()+
       '<div class="legend">'+
         '<span class="item"><span class="dot" style="background:var(--surface);border:1px solid var(--hairline-strong)"></span>Weekday</span>'+
@@ -107,7 +108,7 @@ function renderDailyTab(){
         '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-closed)"></span>Closed</span>'+
       '</div>'+
-      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Depr. + interest'+infoTip("depreciation")+'</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total (POS)</td>'+
         '<td class="tnum" data-foot="salesGross">₩0</td>'+
@@ -117,12 +118,13 @@ function renderDailyTab(){
         '<td class="tnum" data-foot="laborPct">0.0%</td>'+
         '<td class="tnum" data-foot="overhead">₩0</td>'+
         '<td class="tnum" data-foot="overheadPct">0.0%</td>'+
+        '<td class="tnum" data-foot="depInt">₩0</td>'+
         '<td class="tnum" data-foot="grossProfit">₩0</td>'+
         '<td class="tnum" data-foot="netProfit">₩0</td>'+
         '<td class="tnum" data-foot="netMarginPct">0.0%</td></tr>'+
-      '<tr class="vat-foot"><td colspan="3">Net after VAT ('+pct(SALES_VAT_RATE, 1)+')</td>'+
+      '<tr class="vat-foot"><td colspan="3">Net after '+labelTip("vat")+'</td>'+
         '<td class="tnum" data-foot="sales">₩0</td>'+
-        '<td colspan="9"></td></tr></tfoot>'+
+        '<td colspan="10"></td></tr></tfoot>'+
       '</table></div>'+
       '<div id="daily-break-even"></div>'+
       '<p class="note">Each row lists <b>Weekday</b> or <b>Weekend</b> (from the date), plus <b>Vacation</b> and <b>Closed</b>. Uni breaks auto-select Vacation unless you pick Weekday/Weekend (panel above).</p>'+
@@ -143,6 +145,7 @@ function refreshDailyComputedCells(model){
     tr.querySelector('[data-calc="laborPct"]').textContent = pct(d.laborPct);
     tr.querySelector('[data-calc="overhead"]').textContent = won(d.overhead);
     tr.querySelector('[data-calc="overheadPct"]').textContent = pct(d.overheadPct);
+    tr.querySelector('[data-calc="depInt"]').textContent = won(d.depreciation + d.interest);
     tr.querySelector('[data-calc="grossProfit"]').textContent = won(d.grossProfit);
     var np = tr.querySelector('[data-calc="netProfit"]');
     np.textContent = signedWon(d.netProfit);
@@ -171,8 +174,9 @@ function refreshDailyComputedCells(model){
   foot("laborPct", pct(m.laborPct));
   foot("overhead", won(m.overhead));
   foot("overheadPct", pct(m.overheadPct));
+  foot("depInt", won(m.depreciation + m.interest));
   foot("grossProfit", won(m.grossProfit));
-  foot("netProfit", won(m.netProfit));
+  foot("netProfit", signedWon(m.netProfit));
   foot("netMarginPct", pct(m.netMarginPct));
   var beHost = root.querySelector("#daily-break-even");
   if (beHost) beHost.innerHTML = breakEvenHtml(model.breakEven);

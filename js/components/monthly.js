@@ -2,59 +2,36 @@
  * components/monthly.js — Monthly Calculation tab: the consolidated month
  * that feeds the Main Dashboard, with tie-out checks against Daily/Weekly.
  *
- * Depends on: dom-utils.js (el), format.js, data.js (MONTH_NAMES),
+ * Depends on: dom-utils.js (el), format.js, copy.js, data.js (MONTH_NAMES),
  * state.js (STATE).
  */
 
 function renderMonthlyTab(model){
   var m = model.monthly;
-  var sumOfDays = model.daily.reduce(function(a,d){ return a+d.sales; }, 0);
-  var sumOfWeeks = model.weekly.reduce(function(a,w){ return a+w.sales; }, 0);
-  var tie1 = Math.round(sumOfDays) === Math.round(m.sales);
-  var tie2 = Math.round(sumOfWeeks) === Math.round(m.sales);
-
-  function row(label, val, isPct, big){
-    return '<div class="formula" style="'+(big?"background:var(--accent-soft)":"")+'"><dt>'+label+'</dt><dd class="tnum" style="font-size:'+(big?"16px":"13px")+';color:var(--ink)">'+(isPct?pct(val):won(val))+'</dd></div>';
-  }
-  function rowLess(label, val){
-    return '<div class="formula"><dt>'+label+'</dt><dd class="tnum" style="font-size:13px;color:var(--ember)">'+signedWon(-Math.abs(val))+'</dd></div>';
-  }
-
+  var t = model.tieOut;
   var host = el("calc-monthly");
   if (!host) return;
   host.innerHTML =
     '<section class="card">'+
       '<h2>Monthly — '+MONTH_NAMES[STATE.month-1]+" "+STATE.year+'</h2>'+
-      '<p class="lede">Daily sales are POS totals (VAT included). Net sales subtract VAT at '+pct(SALES_VAT_RATE, 1)+' of gross. COGS is this month\'s Raw Materials total. These figures power the Main Dashboard.</p>'+
+      '<p class="lede">The consolidated month. Every figure on the Dashboard comes from here.</p>'+
       '<div class="formula-list">'+
-        row("Total Sales (POS, incl. VAT)", m.salesGross)+
-        rowLess("Less VAT ("+pct(SALES_VAT_RATE, 1)+" of total sales)", m.vat)+
-        row("Net Sales (after VAT)", m.sales)+
-        row("COGS amount", m.cogsAmt)+
-        row("COGS %", m.cogsPct, true)+
-        row("Gross Profit", m.grossProfit)+
-        row("Gross Margin %", m.grossMarginPct, true)+
-        row("Labor Cost", m.labor)+
-        row("Labor Cost %", m.laborPct, true)+
-        row("Overhead", m.overhead)+
-        row("Overhead %", m.overheadPct, true)+
-        rowLess("Depreciation (setup ÷ 36 + utensils)", m.depreciation || 0)+
-        row("Depreciation %", m.depreciationPct || 0, true)+
-        row("Net Profit", m.netProfit, false, true)+
-        row("Net Margin %", m.netMarginPct, true, true)+
+        formulaRow("Total sales (POS, incl. VAT)", m.salesGross)+
+        formulaRow("− "+labelTip("vat"), m.vat, { less: true })+
+        formulaRow(LABEL.netSales, m.sales)+
+        formulaRow("− "+labelTip("cogs"), m.cogsAmt, { less: true, note: pct(m.cogsPct)+" of net sales" })+
+        formulaRow(LABEL.grossProfit, m.grossProfit, { signed: true, note: pct(m.grossMarginPct)+" margin" })+
+        formulaRow("− "+LABEL.labor, m.labor, { less: true, note: pct(m.laborPct) })+
+        formulaRow("− "+LABEL.overhead, m.overhead, { less: true, note: pct(m.overheadPct) })+
+        formulaRow("− "+labelTip("depreciation"), m.depreciation, { less: true, note: pct(m.depreciationPct) })+
+        formulaRow("− "+labelTip("loanInterest"), m.interest, { less: true, note: pct(m.interestPct) })+
+        formulaRow(LABEL.netProfit, m.netProfit, { signed: true, big: true, note: pct(m.netMarginPct)+" margin" })+
       '</div>'+
-      (function(){
-        var d = model.depreciation || {};
-        if (!(d.monthly > 0)) return '';
-        return '<p class="note">Depreciation in P&amp;L: setup/equipment '+won(d.setup||0)+
-          ' (invested '+won(d.setupInvested||0)+' ÷ '+(d.setupLifeMonths||36)+' mo) + utensils '+won(d.utensil||0)+
-          '. <b>Inventory is not depreciated</b> in P&amp;L.</p>';
-      })()+
       breakEvenHtml(model.breakEven)+
-      monthlyCashAfterLoansHtml(model.cashView)+
-      '<div class="tie-out"><span class="check">'+(tie1?"✓":"!")+'</span> Matches sum of daily rows ('+won(sumOfDays)+').</div>'+
-      '<div class="tie-out"><span class="check">'+(tie2?"✓":"!")+'</span> Matches sum of weekly rows ('+won(sumOfWeeks)+').</div>'+
-      '<p class="note">→ These figures feed the Main Dashboard tiles and charts directly — nothing on that tab is entered separately.</p>'+
+      '<h3 class="labor-subhead">Cash after loans &amp; monsoon</h3>'+
+      cashStepsHtml(model.cashView)+
+      '<div class="tie-out"><span class="check">'+(t.daysOk?"✓":"!")+'</span> Matches sum of daily rows ('+won(t.sumOfDays)+').</div>'+
+      '<div class="tie-out"><span class="check">'+(t.weeksOk?"✓":"!")+'</span> Matches sum of weekly rows ('+won(t.sumOfWeeks)+').</div>'+
     '</section>'+
     profitAllocationHtml(model.profitAllocation);
 }

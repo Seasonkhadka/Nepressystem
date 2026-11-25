@@ -232,6 +232,7 @@ function initAssetEvents(){
       if (!loan) return;
       var lf = t.getAttribute("data-loan-field");
       if (lf === "name") loan[lf] = t.value;
+      else if (lf === "startMonth") loan[lf] = normalizeLoanStartMonth(t.value);
       else loan[lf] = parseFloat(t.value) || 0;
       refreshDerived();
       if (e.type === "change") renderAssetsTab();

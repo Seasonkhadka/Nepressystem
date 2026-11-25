@@ -410,3 +410,7 @@
   .tie-out .check{ width:20px; height:20px; border-radius:50%; background:var(--good); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:12px; flex:none; }
 
   footer.meta{ text-align:center; color:var(--muted); font-size:12px; margin-top:26px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+
+/* ⓘ tooltip (labels from copy.js) */
+.info-tip{ display:inline-block; margin-left:3px; font-size:0.85em; font-weight:400; color:var(--muted); cursor:help; vertical-align:baseline; }
+.info-tip:hover, .info-tip:focus{ color:var(--ink); outline:none; }

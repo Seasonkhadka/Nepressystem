@@ -2,43 +2,25 @@
  * components/dashboard.js — Main Dashboard tab: KPI tiles, traffic-comparison
  * charts, and the raw-material cross-check.
  *
- * Depends on: dom-utils.js (el), format.js, charts.js, data.js (MONTH_NAMES),
+ * Depends on: dom-utils.js (el), format.js (kpiTile, cashStepsHtml), copy.js, charts.js, data.js (MONTH_NAMES),
  * state.js (STATE).
  */
-
-function kpiTile(eyebrow, value, sub, status){
-  var statusHtml = status ? '<div class="status"><span class="status-dot" style="background:'+status.color+'"></span>'+status.label+'</div>' : "";
-  return '<div class="kpi"><div class="eyebrow">'+eyebrow+'</div><div class="value tnum">'+value+'</div><div class="sub tnum">'+sub+'</div>'+statusHtml+'</div>';
-}
 
 function renderDashboard(model){
   var m = model.monthly;
   var hasSales = m.sales > 0;
   var netStatus = marginStatus(m.netMarginPct, hasSales);
-  var cv = model.cashView || { cashAfterLoans: m.netProfit, leftAfterMonsoon: m.netProfit, monsoonShare: 0, lossCarryCharge: 0 };
-  var leftCash = cv.leftAfterMonsoon != null ? cv.leftAfterMonsoon : cv.cashAfterLoans;
-  var cashStatus = marginStatus(safeDiv(leftCash, m.sales), hasSales);
-  var monsoonSub = (cv.monsoonShare || 0) > 0
-    ? "15% of cash after loans"
-    : "₩0 while cash after loans ≤ 0";
-  var leftSub = (cv.monsoonShare || 0) > 0
-    ? "cash after loans − monsoon"
-    : "same as cash after loans (no monsoon taken)";
-  var lossSub = (cv.isVacationMonth || (cv.lossCarry && cv.lossCarry.skippedVacation))
-    ? "vacation month — recovery ₩0"
-    : (cv.lossCarryCharge ? "semester catch-up — not monsoon" : "no prior deficit");
+  var cv = model.cashView;
   var kpis = [
-    kpiTile("Total Sales", won(m.salesGross), (hasSales ? "Less VAT "+signedWon(-m.vat)+" → net "+won(m.sales) : MONTH_NAMES[STATE.month-1]+" "+STATE.year)),
-    kpiTile("COGS", won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of sales" : "from Raw Materials")),
-    kpiTile("Gross Profit", won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
-    kpiTile("Labor Cost %", pct(m.laborPct), won(m.labor)+" from Labor tab"),
-    kpiTile("Overhead %", pct(m.overheadPct), "fixed + not-fixed bills"),
-    kpiTile("Depreciation", won(m.depreciation || 0), "setup ÷ 36 + utensils (not inventory)"),
-    kpiTile("Net Profit", signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
-    kpiTile("Cash after loans", signedWon(cv.cashAfterLoans), "net profit − loan payment"),
-    kpiTile("Monsoon share 15%", won(cv.monsoonShare || 0), monsoonSub),
-    kpiTile("Left after monsoon", signedWon(leftCash), leftSub, cashStatus),
-    kpiTile("Prior-loss recovery", won(cv.lossCarryCharge || 0), lossSub)
+    kpiTile("Total sales (POS)", won(m.salesGross), (hasSales ? "− "+LABEL.vat+" "+won(m.vat)+" → "+LABEL.netSales.toLowerCase()+" "+won(m.sales) : MONTH_NAMES[STATE.month-1]+" "+STATE.year)),
+    kpiTile(LABEL.cogs, won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of net sales" : "from Raw Materials")),
+    kpiTile(LABEL.grossProfit, won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
+    kpiTile(LABEL.labor, won(m.labor), pct(m.laborPct)+" of net sales"),
+    kpiTile(LABEL.overhead, won(m.overhead), pct(m.overheadPct)+" of net sales"),
+    kpiTile(labelTip("depreciation"), won(m.depreciation), pct(m.depreciationPct)+" of net sales"),
+    kpiTile(labelTip("loanInterest"), won(m.interest), pct(m.interestPct)+" of net sales"),
+    kpiTile(LABEL.netProfit, signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
+    kpiTile(labelTip("cashAfterLoans"), signedWon(cv.cashAfterLoans), "details below", marginStatus(safeDiv(cv.leftAfterMonsoon, m.sales), hasSales))
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});
@@ -75,32 +57,29 @@ function renderDashboard(model){
       ? "COGS is this month's Raw Materials (meat, kitchen, outside, drinks, vegetables, no-bill). Days with more sales take a larger share. Add daily sales on P&amp;L to see the %."
       : "Add purchases in Raw Materials — that total becomes P&amp;L COGS for the month.")+'</p>';
 
-  var g = model.assetGrand || { invested:0, monthly:0 };
-  var dep = model.depreciation || { monthly:0, setup:0, utensil:0, setupLifeMonths:36 };
+  var g = model.assetGrand || { invested:0 };
+  var dep = model.depreciation;
   var capitalHtml = "";
   if (g.invested > 0){
     var capRows = (model.assetCats || []).map(function(c){
-      var plNote = c.cat === "inventory" ? " — not in P&amp;L" : (c.cat === "setup" || c.cat === "utensil" ? " — in P&amp;L dep." : "");
-      return '<tr><td><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+plNote+'</td>'+
+      return '<tr><td><span class="cat-chip" style="background:'+c.color+'"></span>'+c.label+'</td>'+
         '<td class="tnum">'+won(c.invested)+'</td>'+
-        '<td class="tnum">'+won(c.monthly)+'</td></tr>';
+        '<td class="tnum">'+(c.monthly ? won(c.monthly) : "—")+'</td></tr>';
     }).join("");
     capitalHtml =
       '<section class="card">'+
         '<h2>Setup &amp; assets</h2>'+
-        '<p class="lede">Long-term money already spent. <b>P&amp;L depreciation</b> uses setup/equipment ÷ '+(dep.setupLifeMonths||36)+
-          ' months + utensils ÷ life. <b>Inventory is not depreciated</b> in P&amp;L (capital only).</p>'+
         '<div class="kpi-grid">'+
           kpiTile("Total invested", won(g.invested), "inventory, setup, utensils")+
-          kpiTile("P&amp;L depreciation / mo", won(dep.monthly||0), "setup "+won(dep.setup||0)+" + utensils "+won(dep.utensil||0))+
-          kpiTile("Memo spread (item lives)", won(g.monthly), "reference only — may differ from P&amp;L")+
+          kpiTile(labelTip("depreciation")+" this month", won(dep.monthly), "setup "+won(dep.setup)+" + utensils "+won(dep.utensil))+
         '</div>'+
-        '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Invested</th><th>Memo ₩ / month</th></tr></thead><tbody>'+capRows+'</tbody></table></div>'+
+        '<div class="table-wrap"><table class="asset-summary"><thead><tr><th>Category</th><th>Invested</th><th>'+LABEL.depreciation+' / mo</th></tr></thead><tbody>'+capRows+'</tbody></table></div>'+
       '</section>';
   }
 
   el("tab-dashboard").innerHTML =
-    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div>'+cashRulesGuideHtml(cv)+'</section>'+
+    '<section class="card"><h2>Month at a glance</h2><p class="lede">'+MONTH_NAMES[STATE.month-1]+" "+STATE.year+' — computed live from what you\'ve entered so far. Overhead is rent and fees, not staff pay. Wages go on the Labor tab.</p><div class="kpi-grid">'+kpis+'</div></section>'+
+    '<section class="card"><h2>Cash after loans &amp; monsoon</h2>'+cashGuideHtml(cv)+cashStepsHtml(cv)+'</section>'+
     '<section class="card grid-2">'+
       '<div><h2 style="font-size:16px">Average daily sales by traffic type</h2>'+salesChart+'</div>'+
       '<div><h2 style="font-size:16px">Cost ratios &amp; net margin by traffic type</h2>'+pctChart+'</div>'+

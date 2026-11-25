@@ -11,7 +11,7 @@
  *   { id, date, place, note, amount }  — you type the line total yourself.
  * Long-term assets (inventory, setup, utensils):
  *   { id, cat, rowCat, included, date, name, qty, unitPrice, amount, lifeMonths, note }
- * setupLoans: [{ id, name, principal, annualRate, termMonths, termNote }]
+ * setupLoans: [{ id, name, principal, annualRate, termMonths, startMonth ("YYYY-MM"), termNote }]
  * setupFunding: { totalInvestedRecord }
  * setupPlan: { monthlySales, ingPctOfSales, rent, staff, utilities, otherFixed }
  * Labor shifts (variable, by day):
@@ -181,9 +181,7 @@ function inferAssetRowCategory(name, sectionCat){
 }
 
 function defaultSpreadLife(sectionCat, rowCat){
-  if (rowCat === "contractor") return 36;
-  if (sectionCat === "utensil") return 24;
-  return 36;
+  return defaultAssetLife(sectionCat === "utensil" ? "utensil" : "setup");
 }
 
 function autoTuneAsset(a){
@@ -239,6 +237,13 @@ function compactAssets(list){
   return kept;
 }
 
+/** "YYYY-MM" for a loan's first payment month; defaults to the opening month. */
+function normalizeLoanStartMonth(v){
+  var m = /^(\d{4})-(\d{1,2})/.exec(String(v || ""));
+  if (!m) return OPENING_DATE.slice(0, 7);
+  return m[1] + "-" + pad2(Number(m[2]));
+}
+
 function blankSetupLoan(seed){
   seed = seed || {};
   return {
@@ -246,7 +251,8 @@ function blankSetupLoan(seed){
     name: seed.name || "Loan",
     principal: Number(seed.principal) || 0,
     annualRate: Number(seed.annualRate) || 0,
-    termMonths: Number(seed.termMonths) || 36,
+    termMonths: Number(seed.termMonths) || DEFAULT_LOAN_TERM,
+    startMonth: normalizeLoanStartMonth(seed.startMonth),
     termNote: seed.termNote || "assumed term"
   };
 }
@@ -263,7 +269,9 @@ function migrateSetupLoans(list){
       name: l.name || "Loan",
       principal: Number(l.principal) || 0,
       annualRate: Number(l.annualRate) || 0,
-      termMonths: Number(l.termMonths) || 36,
+      termMonths: Number(l.termMonths) || DEFAULT_LOAN_TERM,
+      /* Migration (v67): loans saved before startMonth existed start at the opening month. */
+      startMonth: normalizeLoanStartMonth(l.startMonth),
       termNote: l.termNote || "assumed term"
     };
   });

@@ -49,6 +49,13 @@ try {
     refreshDerived();
   } catch (e2){
     console.error(e2);
+    var dash = el("tab-dashboard");
+    if (dash){
+      dash.hidden = false;
+      dash.innerHTML = '<section class="card"><h2>Couldn’t finish loading</h2>'+
+        '<p class="lede">Your saved numbers are still on this device (and in Google if you signed in). Try a hard refresh. Do <b>not</b> press Clear all data.</p>'+
+        '<p class="note">'+(e2 && e2.message ? String(e2.message) : "Unknown error")+'</p></section>';
+    }
   }
 }
 initRawEvents();

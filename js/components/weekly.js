@@ -16,22 +16,22 @@ function renderWeeklyTab(model){
       '<td class="tnum">'+pct(w.laborPct)+'</td>'+
       '<td class="tnum">'+won(w.overhead)+'</td>'+
       '<td class="tnum">'+pct(w.overheadPct)+'</td>'+
+      '<td class="tnum">'+won(w.depreciation + w.interest)+'</td>'+
       '<td class="tnum">'+won(w.grossProfit)+'</td>'+
       '<td class="tnum" style="font-weight:700">'+signedWon(w.netProfit)+'</td>'+
       '<td class="tnum">'+(w.count ? signedPct(w.netMarginPct) : "—")+'</td></tr>';
   }).join("");
 
   var m = model.monthly;
-  var sumOfWeeks = model.weekly.reduce(function(a,w){ return a+w.sales; }, 0);
-  var tie = Math.round(sumOfWeeks) === Math.round(m.sales);
+  var t = model.tieOut;
 
   var host = el("calc-weekly");
   if (!host) return;
   host.innerHTML =
     '<section class="card">'+
       '<h2>Weekly — '+model.weekly.length+' weeks</h2>'+
-      '<p class="lede">Auto-totaled from the daily rows above (net sales after '+pct(SALES_VAT_RATE, 1)+' VAT). Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
-      '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Net Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<p class="lede">Auto-totaled from the daily rows above (net sales after VAT'+infoTip("vat")+'). Weeks run Monday–Sunday, with a shorter week at the start or end of the month where the calendar doesn\'t divide evenly.</p>'+
+      '<div class="table-wrap"><table><thead><tr><th>Week</th><th>Dates</th><th>Wkday/Wknd/Vac.</th><th>Net Sales</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Depr. + interest'+infoTip("depreciation")+'</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody>'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total</td>'+
         '<td class="tnum">'+won(m.sales)+'</td>'+
@@ -41,10 +41,11 @@ function renderWeeklyTab(model){
         '<td class="tnum">'+pct(m.laborPct)+'</td>'+
         '<td class="tnum">'+won(m.overhead)+'</td>'+
         '<td class="tnum">'+pct(m.overheadPct)+'</td>'+
+        '<td class="tnum">'+won(m.depreciation + m.interest)+'</td>'+
         '<td class="tnum">'+won(m.grossProfit)+'</td>'+
-        '<td class="tnum">'+won(m.netProfit)+'</td>'+
+        '<td class="tnum">'+signedWon(m.netProfit)+'</td>'+
         '<td class="tnum">'+pct(m.netMarginPct)+'</td></tr></tfoot>'+
       '</table></div>'+
-      '<div class="tie-out"><span class="check">'+(tie?"✓":"!")+'</span> Sum of weekly totals = '+won(sumOfWeeks)+' — ties out to the daily total.</div>'+
+      '<div class="tie-out"><span class="check">'+(t.weeksOk?"✓":"!")+'</span> Sum of weekly totals = '+won(t.sumOfWeeks)+' — ties out to the daily total.</div>'+
     '</section>';
 }
