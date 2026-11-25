@@ -16,11 +16,10 @@ function renderDashboard(model){
     kpiTile(LABEL.cogs, won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of net sales" : "from Raw Materials")),
     kpiTile(LABEL.grossProfit, won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
     kpiTile(LABEL.labor, won(m.labor), pct(m.laborPct)+" of net sales"),
-    kpiTile(LABEL.overhead, won(m.overhead), pct(m.overheadPct)+" of net sales"),
+    kpiTile(LABEL.overhead, won(m.overhead + m.interest), pct(safeDiv(m.overhead + m.interest, m.sales))+" of net sales · incl. "+LABEL.loanInterest.toLowerCase()+" "+won(m.interest)),
     kpiTile(labelTip("depreciation"), won(m.depreciation), pct(m.depreciationPct)+" of net sales"),
-    kpiTile(labelTip("loanInterest"), won(m.interest), pct(m.interestPct)+" of net sales"),
     kpiTile(LABEL.netProfit, signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
-    kpiTile(labelTip("cashAfterLoans"), signedWon(cv.cashAfterLoans), "details below", marginStatus(safeDiv(cv.leftAfterMonsoon, m.sales), hasSales))
+    kpiTile(labelTip("monsoon"), won(cv.monsoonShare), pct(MONSOON_RATE, 0)+" of "+LABEL.cashAfterLoans.toLowerCase()+" "+signedWon(cv.cashAfterLoans))
   ].join("");
 
   var salesChart = axisWonChart(model.tagGroups.map(function(t){ return {label:t.label, value:t.avgSales, color:t.color}; }), {aria:"Average daily sales by traffic type", step:500000});

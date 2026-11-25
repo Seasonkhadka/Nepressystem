@@ -4,7 +4,7 @@ Static web app for a Korea-based restaurant: track daily POS sales, raw material
 
 **Live:** [https://seasonkhadka.github.io/Nepressystem/](https://seasonkhadka.github.io/Nepressystem/)
 
-After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=67`) if the UI looks stale.
+After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=70`) if the UI looks stale.
 
 ---
 
@@ -33,7 +33,7 @@ All numbers below live in **`js/data.js`** (single source). All math lives in **
 | `VAT_RATE` | 10/110 (≈ 9.09%) | VAT share of POS sales |
 | `SETUP_LIFE_MONTHS` | 36 | Setup / equipment depreciation life |
 | `UTENSIL_DEFAULT_LIFE` | 24 | Utensil life when a row has none |
-| `MONSOON_RATE` | 15% | Monsoon reserve |
+| `MONSOON_RATE` | 10% | Monsoon reserve |
 | `RECOVERY_MONTHS` | 3.5 | Prior-loss recovery divisor |
 
 ### Sales &amp; VAT
@@ -71,7 +71,7 @@ Net sales − COGS − Labor − Overhead − Depreciation − Loan interest = N
 
 ### Cash after loans, monsoon, recovery
 1. **Cash after loans** = net profit **+ depreciation** (non-cash) **− loan principal**  
-2. **Monsoon reserve** = 15% of cash after loans, only if positive (else ₩0)  
+2. **Monsoon reserve** = 10% of cash after loans, only if positive (else ₩0)  
 3. **Left after monsoon** = cash after loans − monsoon reserve  
 4. **Prior-loss recovery** = carried loss ÷ 3.5 in **working months after opening**  
    - **₩0 in Sep 2026 (opening month)**, before opening, and in vacation months  

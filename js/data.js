@@ -22,7 +22,7 @@ var SETUP_LIFE_MONTHS = 36;
 var UTENSIL_DEFAULT_LIFE = 24;
 
 /** Monsoon reserve = this share of positive cash after loans. */
-var MONSOON_RATE = 0.15;
+var MONSOON_RATE = 0.10;
 
 /** Prior-loss recovery: carried cash loss ÷ this many months, working months only. */
 var RECOVERY_MONTHS = 3.5;
