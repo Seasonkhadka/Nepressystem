@@ -16,7 +16,7 @@ function renderDashboard(model){
     kpiTile(LABEL.cogs, won(m.cogsAmt), (hasSales ? pct(m.cogsPct)+" of net sales" : "from Raw Materials")),
     kpiTile(LABEL.grossProfit, won(m.grossProfit), pct(m.grossMarginPct)+" margin"),
     kpiTile(LABEL.labor, won(m.labor), pct(m.laborPct)+" of net sales"),
-    kpiTile(LABEL.overhead, won(m.overhead + m.interest), pct(safeDiv(m.overhead + m.interest, m.sales))+" of net sales · incl. "+LABEL.loanInterest.toLowerCase()+" "+won(m.interest)),
+    kpiTile(LABEL.overhead, won(m.overhead), pct(m.overheadPct)+" of net sales"),
     kpiTile(labelTip("depreciation"), won(m.depreciation), pct(m.depreciationPct)+" of net sales"),
     kpiTile(LABEL.netProfit, signedWon(m.netProfit), pct(m.netMarginPct)+" margin", netStatus),
     kpiTile(labelTip("recovery"), cv.recovery > 0 ? signedWon(-cv.recovery) : won(0), recoverySub(cv)),

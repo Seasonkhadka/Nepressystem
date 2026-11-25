@@ -16,14 +16,13 @@ function computeBreakEvenSales(pl){
     cogs: Math.max(0, pl.materials),
     labor: Math.max(0, pl.labor.monthly),
     overhead: Math.max(0, pl.overheadPool),
-    depreciation: Math.max(0, pl.depreciation.monthly),
-    interest: Math.max(0, pl.loan.interest)
+    depreciation: Math.max(0, pl.depreciation.monthly)
   };
-  var fixed = parts.cogs + parts.labor + parts.overhead + parts.depreciation + parts.interest;
+  var fixed = parts.cogs + parts.labor + parts.overhead + parts.depreciation;
   var od = Math.max(1, pl.spreadDays);
   var cur = Number(pl.monthly.salesGross) || 0;
   var out = { fixedCosts: fixed, openDays: od, marginOnGross: margin, currentGross: cur,
-    cogs: parts.cogs, labor: parts.labor, overhead: parts.overhead, depreciation: parts.depreciation, interest: parts.interest };
+    cogs: parts.cogs, labor: parts.labor, overhead: parts.overhead, depreciation: parts.depreciation };
   if (margin <= 0.001){ out.monthGross = null; return out; }
   out.monthGross = fixed / margin;
   out.perOpenDayGross = out.monthGross / od;
@@ -205,7 +204,7 @@ function overheadBillsForMonth(year, month){
  * THE month P&L. Used for the month on screen (computeAll) and for every past
  * month (prior-loss recovery), so both always agree.
  *
- * Fixed costs (labor ledger, fixed overhead, depreciation, loan interest) are spread
+ * Fixed costs (labor ledger, fixed overhead, depreciation) are spread
  * over open days; if the shop has no open day that month, over every day.
  */
 function computeMonthPL(year, month){
@@ -237,7 +236,6 @@ function computeMonthPL(year, month){
   var salaryPerDay = perDay(lab.salary), shiftPerDay = perDay(lab.shift);
   var overheadPerDay = perDay(overheadPool);
   var depPerDay = perDay(dep.monthly);
-  var interestPerDay = perDay(loan.interest);
 
   var daily = dayNums.map(function(day){
     var raw = days[day] || {};
@@ -258,8 +256,7 @@ function computeMonthPL(year, month){
     var grossProfit = sales - cogsAmt;
     var overhead = carries ? (overheadPerDay + salesGross * varRate) : 0;
     var depreciation = carries ? depPerDay : 0;
-    var interest = carries ? interestPerDay : 0;
-    var netProfit = grossProfit - labor - overhead - depreciation - interest;
+    var netProfit = grossProfit - labor - overhead - depreciation;
     return {
       day: day, dow: DOW_NAMES[dowOf(year, month, day)], isWeekendAuto: isWeekendAuto, vacation: plClosed, tag: tag,
       salesGross: salesGross, vat: vat, sales: sales, cogsPct: safeDiv(cogsAmt, sales), cogsAmt: cogsAmt,
@@ -267,7 +264,6 @@ function computeMonthPL(year, month){
       labor: labor, laborPct: safeDiv(labor, sales),
       overhead: overhead, overheadPct: safeDiv(overhead, sales),
       depreciation: depreciation, depreciationPct: safeDiv(depreciation, sales),
-      interest: interest, interestPct: safeDiv(interest, sales),
       netProfit: netProfit, netMarginPct: safeDiv(netProfit, sales)
     };
   });
@@ -299,12 +295,12 @@ function computeMonthPL(year, month){
 }
 
 /**
- * Cash after loans = net profit + depreciation (non-cash) − loan principal.
- * Loan interest is already a P&L expense inside net profit.
+ * Cash after loans = net profit + depreciation (non-cash) − loan payment.
+ * Loan payment = the WHOLE monthly installment (interest + principal); loans are not in net profit.
  * The rest of the money path (recovery → monsoon → buckets) is in computeAll().cashView.
  */
 function monthCashSteps(pl){
-  return { cashAfterLoans: pl.monthly.netProfit + pl.monthly.depreciation - pl.loan.principal };
+  return { cashAfterLoans: pl.monthly.netProfit + pl.monthly.depreciation - pl.loan.payment };
 }
 
 /** Month keys (YYYY-MM) with any data, from OPENING_DATE up to the view month. */
@@ -416,12 +412,11 @@ function buildWeeks(dayNums){
 }
 
 function sumDays(days){
-  var t = { salesGross:0, vat:0, sales:0, cogsAmt:0, labor:0, overhead:0, depreciation:0, interest:0, grossProfit:0, netProfit:0, count:days.length };
+  var t = { salesGross:0, vat:0, sales:0, cogsAmt:0, labor:0, overhead:0, depreciation:0, grossProfit:0, netProfit:0, count:days.length };
   days.forEach(function(d){
     t.salesGross += d.salesGross; t.vat += d.vat; t.sales += d.sales;
     t.cogsAmt += d.cogsAmt; t.labor += d.labor; t.overhead += d.overhead;
     t.depreciation += Number(d.depreciation) || 0;
-    t.interest += Number(d.interest) || 0;
     t.grossProfit += d.grossProfit; t.netProfit += d.netProfit;
   });
   t.cogsPct = safeDiv(t.cogsAmt, t.sales);
@@ -429,7 +424,6 @@ function sumDays(days){
   t.laborPct = safeDiv(t.labor, t.sales);
   t.overheadPct = safeDiv(t.overhead, t.sales);
   t.depreciationPct = safeDiv(t.depreciation, t.sales);
-  t.interestPct = safeDiv(t.interest, t.sales);
   t.netMarginPct = safeDiv(t.netProfit, t.sales);
   t.avgSales = t.count ? t.sales/t.count : 0;
   return t;
@@ -797,6 +791,7 @@ function computeAll(){
     depreciation: monthly.depreciation,
     loanInterest: pl.loan.interest,
     loanPrincipal: pl.loan.principal,
+    loanPayment: pl.loan.payment,
     loanMonth: pl.loan,
     cashAfterLoans: cash.cashAfterLoans,
     lossCarry: lossCarry,

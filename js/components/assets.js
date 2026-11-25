@@ -128,8 +128,8 @@ function setupSummaryHtml(s){
     '<p class="note '+reconClass+'" id="setup-recon">Check: included rows − records = <b class="tnum">'+wonParen(fund.reconDiff)+'</b> — '+reconText+'</p>'+
     '<h3 class="labor-subhead">This month in the P&amp;L and cash</h3>'+
     '<p class="note">'+labelTip("depreciation")+' (P&amp;L, non-cash): <b class="tnum" id="setup-dep-now">'+won(s.depreciationNow)+'</b></p>'+
-    '<p class="note">'+labelTip("loanInterest")+' (P&amp;L): <b class="tnum" id="setup-loan-int-now">'+won(lt.interestNow)+'</b>'+
-      ' · '+labelTip("loanPrincipal")+' (cash only): <b class="tnum" id="setup-loan-prin-now">'+won(lt.principalNow)+'</b></p>'+
+    '<p class="note">'+labelTip("loanInterest")+' (in loan payment): <b class="tnum" id="setup-loan-int-now">'+won(lt.interestNow)+'</b>'+
+      ' · '+labelTip("loanPrincipal")+' (in loan payment): <b class="tnum" id="setup-loan-prin-now">'+won(lt.principalNow)+'</b></p>'+
   '</section>';
 }
 

@@ -24,7 +24,6 @@ function renderMonthlyTab(model){
         formulaRow("− "+LABEL.labor, m.labor, { less: true, note: pct(m.laborPct) })+
         formulaRow("− "+LABEL.overhead, m.overhead, { less: true, note: pct(m.overheadPct) })+
         formulaRow("− "+labelTip("depreciation"), m.depreciation, { less: true, note: pct(m.depreciationPct) })+
-        formulaRow("− "+labelTip("loanInterest"), m.interest, { less: true, note: pct(m.interestPct) })+
         formulaRow(LABEL.netProfit, m.netProfit, { signed: true, big: true, note: pct(m.netMarginPct)+" margin" })+
       '</div>'+
       breakEvenHtml(model.breakEven)+

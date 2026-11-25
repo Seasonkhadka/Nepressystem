@@ -112,7 +112,7 @@ function cashStepsHtml(c){
   return '<div class="formula-list">'+
       formulaRow(LABEL.netProfit, c.netProfit, { signed: true, big: true })+
       formulaRow("+ "+labelTip("depreciation"), c.depreciation, { note: "not real cash out" })+
-      formulaRow("− "+labelTip("loanPrincipal"), c.loanPrincipal, { less: true })+
+      formulaRow("− "+labelTip("loanPayment"), c.loanPayment, { less: true, note: "interest "+won(c.loanInterest)+" + principal "+won(c.loanPrincipal) })+
       formulaRow("= "+labelTip("cashAfterLoans"), c.cashAfterLoans, { signed: true, big: true })+
       formulaRow("− "+labelTip("recovery"), c.recovery, { less: true, note: carryNote })+
       formulaRow("= "+LABEL.afterRecovery, c.afterRecovery, { signed: true, big: true })+
@@ -136,7 +136,6 @@ function breakEvenHtml(be){
   }
   var parts = [LABEL.cogs+' '+won(be.cogs), LABEL.labor.toLowerCase()+' '+won(be.labor), LABEL.overhead.toLowerCase()+' '+won(be.overhead)];
   if (be.depreciation) parts.push(LABEL.depreciation.toLowerCase()+' '+won(be.depreciation));
-  if (be.interest) parts.push(LABEL.loanInterest.toLowerCase()+' '+won(be.interest));
   var status = "";
   if (be.gapGross > 0){
     status = 'You are <b>'+won(be.gapGross)+'</b> below that on POS sales so far.';

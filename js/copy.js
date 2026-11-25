@@ -20,6 +20,7 @@ var LABEL = {
   depreciation: "Depreciation",
   loanInterest: "Loan interest",
   loanPrincipal: "Loan principal",
+  loanPayment: "Loan payment",
   netProfit: "Net profit",
   cashAfterLoans: "Cash after loans",
   monsoon: "Monsoon reserve",
@@ -38,14 +39,15 @@ var TIP = {
   vat: function(){ return "POS sales include VAT. VAT = " + pct(VAT_RATE, 2) + " of POS sales (10/110). Net sales = POS − VAT."; },
   cogs: function(){ return "This month's Raw Materials purchases, spread over days by sales."; },
   depreciation: function(){ return "Non-cash cost: setup ÷ " + SETUP_LIFE_MONTHS + " months + utensils ÷ their life, from the opening month. Inventory is not depreciated. Details on Setup & Assets."; },
-  loanInterest: function(){ return "Interest part of this month's loan payments (each loan's schedule from its start month). A P&L expense."; },
-  loanPrincipal: function(){ return "Principal part of this month's loan payments. Cash out, not an expense."; },
-  cashAfterLoans: function(){ return "Net profit + depreciation (non-cash) − loan principal."; },
+  loanInterest: function(){ return "Interest part of this month's loan payments (each loan's schedule from its start month). Paid inside the loan payment line, not in net profit."; },
+  loanPrincipal: function(){ return "Principal part of this month's loan payments. Paid inside the loan payment line."; },
+  loanPayment: function(){ return "The whole monthly installment of all loans (interest + principal), taken out after net profit."; },
+  cashAfterLoans: function(){ return "Net profit + depreciation (non-cash) − loan payment (interest + principal)."; },
   monsoon: function(){ return pct(MONSOON_RATE, 0) + " of what is left after prior-loss recovery, when positive; ₩0 otherwise."; },
   recovery: function(){ return "Carried cash loss from months after opening (" + OPENING_DATE.slice(0, 7) + "). Net profit this month → the whole carried loss is subtracted now; no net profit → ÷ " + monthsText(RECOVERY_MONTHS) + ". ₩0 in the opening month, before opening, and in vacation months. Empty months with no sales/costs do not create a loss."; },
   finalLeft: function(){ return "After monsoon − tax, vacation and maintenance buckets. The money that is really free this month."; },
   vatSetAside: function(){ return "Already removed from net sales — shown so you keep the cash aside, not subtracted again."; },
-  breakEven: function(){ return "POS sales needed so net profit ≥ 0 after COGS, labor, overhead, depreciation and loan interest."; }
+  breakEven: function(){ return "POS sales needed so net profit ≥ 0 after COGS, labor, overhead and depreciation (loans are paid after net profit)."; }
 };
 
 function infoTip(key){
@@ -82,8 +84,8 @@ function cashGuideHtml(c){
     '<div class="eyebrow">How to read the minus (−)</div>'+
     '<p class="lede" style="margin:6px 0 0"><b>This month:</b> '+mode+'</p>'+
     '<ul class="cash-guide-list">'+
-      '<li><b>'+LABEL.netProfit+'</b> = sales − all costs (loan interest is inside overhead). Recovery and buckets never change net profit.</li>'+
-      '<li><b>'+LABEL.cashAfterLoans+'</b> = net profit + depreciation (not real cash out) − loan principal.</li>'+
+      '<li><b>'+LABEL.netProfit+'</b> = sales − COGS, labor, overhead, depreciation. Loans are not in net profit. Recovery and buckets never change net profit.</li>'+
+      '<li><b>'+LABEL.cashAfterLoans+'</b> = net profit + depreciation (not real cash out) − the whole loan payment (interest + principal).</li>'+
       '<li><b>'+LABEL.recovery+'</b> = old losses since opening ('+esc(OPENING_DATE)+'). Net profit this month → <b>all</b> of it now; no net profit → ÷ '+monthsText(RECOVERY_MONTHS)+'. ₩0 in vacation months and the opening month.</li>'+
       '<li><b>'+LABEL.monsoon+'</b> = '+pct(MONSOON_RATE, 0)+' of what is left <b>after</b> prior-loss recovery (₩0 if nothing is left).</li>'+
       '<li><b>Profit buckets</b> = tax '+pct(PROFIT_BUCKET.taxRate, 0)+' + maintenance '+pct(PROFIT_BUCKET.maintRate, 0)+' of net profit, plus the vacation bucket.</li>'+

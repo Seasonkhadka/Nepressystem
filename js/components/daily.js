@@ -108,7 +108,7 @@ function renderDailyTab(){
         '<span class="item"><span class="dot" style="background:var(--row-vacation)"></span>Vacation</span>'+
         '<span class="item"><span class="dot" style="background:var(--row-closed)"></span>Closed</span>'+
       '</div>'+
-      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>Depr. + interest'+infoTip("depreciation")+'</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
+      '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Tag</th><th>Sales (POS)</th><th>COGS</th><th>COGS %</th><th>Labor</th><th>Labor %</th><th>Overhead</th><th>Overhead %</th><th>'+LABEL.depreciation+infoTip("depreciation")+'</th><th>Gross Profit</th><th>Net Profit</th><th>Net Margin</th></tr></thead>'+
       '<tbody id="daily-tbody">'+rows+'</tbody>'+
       '<tfoot><tr><td colspan="3">Month total (POS)</td>'+
         '<td class="tnum" data-foot="salesGross">₩0</td>'+
@@ -145,7 +145,7 @@ function refreshDailyComputedCells(model){
     tr.querySelector('[data-calc="laborPct"]').textContent = pct(d.laborPct);
     tr.querySelector('[data-calc="overhead"]').textContent = won(d.overhead);
     tr.querySelector('[data-calc="overheadPct"]').textContent = pct(d.overheadPct);
-    tr.querySelector('[data-calc="depInt"]').textContent = won(d.depreciation + d.interest);
+    tr.querySelector('[data-calc="depInt"]').textContent = won(d.depreciation);
     tr.querySelector('[data-calc="grossProfit"]').textContent = won(d.grossProfit);
     var np = tr.querySelector('[data-calc="netProfit"]');
     np.textContent = signedWon(d.netProfit);
@@ -174,7 +174,7 @@ function refreshDailyComputedCells(model){
   foot("laborPct", pct(m.laborPct));
   foot("overhead", won(m.overhead));
   foot("overheadPct", pct(m.overheadPct));
-  foot("depInt", won(m.depreciation + m.interest));
+  foot("depInt", won(m.depreciation));
   foot("grossProfit", won(m.grossProfit));
   foot("netProfit", signedWon(m.netProfit));
   foot("netMarginPct", pct(m.netMarginPct));

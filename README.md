@@ -4,7 +4,7 @@ Static web app for a Korea-based restaurant: track daily POS sales, raw material
 
 **Live:** [https://seasonkhadka.github.io/Nepressystem/](https://seasonkhadka.github.io/Nepressystem/)
 
-After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=73`) if the UI looks stale.
+After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=74`) if the UI looks stale.
 
 ---
 
@@ -46,7 +46,7 @@ Each day defaults from the calendar:
 - **Weekday** / **Weekend**
 - Override with **Vacation** or **Closed**
 
-Fixed costs (salaries, fixed overhead, depreciation, loan interest) are spread over **open** days. If a month has **no** open day, they are spread over every day, so a month that is entirely vacation still carries its rent.
+Fixed costs (salaries, fixed overhead, depreciation) are spread over **open** days. If a month has **no** open day, they are spread over every day, so a month that is entirely vacation still carries its rent.
 
 A **vacation month** = at least half its days are vacation.
 
@@ -56,7 +56,7 @@ Days in those ranges auto-tag as vacation when mode is on. Change month/year to 
 
 ### Net profit
 ```
-Net sales − COGS − Labor − Overhead − Depreciation − Loan interest = Net profit
+Net sales − COGS − Labor − Overhead − Depreciation = Net profit
 ```
 - **COGS** = this month's Raw Materials purchases, allocated across days by sales share. (Opening stock is not in COGS — known gap, separate change.)
 - **Depreciation** (non-cash), from the opening month:
@@ -67,7 +67,7 @@ Net sales − COGS − Labor − Overhead − Depreciation − Loan interest = N
 | Utensils | line total ÷ row life (default 24) |
 | Inventory / opening stock, deposit, cash float | none |
 
-- **Loan interest** = interest part of each loan's payment for this month, from the loan's own schedule (month 1 = its **first payment month**, default 2026-09).
+- **Loans are not in net profit.** The whole monthly installment (interest + principal) is taken out right after net profit as **Loan payment**. Do not also type loans into fixed overhead.
 
 ### Where the money goes (top to bottom)
 Shown under **Month at a glance** on the Dashboard and on P&L → Monthly.
@@ -75,7 +75,7 @@ Shown under **Month at a glance** on the Dashboard and on P&L → Monthly.
 ```
   Net profit
 + Depreciation (not real cash out)
-− Loan principal
+− Loan payment (interest + principal, the whole installment)
 = Cash after loans
 − Prior-loss recovery
 = After prior-loss recovery
@@ -100,7 +100,7 @@ Shown under **Month at a glance** on the Dashboard and on P&L → Monthly.
 
 - **Total invested** = money already spent (inventory + setup + utensils).  
 - The **Depreciation / mo** on each asset row is exactly what the P&amp;L uses. There is no second "memo" figure.  
-- Loans: equal installments. Each loan has a **first payment month**. Interest goes to the P&amp;L, and principal is subtracted only in the cash step.
+- Loans: equal installments. Each loan has a **first payment month**. The whole installment (interest + principal) is subtracted as "Loan payment" after net profit.
 
 ---
 
