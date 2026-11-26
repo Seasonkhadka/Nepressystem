@@ -43,7 +43,8 @@ function netSalesFromGross(gross){
  * Profit buckets (planning). Net profit is already after VAT, so VAT is info only
  * ("set aside, already excluded"), never subtracted again.
  */
-function computeProfitAllocation(netProfit, overheadMonth, salesGross){
+/** vacationMonth: the break itself — nothing is saved into the vacation bucket (it is being used). */
+function computeProfitAllocation(netProfit, overheadMonth, salesGross, vacationMonth){
   var b = PROFIT_BUCKET;
   var rates = vacationBucketRates();
   var profit = Number(netProfit) || 0;
@@ -51,7 +52,7 @@ function computeProfitAllocation(netProfit, overheadMonth, salesGross){
   var profitBase = Math.max(0, profit);
   var tax = profitBase * b.taxRate;
   var maintenance = profitBase * b.maintRate;
-  var vacation = oh * (rates.vacationMonths / rates.semesterAccrualMonths);
+  var vacation = vacationMonth ? 0 : oh * (rates.vacationMonths / rates.semesterAccrualMonths);
   var reserved = tax + maintenance + vacation;
   var afterBuckets = profit - reserved;
   return {
@@ -63,6 +64,7 @@ function computeProfitAllocation(netProfit, overheadMonth, salesGross){
     maintenance: maintenance,
     vacation: vacation,
     vacationRates: rates,
+    vacationMonth: !!vacationMonth,
     reserved: reserved,
     afterBuckets: afterBuckets,
     shortfall: afterBuckets < 0 ? -afterBuckets : 0
@@ -779,7 +781,7 @@ function computeAll(){
   var ownMoney = setupAssets.funding ? setupAssets.funding.ownMoney : 0;
   var lossCarry = computeLossCarryForward(year, month);
   var cash = monthCashSteps(pl);
-  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross);
+  var profitAllocation = computeProfitAllocation(monthly.netProfit, monthly.overhead, monthly.salesGross, pl.vacationMonth);
   // Money path: cash after loans → − prior-loss recovery → − monsoon (on what is left) → − profit buckets → final.
   var afterRecovery = cash.cashAfterLoans - lossCarry.charge;
   var monsoon = Math.max(0, afterRecovery) * MONSOON_RATE;

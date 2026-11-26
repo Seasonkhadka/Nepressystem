@@ -4,7 +4,7 @@ Static web app for a Korea-based restaurant: track daily POS sales, raw material
 
 **Live:** [https://seasonkhadka.github.io/Nepressystem/](https://seasonkhadka.github.io/Nepressystem/)
 
-After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=76`) if the UI looks stale.
+After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=77`) if the UI looks stale.
 
 ---
 
@@ -92,7 +92,7 @@ Shown under **Month at a glance** on the Dashboard and on P&L → Monthly.
   - Empty months (no sales/costs) do **not** invent a carried loss
 - **Carried loss** (cash basis): a minus in cash after loans, or recovery that cash after loans could not cover, carries to the next month.
 - Net profit is **before** prior-loss recovery, monsoon and buckets; they never change net profit.
-- **VAT is not subtracted again.** It is shown as "VAT to set aside (already excluded from profit)". Vacation bucket = overhead × break months ÷ semester months.
+- **VAT is not subtracted again.** It is shown as "VAT to set aside (already excluded from profit)". Vacation bucket = overhead × break months ÷ semester months, saved in working months only (₩0 in vacation months, when it is used).
 
 ---
 

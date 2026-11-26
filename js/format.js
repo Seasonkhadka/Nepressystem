@@ -119,7 +119,7 @@ function cashStepsHtml(c){
       formulaRow("− "+labelTip("monsoon"), c.monsoonShare, { less: true, note: pct(MONSOON_RATE, 0)+" of the line above"+(c.afterRecovery > 0 ? "" : " (₩0 — nothing left)") })+
       formulaRow("= "+LABEL.afterMonsoon, c.afterMonsoon, { signed: true, big: true })+
       formulaRow("− Tax bucket", a.tax, { less: true, note: pct(b.taxRate, 0)+" of net profit"+profitNote })+
-      formulaRow("− Vacation bucket", a.vacation, { less: true, note: vacNote })+
+      formulaRow("− Vacation bucket", a.vacation, { less: true, note: a.vacationMonth ? "₩0 — vacation month: this is when the bucket is used" : vacNote })+
       formulaRow("− Maintenance bucket", a.maintenance, { less: true, note: pct(b.maintRate, 0)+" of net profit"+profitNote })+
       formulaRow("= "+labelTip("finalLeft"), c.finalLeft, { signed: true, big: true })+
       formulaRow(labelTip("vatSetAside"), a.vatSetAside, { note: "info only — not subtracted" })+
