@@ -208,11 +208,13 @@ function renderRawMaterialsTab(){
       '<p class="raw-hint">Showing <b>'+monthLabel+'</b> only. Packs × ₩/pack = total. Size is what’s in one pack.</p>'+
       otherNote+
     '</section>'+
+    '<div id="bill-scan-host"></div>'+
     categorySectionHtml(catById(model, "meat"), namesByCat)+
     groceryGroupHtml(groceryCats, namesByCat)+
     categorySectionHtml(catById(model, "veg"), namesByCat)+
     lumpSectionHtml(catById(model, "nobill"))+
     '<section class="card"><h2>This month by category</h2><div class="raw-chart" id="raw-chart">'+rawMaterialsChartHtml(model)+'</div></section>';
+  renderBillScan();
 }
 
 function refreshRawComputedCells(model){

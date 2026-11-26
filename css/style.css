@@ -414,3 +414,16 @@
 /* ⓘ tooltip (labels from copy.js) */
 .info-tip{ display:inline-block; margin-left:3px; font-size:0.85em; font-weight:400; color:var(--muted); cursor:help; vertical-align:baseline; }
 .info-tip:hover, .info-tip:focus{ color:var(--ink); outline:none; }
+
+/* Bill photo → Raw Materials (bill-scan.js) */
+.bill-pick{ display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:10px; }
+.bill-pick .bill-file-btn{ width:auto; display:inline-block; text-align:center; }
+.bill-meta{ display:flex; flex-wrap:wrap; gap:12px; margin:12px 0 8px; font-size:12.5px; font-weight:600; color:var(--ink-soft); }
+.bill-meta label{ display:flex; flex-direction:column; gap:4px; }
+.bill-table td.bill-match{ font-size:11.5px; color:var(--muted); white-space:normal; min-width:110px; }
+.bill-actions{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.btn-primary, .btn-ghost{ appearance:none; font-weight:600; font-size:13px; padding:9px 14px; border-radius:8px; cursor:pointer; }
+.btn-primary{ border:1px solid var(--accent); background:var(--accent); color:var(--accent-ink); }
+.btn-ghost{ border:1px solid var(--hairline-strong); background:transparent; color:var(--ink-soft); }
+.bill-raw{ margin-top:10px; font-size:12px; color:var(--muted); }
+.bill-raw pre{ white-space:pre-wrap; max-height:220px; overflow:auto; background:var(--surface-2); padding:8px; border-radius:6px; }
