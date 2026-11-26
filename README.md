@@ -4,7 +4,7 @@ Static web app for a Korea-based restaurant: track daily POS sales, raw material
 
 **Live:** [https://seasonkhadka.github.io/Nepressystem/](https://seasonkhadka.github.io/Nepressystem/)
 
-After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=75`) if the UI looks stale.
+After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=76`) if the UI looks stale.
 
 ---
 
@@ -13,7 +13,7 @@ After deploy, hard-refresh with the cache query in `index.html` (e.g. `?v=75`) i
 | Tab | Purpose |
 |-----|---------|
 | **Dashboard** | Month KPIs, traffic charts, depreciation, cash / monsoon, setup capital |
-| **Raw Materials** | Purchases → monthly **COGS**; add a bill from a photo |
+| **Raw Materials** | Purchases → monthly **COGS** |
 | **Labor** | Part-time shifts (by month) + salaries + fixed / variable overhead |
 | **Setup & Assets** | Inventory, setup, utensils, loans, funding |
 | **Price Compare / Buy plan** | Supplier / purchase planning |
@@ -95,15 +95,6 @@ Shown under **Month at a glance** on the Dashboard and on P&L → Monthly.
 - **VAT is not subtracted again.** It is shown as "VAT to set aside (already excluded from profit)". Vacation bucket = overhead × break months ÷ semester months.
 
 ---
-
-## Bill photo → Raw Materials
-
-On **Raw Materials**, *Add a bill from a photo*:
-
-1. Take or choose a photo of an itemized receipt. It is read **in the browser** with free OCR (Tesseract.js, Korean + English). The first use downloads about 15 MB of language data, and nothing is uploaded.
-2. The app guesses the **date**, **store** and each **item line** (packs, ₩/pack, total), plus a category (meat, kitchen, outside, drinks, vegetables).
-3. Names are matched to existing items: exact, a longer or shorter version ("국내산 삼겹살 500g" → "삼겹살"), or a small spelling mistake. Names under 4 letters must match exactly, so 양파 ≠ 대파.
-4. Check and fix every line, then **Add checked lines**. Each line becomes a normal purchase on that item (or a new item), so COGS updates automatically.
 
 ## Setup &amp; assets vs P&amp;L
 

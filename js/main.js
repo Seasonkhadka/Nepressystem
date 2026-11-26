@@ -59,7 +59,6 @@ try {
   }
 }
 initRawEvents();
-initBillScanEvents();
 initLaborEvents();
 initAssetEvents();
 initDailyEvents();
